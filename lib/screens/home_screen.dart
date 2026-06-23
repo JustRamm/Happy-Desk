@@ -1,0 +1,843 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
+import 'notifications_screen.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _isClockedIn = false;
+  int _nglEntries = 13;
+  final int _targetEntries = 20;
+
+  void _toggleClockIn() {
+    setState(() {
+      _isClockedIn = !_isClockedIn;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _isClockedIn
+              ? '⚡ Clocked in successfully! Have a joyful session.'
+              : '👋 Clocked out. Great work today!',
+        ),
+        backgroundColor: AppTheme.primaryRust,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showAddEntryModal() {
+    final textController = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            top: 24,
+            left: 24,
+            right: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Add Anonymous Note 💌',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF7C3A68),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Share a kind word or secret appreciation to fill the team NGL Jar!',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13.5,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: textController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Write something uplifting...',
+                  filled: true,
+                  fillColor: const Color(0xFFF9F5F8),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (textController.text.trim().isNotEmpty) {
+                      setState(() {
+                        if (_nglEntries < _targetEntries) {
+                          _nglEntries++;
+                        }
+                      });
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('✨ Appreciation added to the jar!'),
+                          backgroundColor: Color(0xFF8C436E),
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8C436E),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                  ),
+                  child: Text(
+                    'Drop in Jar',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9F8FE), // Warm ambient light background
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Header Bar
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // User Avatar
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(21),
+                      child: Image.asset(
+                        'assets/images/user_avatar.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+
+                  // Brand Logo
+                  Image.asset(
+                    'assets/brand/logo_removedbg.png',
+                    height: 32,
+                    fit: BoxFit.contain,
+                  ),
+
+                  // Simple Notification Bell
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.notifications_none_rounded,
+                      color: Color(0xFF8B2600),
+                      size: 24,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Greeting Headline
+              Text(
+                "Let's spread some joy\ntoday.",
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  height: 1.2,
+                  color: AppTheme.titleDark,
+                  letterSpacing: -0.5,
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Card 1: Work Session Card (Orange)
+              _buildWorkSessionCard(),
+
+              const SizedBox(height: 20),
+
+              // Card 2: Your NGL Jar Card (Soft Lavender)
+              _buildNglJarCard(),
+
+              const SizedBox(height: 20),
+
+              // Card 3: Weekly Hero Card (Teal/Emerald with Hashtags)
+              _buildWeeklyHeroCard(),
+
+              const SizedBox(height: 20),
+
+              // Card 4: Your Week Summary Card (Productivity & Vibe Check)
+              _buildYourWeekCard(),
+
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Card 1: Work Session Card
+  Widget _buildWorkSessionCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFF652F), // Vibrant Coral Orange
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFF652F).withValues(alpha: 0.25),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // Background Watermark Clock Graphic
+          Positioned(
+            right: -10,
+            top: 10,
+            child: Opacity(
+              opacity: 0.15,
+              child: Container(
+                width: 130,
+                height: 130,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF4A1500),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.access_time_filled_rounded,
+                    size: 84,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Card Content
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Status Tag Pill
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  _isClockedIn ? 'Status: Clocked In (Active)' : 'Status: Not Clocked In',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF4A1500),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              // Headline
+              Text(
+                _isClockedIn ? 'Work session in progress!' : 'Ready to start your\nwork session?',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF4A1500),
+                  height: 1.2,
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // Subtitle Text
+              Text(
+                "Every minute counts toward the team's\nweekly happiness target!",
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF6B1D00),
+                  height: 1.35,
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Primary Action Button (Clock In / Clock Out)
+              ElevatedButton(
+                onPressed: _toggleClockIn,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF3D1200), // Dark Brown
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _isClockedIn ? 'Clock Out' : 'Clock In',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      _isClockedIn ? Icons.stop_circle_rounded : Icons.arrow_forward_rounded,
+                      size: 18,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              // Location Pill Button
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 16,
+                      color: Color(0xFF4A1500),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'HQ - San Francisco',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF4A1500),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Card 2: NGL Jar Card
+  Widget _buildNglJarCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEF0FF), // Soft Lavender/Purple
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.8),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF7C3A68).withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Title: "Your NGL Jar"
+          RichText(
+            text: TextSpan(
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 15.5,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF7C3A68),
+              ),
+              children: [
+                const TextSpan(text: 'Your '),
+                TextSpan(
+                  text: 'NGL Jar',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // Jar Graphic Illustration
+          SizedBox(
+            height: 160,
+            child: Image.asset(
+              'assets/images/ngl_jar.png',
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 120,
+                height: 140,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFCE7F3),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  size: 50,
+                  color: Color(0xFFEC4899),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // Subtitle / Progress Counter
+          Text(
+            '$_nglEntries/$_targetEntries entries',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 15.5,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF2A2050),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Unlock the jar by Friday!',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF6B5B95),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Button: Add Entry
+          ElevatedButton(
+            onPressed: _showAddEntryModal,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF8C436E),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+            ),
+            child: Text(
+              'Add Entry',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Card 3: Weekly Hero Card
+  Widget _buildWeeklyHeroCard() {
+    return Container(
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: const Color(0xFF00B887), // Rich Emerald/Teal
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF00B887).withValues(alpha: 0.25),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 32, 22, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Profile Image frame
+                Center(
+                  child: Container(
+                    width: 140,
+                    height: 140,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.asset(
+                        'assets/images/user_avatar.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Team Spotlight Tag
+                Text(
+                  'TEAM SPOTLIGHT',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.5,
+                    color: const Color(0xFF064E3B),
+                  ),
+                ),
+
+                const SizedBox(height: 4),
+
+                // Name: Sarah Chen
+                Text(
+                  'Sarah Chen',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF06372B),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                // Description Text
+                Text(
+                  'Helped 12 coworkers this week with the \'Neon Project\' launch. True legend!',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4,
+                    color: const Color(0xFF06372B),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Hashtags Row (#Supportive, #ProblemSolver)
+                Row(
+                  children: [
+                    _buildHeroHashtag('#Supportive'),
+                    const SizedBox(width: 8),
+                    _buildHeroHashtag('#ProblemSolver'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Top Yellow Badge: WEEKLY HERO
+          Positioned(
+            top: 0,
+            left: 24,
+            child: Transform.rotate(
+              angle: -0.04,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD000), // Vibrant Yellow
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
+                child: Text(
+                  'WEEKLY HERO',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                    color: const Color(0xFF1E1B18),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroHashtag(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF044E38),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
+  // Card 4: Your Week Summary Card
+  Widget _buildYourWeekCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: const Color(0xFFFFF0F5),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Your Week',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF524036),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Productivity Row & Bar
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Productivity',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.titleDark,
+                ),
+              ),
+              Text(
+                '88%',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.brandTitleOrange,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Stack(
+            children: [
+              Container(
+                height: 8,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAEFFF),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              FractionallySizedBox(
+                widthFactor: 0.88,
+                child: Container(
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryRust,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 18),
+
+          // Vibe Check Row & Bar
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Vibe Check',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.titleDark,
+                ),
+              ),
+              Text(
+                'High',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF8C436E),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Stack(
+            children: [
+              Container(
+                height: 8,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAEFFF),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              FractionallySizedBox(
+                widthFactor: 0.70,
+                child: Container(
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8C436E),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // View Full Report Outlined Button
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Opening Weekly Analytics Report')),
+                );
+              },
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFF524036), width: 1.2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              child: RichText(
+                text: TextSpan(
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.5,
+                    color: const Color(0xFF524036),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  children: [
+                    const TextSpan(text: 'View '),
+                    TextSpan(
+                      text: 'Full ',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const TextSpan(text: 'Report'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
