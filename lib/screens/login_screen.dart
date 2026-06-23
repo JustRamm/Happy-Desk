@@ -31,16 +31,16 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF0F5),
+      backgroundColor: const Color(0xFFFFF0F5), // Soft Pink ambient background
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
           child: Column(
             children: [
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
-              // White Circular Logo Container with Smiley
+              // White Circular Logo Container with Mascot
               Center(
                 child: Container(
                   width: 72,
@@ -61,7 +61,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Image.asset(
                       'assets/brand/app_icon.png',
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Image.asset('assets/brand/logo_removedbg.png'),
+                      errorBuilder: (context, error, stackTrace) => const Center(
+                        child: Icon(
+                          Icons.sentiment_satisfied_alt_rounded,
+                          color: Color(0xFF8B2600),
+                          size: 42,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -91,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 28),
 
-              // White Main Form Card
+              // Main White Form Card
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
@@ -109,7 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Email Field
+                    // Email Address Field
                     _buildInputLabel('Email Address'),
                     const SizedBox(height: 6),
                     _buildTextField(
@@ -120,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 18),
 
-                    // Password Field with Forgot? Action
+                    // Password Field with Forgot? Link
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -192,7 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Or continue with Divider
+                    // Or continue with Divider Label
                     Center(
                       child: Text(
                         'Or continue with',
@@ -274,7 +280,120 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 36),
+
+              // Playful Mood Characters Row (Teal, Orange, Pink)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Mood 1: Teal Happy Squircle
+                  Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00B887),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF06372B), shape: BoxShape.circle)),
+                            const SizedBox(width: 16),
+                            Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF06372B), shape: BoxShape.circle)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: 18,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF06372B),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  // Mood 2: Orange Neutral Circle
+                  Container(
+                    width: 82,
+                    height: 82,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFF652F),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF4A1500), shape: BoxShape.circle)),
+                            const SizedBox(width: 18),
+                            Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF4A1500), shape: BoxShape.circle)),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          width: 22,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4A1500),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  // Mood 3: Pink Tear / Speech Bubble Shape
+                  Container(
+                    width: 74,
+                    height: 74,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFF8EA9),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(32),
+                        topRight: Radius.circular(32),
+                        bottomRight: Radius.circular(32),
+                        bottomLeft: Radius.circular(8),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('^', style: TextStyle(color: Color(0xFF4D1424), fontSize: 13, fontWeight: FontWeight.bold)),
+                            SizedBox(width: 14),
+                            Text('^', style: TextStyle(color: Color(0xFF4D1424), fontSize: 13, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Container(
+                          width: 16,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4D1424),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 32),
 
               // Switch to Sign Up Link
               GestureDetector(
@@ -289,7 +408,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const TextSpan(text: "Don't have an account? "),
                       TextSpan(
-                        text: 'Join the Team',
+                        text: 'Join the team',
                         style: GoogleFonts.plusJakartaSans(
                           color: AppTheme.primaryRust,
                           fontWeight: FontWeight.w700,
@@ -366,12 +485,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildGoogleIcon() {
-    return Container(
+    return SizedBox(
       width: 16,
       height: 16,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-      ),
       child: CustomPaint(
         painter: _GoogleIconPainter(),
       ),
