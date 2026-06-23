@@ -40,58 +40,108 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               const SizedBox(height: 12),
 
-              // White Circular Logo Container with Mascot
+              // Top Mascot Container matching reference image
               Center(
                 child: Container(
-                  width: 72,
-                  height: 72,
+                  width: 90,
+                  height: 90,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(32),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(36),
-                    child: Image.asset(
-                      'assets/brand/app_icon.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const Center(
-                        child: Icon(
-                          Icons.sentiment_satisfied_alt_rounded,
-                          color: Color(0xFF8B2600),
-                          size: 42,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Subtle watermark background text inside card
+                      Opacity(
+                        opacity: 0.08,
+                        child: Text(
+                          'AURA\nWelcome Back',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
                         ),
                       ),
-                    ),
+                      // Main Brown Smiley Face Badge
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF8B2600),
+                            width: 3,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 2),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF8B2600),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF8B2600),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            // Curved Smile Arc
+                            CustomPaint(
+                              size: const Size(18, 6),
+                              painter: _SmileArcPainter(color: const Color(0xFF8B2600)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // Title & Subtitle
               Text(
                 'Welcome Back!',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 28,
+                  fontSize: 30,
                   fontWeight: FontWeight.w800,
-                  color: AppTheme.titleDark,
+                  color: AppTheme.onSurface,
                   letterSpacing: -0.5,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 'Log in to check your team\'s vibe.',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.beVietnamPro(
                   fontSize: 14.5,
                   fontWeight: FontWeight.w500,
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.onSurfaceVariant,
                 ),
               ),
 
@@ -117,14 +167,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     // Email Address Field
                     _buildInputLabel('Email Address'),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     _buildTextField(
                       controller: _emailController,
                       hintText: 'name@company.com',
                       icon: Icons.email_outlined,
                     ),
 
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 20),
 
                     // Password Field with Forgot? Link
                     Row(
@@ -134,12 +184,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         GestureDetector(
                           onTap: () {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Password reset email sent!')),
+                              const SnackBar(content: Text('Password reset link sent!')),
                             );
                           },
                           child: Text(
                             'Forgot?',
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.beVietnamPro(
                               fontSize: 12.5,
                               fontWeight: FontWeight.w700,
                               color: const Color(0xFFA04568),
@@ -148,7 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     _buildTextField(
                       controller: _passwordController,
                       hintText: '••••••••',
@@ -171,10 +221,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: ElevatedButton(
                         onPressed: widget.onLoginSuccess,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryRust,
+                          backgroundColor: AppTheme.primary,
                           foregroundColor: Colors.white,
                           elevation: 3,
-                          shadowColor: AppTheme.primaryRust.withValues(alpha: 0.4),
+                          shadowColor: AppTheme.primary.withValues(alpha: 0.4),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(28),
                           ),
@@ -198,14 +248,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Or continue with Divider Label
+                    // Or continue with Divider
                     Center(
                       child: Text(
                         'Or continue with',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12.5,
+                        style: GoogleFonts.beVietnamPro(
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -236,7 +286,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.w700,
-                                    color: AppTheme.titleDark,
+                                    color: AppTheme.onSurface,
                                   ),
                                 ),
                               ],
@@ -267,7 +317,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.w700,
-                                    color: AppTheme.titleDark,
+                                    color: AppTheme.onSurface,
                                   ),
                                 ),
                               ],
@@ -282,7 +332,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 36),
 
-              // Playful Mood Characters Row (Teal, Orange, Pink)
+              // Playful Mood Characters Row (Teal Squircle, Orange Circle, Pink Speech Bubble)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -305,14 +355,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF06372B), shape: BoxShape.circle)),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Container(
-                          width: 18,
-                          height: 3,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF06372B),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
+                        const SizedBox(height: 10),
+                        CustomPaint(
+                          size: const Size(18, 6),
+                          painter: _SmileArcPainter(color: const Color(0xFF06372B)),
                         ),
                       ],
                     ),
@@ -322,8 +368,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Mood 2: Orange Neutral Circle
                   Container(
-                    width: 82,
-                    height: 82,
+                    width: 84,
+                    height: 84,
                     decoration: const BoxDecoration(
                       color: Color(0xFFFF652F),
                       shape: BoxShape.circle,
@@ -341,7 +387,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 10),
                         Container(
-                          width: 22,
+                          width: 24,
                           height: 4,
                           decoration: BoxDecoration(
                             color: const Color(0xFF4A1500),
@@ -354,17 +400,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(width: 16),
 
-                  // Mood 3: Pink Tear / Speech Bubble Shape
+                  // Mood 3: Pink Speech Bubble / Leaf Shape
                   Container(
                     width: 74,
                     height: 74,
                     decoration: const BoxDecoration(
                       color: Color(0xFFFF8EA9),
                       borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(32),
-                        topRight: Radius.circular(32),
-                        bottomRight: Radius.circular(32),
-                        bottomLeft: Radius.circular(8),
+                        topLeft: Radius.circular(36),
+                        topRight: Radius.circular(36),
+                        bottomRight: Radius.circular(36),
+                        bottomLeft: Radius.circular(6),
                       ),
                     ),
                     child: Column(
@@ -373,9 +419,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('^', style: TextStyle(color: Color(0xFF4D1424), fontSize: 13, fontWeight: FontWeight.bold)),
+                            Text('^', style: TextStyle(color: Color(0xFF4D1424), fontSize: 13, fontWeight: FontWeight.w900)),
                             SizedBox(width: 14),
-                            Text('^', style: TextStyle(color: Color(0xFF4D1424), fontSize: 13, fontWeight: FontWeight.bold)),
+                            Text('^', style: TextStyle(color: Color(0xFF4D1424), fontSize: 13, fontWeight: FontWeight.w900)),
                           ],
                         ),
                         const SizedBox(height: 2),
@@ -400,9 +446,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 onTap: widget.onSignUpTap,
                 child: RichText(
                   text: TextSpan(
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.beVietnamPro(
                       fontSize: 14,
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
                     children: [
@@ -410,7 +456,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextSpan(
                         text: 'Join the team',
                         style: GoogleFonts.plusJakartaSans(
-                          color: AppTheme.primaryRust,
+                          color: AppTheme.primary,
                           fontWeight: FontWeight.w700,
                           decoration: TextDecoration.underline,
                         ),
@@ -451,18 +497,22 @@ class _LoginScreenState extends State<LoginScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFF4F4FD),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFEAEFFF),
+          width: 1,
+        ),
       ),
       child: TextField(
         controller: controller,
         obscureText: obscureText,
-        style: GoogleFonts.plusJakartaSans(
+        style: GoogleFonts.beVietnamPro(
           fontSize: 14.5,
           fontWeight: FontWeight.w600,
-          color: AppTheme.titleDark,
+          color: AppTheme.onSurface,
         ),
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: GoogleFonts.plusJakartaSans(
+          hintStyle: GoogleFonts.beVietnamPro(
             color: Colors.grey.shade500,
             fontSize: 14,
           ),
@@ -501,6 +551,27 @@ class _LoginScreenState extends State<LoginScreen> {
       size: 18,
     );
   }
+}
+
+class _SmileArcPainter extends CustomPainter {
+  final Color color;
+
+  _SmileArcPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round;
+
+    final rect = Rect.fromLTWH(0, -size.height, size.width, size.height * 2);
+    canvas.drawArc(rect, 0.2, 2.7, false, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _GoogleIconPainter extends CustomPainter {
