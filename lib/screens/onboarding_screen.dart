@@ -15,7 +15,7 @@ class OnboardingScreen extends StatelessWidget {
     super.key,
     this.onNextPressed,
     this.onLoginPressed,
-    this.imagePath = 'assets/images/office_appreciation.png',
+    this.imagePath = 'assets/images/onboarding.png',
     this.pageIndex = 0,
     this.totalPages = 3,
   });

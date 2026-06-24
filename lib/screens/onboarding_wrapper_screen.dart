@@ -74,6 +74,7 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
               OnboardingScreen(
                 pageIndex: _currentPageIndex,
                 totalPages: 3,
+                imagePath: 'assets/images/onboarding.png',
                 onNextPressed: () {
                   _pageController.nextPage(
                     duration: const Duration(milliseconds: 400),
@@ -87,7 +88,7 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
               OnboardingScreen(
                 pageIndex: _currentPageIndex,
                 totalPages: 3,
-                imagePath: 'assets/images/office_appreciation.png',
+                imagePath: 'assets/images/onboarding.png',
                 onNextPressed: () {
                   _pageController.nextPage(
                     duration: const Duration(milliseconds: 400),
@@ -101,7 +102,7 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
               OnboardingScreen(
                 pageIndex: _currentPageIndex,
                 totalPages: 3,
-                imagePath: 'assets/images/office_appreciation.png',
+                imagePath: 'assets/images/onboarding.png',
                 onNextPressed: () => _navigateToAuth(isLogin: false),
                 onLoginPressed: () => _navigateToAuth(isLogin: true),
               ),
