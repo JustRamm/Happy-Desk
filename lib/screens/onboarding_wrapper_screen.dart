@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'splash_loading_screen.dart';
 import 'onboarding_screen.dart';
 import 'auth_screen.dart';
-import 'main_navigation_screen.dart';
 
 class OnboardingWrapperScreen extends StatefulWidget {
   const OnboardingWrapperScreen({super.key});
@@ -24,24 +23,11 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
     }
   }
 
-  void _resetToSplash() {
-    setState(() {
-      _isLoading = true;
-      _currentPageIndex = 0;
-    });
-  }
-
   void _navigateToAuth({bool isLogin = false}) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AuthScreen(initialIsLogin: isLogin),
       ),
-    );
-  }
-
-  void _navigateToMainHome() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
     );
   }
 
@@ -109,52 +95,7 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
             ],
           ),
 
-          // Top Action Controls (Jump to Home & Replay Splash)
-          Positioned(
-            top: 10,
-            right: 16,
-            child: SafeArea(
-              child: Row(
-                children: [
-                  TextButton.icon(
-                    onPressed: _navigateToMainHome,
-                    icon: const Icon(Icons.home_outlined, size: 18, color: Color(0xFFC84B1A)),
-                    label: const Text(
-                      'Home',
-                      style: TextStyle(color: Color(0xFFC84B1A), fontWeight: FontWeight.bold),
-                    ),
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.9),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: _resetToSplash,
-                    tooltip: 'View Splash Screen',
-                    icon: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.replay_rounded,
-                        size: 20,
-                        color: Color(0xFFC84B1A),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+
         ],
       ),
     );
