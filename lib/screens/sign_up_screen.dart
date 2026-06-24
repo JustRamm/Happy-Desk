@@ -42,42 +42,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
             children: [
               const SizedBox(height: 12),
 
-              // Top Mascot Icon
-              Center(
-                child: Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFF652F),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFFF652F).withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Image.asset(
-                      'assets/brand/app_icon.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Image.asset('assets/brand/logo_removedbg.png'),
-                    ),
-                  ),
-                ),
-              ),
+              const SizedBox(height: 20),
 
-              const SizedBox(height: 16),
-
-              // App Brand Logo & Tagline
-              Image.asset(
-                'assets/brand/logo_removedbg.png',
-                height: 40,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 4),
+              // Slogan Tagline
               Text(
                 'Work hard, play hard. Let\'s get started.',
                 style: GoogleFonts.plusJakartaSans(

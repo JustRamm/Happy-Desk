@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
@@ -38,92 +39,18 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
           child: Column(
             children: [
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-              // Top Mascot Container matching reference image
+              // Brand Logo on Top (logo_removedbg.png)
               Center(
-                child: Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(32),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Subtle watermark background text inside card
-                      Opacity(
-                        opacity: 0.08,
-                        child: Text(
-                          'AURA\nWelcome Back',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ),
-                      // Main Brown Smiley Face Badge
-                      Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFF8B2600),
-                            width: 3,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 2),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  width: 6,
-                                  height: 6,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFF8B2600),
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Container(
-                                  width: 6,
-                                  height: 6,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFF8B2600),
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            // Curved Smile Arc
-                            CustomPaint(
-                              size: const Size(18, 6),
-                              painter: _SmileArcPainter(color: const Color(0xFF8B2600)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                child: Image.asset(
+                  'assets/brand/logo_removedbg.png',
+                  height: 48,
+                  fit: BoxFit.contain,
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               // Title & Subtitle
               Text(
@@ -332,112 +259,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 36),
 
-              // Playful Mood Characters Row (Teal Squircle, Orange Circle, Pink Speech Bubble)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Mood 1: Teal Happy Squircle
-                  Container(
-                    width: 76,
-                    height: 76,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF00B887),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF06372B), shape: BoxShape.circle)),
-                            const SizedBox(width: 16),
-                            Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF06372B), shape: BoxShape.circle)),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        CustomPaint(
-                          size: const Size(18, 6),
-                          painter: _SmileArcPainter(color: const Color(0xFF06372B)),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(width: 16),
-
-                  // Mood 2: Orange Neutral Circle
-                  Container(
-                    width: 84,
-                    height: 84,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF652F),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF4A1500), shape: BoxShape.circle)),
-                            const SizedBox(width: 18),
-                            Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF4A1500), shape: BoxShape.circle)),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Container(
-                          width: 24,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4A1500),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(width: 16),
-
-                  // Mood 3: Pink Speech Bubble / Leaf Shape
-                  Container(
-                    width: 74,
-                    height: 74,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF8EA9),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(36),
-                        topRight: Radius.circular(36),
-                        bottomRight: Radius.circular(36),
-                        bottomLeft: Radius.circular(6),
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('^', style: TextStyle(color: Color(0xFF4D1424), fontSize: 13, fontWeight: FontWeight.w900)),
-                            SizedBox(width: 14),
-                            Text('^', style: TextStyle(color: Color(0xFF4D1424), fontSize: 13, fontWeight: FontWeight.w900)),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Container(
-                          width: 16,
-                          height: 3,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4D1424),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              // Animated 3 Playful Mood Emoji Avatars
+              const AnimatedMoodCharacters(),
 
               const SizedBox(height: 32),
 
@@ -549,6 +372,187 @@ class _LoginScreenState extends State<LoginScreen> {
       Icons.tag_rounded,
       color: Color(0xFFE01E5A),
       size: 18,
+    );
+  }
+}
+
+// Stateful Animated Mood Characters Widget
+class AnimatedMoodCharacters extends StatefulWidget {
+  const AnimatedMoodCharacters({super.key});
+
+  @override
+  State<AnimatedMoodCharacters> createState() => _AnimatedMoodCharactersState();
+}
+
+class _AnimatedMoodCharactersState extends State<AnimatedMoodCharacters>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final value = _controller.value;
+        final float1 = math.sin(value * math.pi * 2) * 5;
+        final scale2 = 1.0 + (math.sin(value * math.pi * 2) * 0.06);
+        final float3 = math.cos(value * math.pi * 2) * 5;
+        final rotate3 = math.sin(value * math.pi) * 0.08;
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Mood 1: Teal Happy Squircle (Floating Bounce)
+            Transform.translate(
+              offset: Offset(0, float1),
+              child: Container(
+                width: 76,
+                height: 76,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00B887),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF00B887).withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      offset: Offset(0, 4 - float1),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF06372B), shape: BoxShape.circle)),
+                        const SizedBox(width: 16),
+                        Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF06372B), shape: BoxShape.circle)),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    CustomPaint(
+                      size: const Size(18, 6),
+                      painter: _SmileArcPainter(color: const Color(0xFF06372B)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 16),
+
+            // Mood 2: Orange Neutral Circle (Breathing Pulse)
+            Transform.scale(
+              scale: scale2,
+              child: Container(
+                width: 84,
+                height: 84,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF652F),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFF652F).withValues(alpha: 0.35),
+                      blurRadius: 12 * scale2,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF4A1500), shape: BoxShape.circle)),
+                        const SizedBox(width: 18),
+                        Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF4A1500), shape: BoxShape.circle)),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      width: 24,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4A1500),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 16),
+
+            // Mood 3: Pink Speech Bubble (Side Float + Wobble)
+            Transform.translate(
+              offset: Offset(0, float3),
+              child: Transform.rotate(
+                angle: rotate3,
+                child: Container(
+                  width: 74,
+                  height: 74,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF8EA9),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(36),
+                      topRight: Radius.circular(36),
+                      bottomRight: Radius.circular(36),
+                      bottomLeft: Radius.circular(6),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFF8EA9).withValues(alpha: 0.35),
+                        blurRadius: 10,
+                        offset: Offset(0, 4 - float3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('^', style: TextStyle(color: Color(0xFF4D1424), fontSize: 13, fontWeight: FontWeight.w900)),
+                          SizedBox(width: 14),
+                          Text('^', style: TextStyle(color: Color(0xFF4D1424), fontSize: 13, fontWeight: FontWeight.w900)),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Container(
+                        width: 16,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4D1424),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
