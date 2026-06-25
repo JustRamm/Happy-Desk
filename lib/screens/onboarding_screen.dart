@@ -34,8 +34,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3000),
-    )..repeat(reverse: true);
+      duration: const Duration(milliseconds: 6000), // Smooth 6s revolving cycle
+    )..repeat();
   }
 
   @override
@@ -55,14 +55,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             children: [
               const SizedBox(height: 12),
 
-              // Top Header Bar: Transparent Logo & Skip
+              // Top Header Bar: Bigger Transparent Logo & Skip
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // App Brand Logo (assets/brand/logo_removedbg.png)
+                  // App Brand Logo (assets/brand/logo_removedbg.png - Bigger height 46)
                   Image.asset(
                     'assets/brand/logo_removedbg.png',
-                    height: 32,
+                    height: 46,
                     fit: BoxFit.contain,
                   ),
 
@@ -86,7 +86,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
               const SizedBox(height: 16),
 
-              // Animated Organic Blob Image Container (Floating + Scaling + Zoomed Image)
+              // Revolving Organic Blob Image Container (Fixed Place Smooth Rotation)
               Expanded(
                 flex: 5,
                 child: Center(
@@ -94,58 +94,55 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     animation: _animationController,
                     builder: (context, child) {
                       final progress = _animationController.value;
-                      final floatY = math.sin(progress * math.pi * 2) * 6;
-                      final breathScale = 1.0 + (math.sin(progress * math.pi * 2) * 0.025);
-                      final tiltAngle = math.sin(progress * math.pi) * 0.015;
+                      // Gentle back-and-forth revolving orbital angle in fixed position
+                      final revolveAngle = math.sin(progress * math.pi * 2) * 0.06;
+                      final breathScale = 1.0 + (math.sin(progress * math.pi * 2) * 0.02);
 
-                      return Transform.translate(
-                        offset: Offset(0, floatY),
-                        child: Transform.rotate(
-                          angle: tiltAngle,
-                          child: Transform.scale(
-                            scale: breathScale,
-                            child: Container(
-                              width: double.infinity,
-                              constraints: const BoxConstraints(maxHeight: 310),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFE6DD), // Soft organic peach background
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(160),
-                                  topRight: Radius.circular(160),
-                                  bottomLeft: Radius.circular(140),
-                                  bottomRight: Radius.circular(140),
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFFFF652F).withValues(alpha: 0.16),
-                                    blurRadius: 28,
-                                    offset: Offset(0, 10 - floatY),
-                                  ),
-                                ],
+                      return Transform.rotate(
+                        angle: revolveAngle,
+                        child: Transform.scale(
+                          scale: breathScale,
+                          child: Container(
+                            width: double.infinity,
+                            constraints: const BoxConstraints(maxHeight: 310),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFE6DD), // Soft organic peach background
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(160),
+                                topRight: Radius.circular(160),
+                                bottomLeft: Radius.circular(140),
+                                bottomRight: Radius.circular(140),
                               ),
-                              padding: const EdgeInsets.all(8),
-                              child: ClipRRect(
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(150),
-                                  topRight: Radius.circular(150),
-                                  bottomLeft: Radius.circular(130),
-                                  bottomRight: Radius.circular(130),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFFF652F).withValues(alpha: 0.16),
+                                  blurRadius: 28,
+                                  offset: const Offset(0, 10),
                                 ),
-                                child: Transform.scale(
-                                  scale: 1.15, // Zoom in slightly so side edges fit seamlessly
-                                  child: Image.asset(
-                                    widget.imagePath,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return const Center(
-                                        child: Icon(
-                                          Icons.groups_rounded,
-                                          size: 80,
-                                          color: Color(0xFFFF652F),
-                                        ),
-                                      );
-                                    },
-                                  ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.all(8),
+                            child: ClipRRect(
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(150),
+                                topRight: Radius.circular(150),
+                                bottomLeft: Radius.circular(130),
+                                bottomRight: Radius.circular(130),
+                              ),
+                              child: Transform.scale(
+                                scale: 1.18, // Zoomed in so side edges fit seamlessly without sharp cuts
+                                child: Image.asset(
+                                  widget.imagePath,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Center(
+                                      child: Icon(
+                                        Icons.groups_rounded,
+                                        size: 80,
+                                        color: Color(0xFFFF652F),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ),
