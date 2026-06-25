@@ -1,10 +1,11 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../widgets/feature_badge_card.dart';
 import '../widgets/page_indicator.dart';
 
-class OnboardingScreen extends StatelessWidget {
+class OnboardingScreen extends StatefulWidget {
   final VoidCallback? onNextPressed;
   final VoidCallback? onLoginPressed;
   final String imagePath;
@@ -21,6 +22,29 @@ class OnboardingScreen extends StatelessWidget {
   });
 
   @override
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends State<OnboardingScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF9F8), // Warm soft background
@@ -31,24 +55,20 @@ class OnboardingScreen extends StatelessWidget {
             children: [
               const SizedBox(height: 12),
 
-              // Top Header Bar: HappyDesk & Skip
+              // Top Header Bar: Transparent Logo & Skip
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // App Title (HappyDesk)
-                  Text(
-                    'HappyDesk',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFFFF652F), // Vivid Coral Orange
-                      letterSpacing: -0.5,
-                    ),
+                  // App Brand Logo (assets/brand/logo_removedbg.png)
+                  Image.asset(
+                    'assets/brand/logo_removedbg.png',
+                    height: 32,
+                    fit: BoxFit.contain,
                   ),
 
                   // Skip Link
                   GestureDetector(
-                    onTap: onLoginPressed,
+                    onTap: widget.onLoginPressed,
                     child: Padding(
                       padding: const EdgeInsets.all(6.0),
                       child: Text(
@@ -66,51 +86,73 @@ class OnboardingScreen extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // Organic Asymmetrical Blob Image Container (Exact shape matching reference image)
+              // Animated Organic Blob Image Container (Floating + Scaling + Zoomed Image)
               Expanded(
                 flex: 5,
                 child: Center(
-                  child: Container(
-                    width: double.infinity,
-                    constraints: const BoxConstraints(maxHeight: 310),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFE6DD), // Soft organic peach background
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(160),
-                        topRight: Radius.circular(160),
-                        bottomLeft: Radius.circular(140),
-                        bottomRight: Radius.circular(140),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFFF652F).withValues(alpha: 0.12),
-                          blurRadius: 24,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(150),
-                        topRight: Radius.circular(150),
-                        bottomLeft: Radius.circular(130),
-                        bottomRight: Radius.circular(130),
-                      ),
-                      child: Image.asset(
-                        imagePath,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Icon(
-                              Icons.groups_rounded,
-                              size: 80,
-                              color: Color(0xFFFF652F),
+                  child: AnimatedBuilder(
+                    animation: _animationController,
+                    builder: (context, child) {
+                      final progress = _animationController.value;
+                      final floatY = math.sin(progress * math.pi * 2) * 6;
+                      final breathScale = 1.0 + (math.sin(progress * math.pi * 2) * 0.025);
+                      final tiltAngle = math.sin(progress * math.pi) * 0.015;
+
+                      return Transform.translate(
+                        offset: Offset(0, floatY),
+                        child: Transform.rotate(
+                          angle: tiltAngle,
+                          child: Transform.scale(
+                            scale: breathScale,
+                            child: Container(
+                              width: double.infinity,
+                              constraints: const BoxConstraints(maxHeight: 310),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFE6DD), // Soft organic peach background
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(160),
+                                  topRight: Radius.circular(160),
+                                  bottomLeft: Radius.circular(140),
+                                  bottomRight: Radius.circular(140),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFFF652F).withValues(alpha: 0.16),
+                                    blurRadius: 28,
+                                    offset: Offset(0, 10 - floatY),
+                                  ),
+                                ],
+                              ),
+                              padding: const EdgeInsets.all(8),
+                              child: ClipRRect(
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(150),
+                                  topRight: Radius.circular(150),
+                                  bottomLeft: Radius.circular(130),
+                                  bottomRight: Radius.circular(130),
+                                ),
+                                child: Transform.scale(
+                                  scale: 1.15, // Zoom in slightly so side edges fit seamlessly
+                                  child: Image.asset(
+                                    widget.imagePath,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Center(
+                                        child: Icon(
+                                          Icons.groups_rounded,
+                                          size: 80,
+                                          color: Color(0xFFFF652F),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -189,7 +231,7 @@ class OnboardingScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: onNextPressed,
+                  onPressed: widget.onNextPressed,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFC84B1A),
                     foregroundColor: Colors.white,
@@ -224,7 +266,7 @@ class OnboardingScreen extends StatelessWidget {
 
               // Secondary Action: Log in link
               GestureDetector(
-                onTap: onLoginPressed,
+                onTap: widget.onLoginPressed,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4.0),
                   child: RichText(
@@ -254,8 +296,8 @@ class OnboardingScreen extends StatelessWidget {
 
               // Page Indicator Dots
               PageIndicatorDots(
-                currentIndex: pageIndex,
-                count: totalPages,
+                currentIndex: widget.pageIndex,
+                count: widget.totalPages,
               ),
 
               const SizedBox(height: 16),
