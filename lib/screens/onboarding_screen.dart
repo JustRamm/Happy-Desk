@@ -23,44 +23,89 @@ class OnboardingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F8),
+      backgroundColor: const Color(0xFFFAF9F8), // Warm soft background
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             children: [
               const SizedBox(height: 12),
-              
-              // Top Illustration Container with Soft Peach Blob background
+
+              // Top Header Bar: HappyDesk & Skip
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // App Title (HappyDesk)
+                  Text(
+                    'HappyDesk',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFFFF652F), // Vivid Coral Orange
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+
+                  // Skip Link
+                  GestureDetector(
+                    onTap: onLoginPressed,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6.0),
+                      child: Text(
+                        'Skip',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF594139),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // Organic Asymmetrical Blob Image Container (Exact shape matching reference image)
               Expanded(
                 flex: 5,
                 child: Center(
                   child: Container(
                     width: double.infinity,
-                    constraints: const BoxConstraints(maxHeight: 320),
+                    constraints: const BoxConstraints(maxHeight: 310),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryRustLight,
-                      borderRadius: BorderRadius.circular(160),
+                      color: const Color(0xFFFFE6DD), // Soft organic peach background
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(160),
+                        topRight: Radius.circular(160),
+                        bottomLeft: Radius.circular(140),
+                        bottomRight: Radius.circular(140),
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primaryRust.withValues(alpha: 0.04),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
+                          color: const Color(0xFFFF652F).withValues(alpha: 0.12),
+                          blurRadius: 24,
+                          offset: const Offset(0, 10),
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(12),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(140),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(150),
+                        topRight: Radius.circular(150),
+                        bottomLeft: Radius.circular(130),
+                        bottomRight: Radius.circular(130),
+                      ),
                       child: Image.asset(
                         imagePath,
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) {
-                          return Center(
+                          return const Center(
                             child: Icon(
                               Icons.groups_rounded,
                               size: 80,
-                              color: AppTheme.primaryRust.withValues(alpha: 0.5),
+                              color: Color(0xFFFF652F),
                             ),
                           );
                         },
@@ -81,13 +126,14 @@ class OnboardingScreen extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                     height: 1.2,
                     color: AppTheme.titleDark,
+                    letterSpacing: -0.4,
                   ),
                   children: [
                     const TextSpan(text: 'Build a happier '),
                     TextSpan(
                       text: 'office\ntogether.',
                       style: GoogleFonts.plusJakartaSans(
-                        color: AppTheme.primaryRust,
+                        color: const Color(0xFFC84B1A), // Deep Rust Orange
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -95,7 +141,7 @@ class OnboardingScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               // Subtitle Text
               Text(
@@ -116,9 +162,9 @@ class OnboardingScreen extends StatelessWidget {
                 children: const [
                   Expanded(
                     child: FeatureBadgeCard(
-                      backgroundColor: AppTheme.pinkBadgeBg,
-                      iconBackgroundColor: AppTheme.pinkIconBg,
-                      iconColor: AppTheme.pinkIconColor,
+                      backgroundColor: Color(0xFFF4F4FD),
+                      iconBackgroundColor: Color(0xFFFCE7F3),
+                      iconColor: Color(0xFFEC4899),
                       icon: Icons.volunteer_activism_rounded,
                       title: 'Anonymous',
                     ),
@@ -126,9 +172,9 @@ class OnboardingScreen extends StatelessWidget {
                   SizedBox(width: 12),
                   Expanded(
                     child: FeatureBadgeCard(
-                      backgroundColor: AppTheme.mintBadgeBg,
-                      iconBackgroundColor: AppTheme.mintIconBg,
-                      iconColor: AppTheme.mintIconColor,
+                      backgroundColor: Color(0xFFF4F4FD),
+                      iconBackgroundColor: Color(0xFFD1FAE5),
+                      iconColor: Color(0xFF10B981),
                       icon: Icons.emoji_events_rounded,
                       title: 'Weekly Heroes',
                     ),
@@ -145,10 +191,10 @@ class OnboardingScreen extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onNextPressed,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryRust,
+                    backgroundColor: const Color(0xFFC84B1A),
                     foregroundColor: Colors.white,
                     elevation: 4,
-                    shadowColor: AppTheme.primaryRust.withValues(alpha: 0.4),
+                    shadowColor: const Color(0xFFC84B1A).withValues(alpha: 0.4),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
@@ -193,7 +239,7 @@ class OnboardingScreen extends StatelessWidget {
                         TextSpan(
                           text: 'Log in',
                           style: GoogleFonts.plusJakartaSans(
-                            color: AppTheme.primaryRust,
+                            color: const Color(0xFFC84B1A),
                             fontWeight: FontWeight.w700,
                             decoration: TextDecoration.underline,
                           ),
