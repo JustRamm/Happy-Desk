@@ -27,20 +27,20 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
+  late AnimationController _rotationController;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
+    _rotationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 6000), // Smooth revolving cycle
+      duration: const Duration(milliseconds: 14000), // Smooth 14s clockwise rotation
     )..repeat();
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _rotationController.dispose();
     super.dispose();
   }
 
@@ -86,43 +86,40 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
               const SizedBox(height: 16),
 
-              // Revolving Guitar Pick Shape Image Container
+              // Clockwise Revolving Organic Smooth Pick Container with Upright Artwork Image
               Expanded(
                 flex: 5,
                 child: Center(
                   child: AnimatedBuilder(
-                    animation: _animationController,
+                    animation: _rotationController,
                     builder: (context, child) {
-                      final progress = _animationController.value;
-                      // Gentle revolving orbital angle in fixed position
-                      final revolveAngle = math.sin(progress * math.pi * 2) * 0.05;
-                      final breathScale = 1.0 + (math.sin(progress * math.pi * 2) * 0.02);
+                      final angle = _rotationController.value * 2 * math.pi; // 360 deg Clockwise
 
                       return Transform.rotate(
-                        angle: revolveAngle,
-                        child: Transform.scale(
-                          scale: breathScale,
-                          child: Container(
-                            width: double.infinity,
-                            constraints: const BoxConstraints(maxHeight: 310, maxWidth: 310),
-                            decoration: BoxDecoration(
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFFF652F).withValues(alpha: 0.18),
-                                  blurRadius: 30,
-                                  offset: const Offset(0, 12),
-                                ),
-                              ],
-                            ),
-                            child: ClipPath(
-                              clipper: GuitarPickClipper(),
-                              child: Container(
-                                color: const Color(0xFFFFE6DD), // Soft peach background
-                                padding: const EdgeInsets.all(6),
-                                child: ClipPath(
-                                  clipper: GuitarPickClipper(),
+                        angle: angle, // Outer organic pick shape rotates Clockwise
+                        child: Container(
+                          width: double.infinity,
+                          constraints: const BoxConstraints(maxHeight: 310, maxWidth: 310),
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFFF652F).withValues(alpha: 0.18),
+                                blurRadius: 28,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: ClipPath(
+                            clipper: SmoothOrganicPickClipper(),
+                            child: Container(
+                              color: const Color(0xFFFFE6DD), // Soft organic peach background
+                              padding: const EdgeInsets.all(6),
+                              child: ClipPath(
+                                clipper: SmoothOrganicPickClipper(),
+                                child: Transform.rotate(
+                                  angle: -angle, // Counter-rotate artwork so people illustration stays upright!
                                   child: Transform.scale(
-                                    scale: 1.22, // Zoomed in so artwork covers guitar pick perfectly
+                                    scale: 1.25, // Zoomed in so artwork covers smooth pick shape perfectly
                                     child: Image.asset(
                                       widget.imagePath,
                                       fit: BoxFit.cover,
@@ -300,23 +297,24 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 }
 
-// Custom Guitar Pick Shape Clipper
-class GuitarPickClipper extends CustomClipper<Path> {
+// Custom Smooth Organic Pick Shape Clipper (Tip at Left)
+class SmoothOrganicPickClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final path = Path();
     final w = size.width;
     final h = size.height;
 
-    // Start at top center curve
-    path.moveTo(w * 0.5, 0);
-    // Right top shoulder curve
-    path.cubicTo(w * 0.88, 0, w, h * 0.22, w * 0.94, h * 0.52);
-    // Tapering to bottom rounded tip
-    path.cubicTo(w * 0.88, h * 0.82, w * 0.62, h * 0.98, w * 0.5, h);
-    path.cubicTo(w * 0.38, h * 0.98, w * 0.12, h * 0.82, w * 0.06, h * 0.52);
-    // Left top shoulder back to top center
-    path.cubicTo(0, h * 0.22, w * 0.12, 0, w * 0.5, 0);
+    // Smooth rounded tip pointing to left at (w * 0.04, h * 0.5)
+    path.moveTo(w * 0.04, h * 0.5);
+
+    // Top curve extending up and right to broad rounded top-right shoulder
+    path.cubicTo(w * 0.04, h * 0.18, w * 0.35, 0, w * 0.68, 0);
+    path.cubicTo(w * 0.94, 0, w, h * 0.22, w, h * 0.5);
+
+    // Bottom curve extending down and left back to left tip
+    path.cubicTo(w, h * 0.78, w * 0.94, h, w * 0.68, h);
+    path.cubicTo(w * 0.35, h, w * 0.04, h * 0.82, w * 0.04, h * 0.5);
 
     path.close();
     return path;
