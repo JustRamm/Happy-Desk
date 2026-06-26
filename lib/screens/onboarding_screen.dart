@@ -34,7 +34,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 6000), // Smooth 6s revolving cycle
+      duration: const Duration(milliseconds: 6000), // Smooth revolving cycle
     )..repeat();
   }
 
@@ -55,11 +55,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             children: [
               const SizedBox(height: 12),
 
-              // Top Header Bar: Bigger Transparent Logo & Skip
+              // Top Header Bar: Transparent Logo & Skip
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // App Brand Logo (assets/brand/logo_removedbg.png - Twice as big: height 90)
+                  // App Brand Logo (assets/brand/logo_removedbg.png)
                   Image.asset(
                     'assets/brand/logo_removedbg.png',
                     height: 90,
@@ -86,7 +86,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
               const SizedBox(height: 16),
 
-              // Revolving Organic Blob Image Container (Fixed Place Smooth Rotation)
+              // Revolving Guitar Pick Shape Image Container
               Expanded(
                 flex: 5,
                 child: Center(
@@ -94,8 +94,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     animation: _animationController,
                     builder: (context, child) {
                       final progress = _animationController.value;
-                      // Gentle back-and-forth revolving orbital angle in fixed position
-                      final revolveAngle = math.sin(progress * math.pi * 2) * 0.06;
+                      // Gentle revolving orbital angle in fixed position
+                      final revolveAngle = math.sin(progress * math.pi * 2) * 0.05;
                       final breathScale = 1.0 + (math.sin(progress * math.pi * 2) * 0.02);
 
                       return Transform.rotate(
@@ -104,45 +104,39 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           scale: breathScale,
                           child: Container(
                             width: double.infinity,
-                            constraints: const BoxConstraints(maxHeight: 310),
+                            constraints: const BoxConstraints(maxHeight: 310, maxWidth: 310),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFFE6DD), // Soft organic peach background
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(160),
-                                topRight: Radius.circular(160),
-                                bottomLeft: Radius.circular(140),
-                                bottomRight: Radius.circular(140),
-                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFFFF652F).withValues(alpha: 0.16),
-                                  blurRadius: 28,
-                                  offset: const Offset(0, 10),
+                                  color: const Color(0xFFFF652F).withValues(alpha: 0.18),
+                                  blurRadius: 30,
+                                  offset: const Offset(0, 12),
                                 ),
                               ],
                             ),
-                            padding: const EdgeInsets.all(8),
-                            child: ClipRRect(
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(150),
-                                topRight: Radius.circular(150),
-                                bottomLeft: Radius.circular(130),
-                                bottomRight: Radius.circular(130),
-                              ),
-                              child: Transform.scale(
-                                scale: 1.18, // Zoomed in so side edges fit seamlessly without sharp cuts
-                                child: Image.asset(
-                                  widget.imagePath,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const Center(
-                                      child: Icon(
-                                        Icons.groups_rounded,
-                                        size: 80,
-                                        color: Color(0xFFFF652F),
-                                      ),
-                                    );
-                                  },
+                            child: ClipPath(
+                              clipper: GuitarPickClipper(),
+                              child: Container(
+                                color: const Color(0xFFFFE6DD), // Soft peach background
+                                padding: const EdgeInsets.all(6),
+                                child: ClipPath(
+                                  clipper: GuitarPickClipper(),
+                                  child: Transform.scale(
+                                    scale: 1.22, // Zoomed in so artwork covers guitar pick perfectly
+                                    child: Image.asset(
+                                      widget.imagePath,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return const Center(
+                                          child: Icon(
+                                            Icons.groups_rounded,
+                                            size: 80,
+                                            color: Color(0xFFFF652F),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -304,4 +298,30 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       ),
     );
   }
+}
+
+// Custom Guitar Pick Shape Clipper
+class GuitarPickClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    final w = size.width;
+    final h = size.height;
+
+    // Start at top center curve
+    path.moveTo(w * 0.5, 0);
+    // Right top shoulder curve
+    path.cubicTo(w * 0.88, 0, w, h * 0.22, w * 0.94, h * 0.52);
+    // Tapering to bottom rounded tip
+    path.cubicTo(w * 0.88, h * 0.82, w * 0.62, h * 0.98, w * 0.5, h);
+    path.cubicTo(w * 0.38, h * 0.98, w * 0.12, h * 0.82, w * 0.06, h * 0.52);
+    // Left top shoulder back to top center
+    path.cubicTo(0, h * 0.22, w * 0.12, 0, w * 0.5, 0);
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldDelegate) => false;
 }
