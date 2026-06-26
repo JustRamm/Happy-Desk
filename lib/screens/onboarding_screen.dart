@@ -59,10 +59,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // App Brand Logo (assets/brand/logo_removedbg.png - Bigger height 46)
+                  // App Brand Logo (assets/brand/logo_removedbg.png - Twice as big: height 90)
                   Image.asset(
                     'assets/brand/logo_removedbg.png',
-                    height: 46,
+                    height: 90,
                     fit: BoxFit.contain,
                   ),
 
