@@ -104,40 +104,24 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         child: Container(
                           width: double.infinity,
                           constraints: const BoxConstraints(maxHeight: 310, maxWidth: 310),
-                          decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFFFF652F).withValues(alpha: 0.18),
-                                blurRadius: 28,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
                           child: ClipPath(
                             clipper: SmoothOrganicPickClipper(),
-                            child: Container(
-                              color: const Color(0xFFFFE6DD), // Soft organic peach background
-                              padding: const EdgeInsets.all(6),
-                              child: ClipPath(
-                                clipper: SmoothOrganicPickClipper(),
-                                child: Transform.rotate(
-                                  angle: -angle, // Counter-rotate artwork so people illustration stays upright!
-                                  child: Transform.scale(
-                                    scale: 1.25, // Zoomed in so artwork covers smooth pick shape perfectly
-                                    child: Image.asset(
-                                      widget.imagePath,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return const Center(
-                                          child: Icon(
-                                            Icons.groups_rounded,
-                                            size: 80,
-                                            color: Color(0xFFFF652F),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
+                            child: Transform.rotate(
+                              angle: -angle, // Counter-rotate artwork so people illustration stays upright!
+                              child: Transform.scale(
+                                scale: 1.25, // Zoomed in so artwork covers smooth pick shape perfectly
+                                child: Image.asset(
+                                  widget.imagePath,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Center(
+                                      child: Icon(
+                                        Icons.groups_rounded,
+                                        size: 80,
+                                        color: Color(0xFFFF652F),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ),
