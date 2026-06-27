@@ -106,22 +106,29 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           constraints: const BoxConstraints(maxHeight: 310, maxWidth: 310),
                           child: ClipPath(
                             clipper: SmoothOrganicPickClipper(),
-                            child: Transform.rotate(
-                              angle: -angle, // Counter-rotate artwork so people illustration stays upright!
-                              child: Transform.scale(
-                                scale: 1.25, // Zoomed in so artwork covers smooth pick shape perfectly
-                                child: Image.asset(
-                                  widget.imagePath,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const Center(
-                                      child: Icon(
-                                        Icons.groups_rounded,
-                                        size: 80,
-                                        color: Color(0xFFFF652F),
-                                      ),
-                                    );
-                                  },
+                            child: Container(
+                              color: const Color(0xFFFFE6DD), // Solid soft peach shape background (no blur)
+                              padding: const EdgeInsets.all(4),
+                              child: ClipPath(
+                                clipper: SmoothOrganicPickClipper(),
+                                child: Transform.rotate(
+                                  angle: -angle, // Counter-rotate artwork so people illustration stays upright!
+                                  child: Transform.scale(
+                                    scale: 1.25, // Zoomed in so artwork covers smooth pick shape perfectly
+                                    child: Image.asset(
+                                      widget.imagePath,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return const Center(
+                                          child: Icon(
+                                            Icons.groups_rounded,
+                                            size: 80,
+                                            color: Color(0xFFFF652F),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
