@@ -58,6 +58,7 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
             children: [
               // Page 1 - Onboarding Screen
               OnboardingScreen(
+                key: const ValueKey('onboarding_page_1'),
                 pageIndex: _currentPageIndex,
                 totalPages: 3,
                 imagePath: 'assets/images/onboarding.png',
@@ -72,6 +73,7 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
 
               // Page 2 - Team Recognition
               OnboardingScreen(
+                key: const ValueKey('onboarding_page_2'),
                 pageIndex: _currentPageIndex,
                 totalPages: 3,
                 imagePath: 'assets/images/onboarding.png',
@@ -86,6 +88,7 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
 
               // Page 3 - Get Started (Navigates to Join the Team Auth Screen)
               OnboardingScreen(
+                key: const ValueKey('onboarding_page_3'),
                 pageIndex: _currentPageIndex,
                 totalPages: 3,
                 imagePath: 'assets/images/onboarding.png',
