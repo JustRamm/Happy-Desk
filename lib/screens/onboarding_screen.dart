@@ -92,7 +92,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
               // Clockwise Revolving Organic Smooth Pick Container with Upright Artwork Image
               Expanded(
-                flex: 5,
+                flex: 4,
                 child: Center(
                   child: AnimatedBuilder(
                     animation: _rotationController,
@@ -103,7 +103,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         angle: angle, // Outer organic pick shape rotates Clockwise
                         child: Container(
                           width: double.infinity,
-                          constraints: const BoxConstraints(maxHeight: 310, maxWidth: 310),
+                          constraints: const BoxConstraints(maxHeight: 270, maxWidth: 270),
                           child: ClipPath(
                             clipper: SmoothOrganicPickClipper(),
                             child: Container(
@@ -140,7 +140,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 36),
 
               // Title Section
               RichText(
