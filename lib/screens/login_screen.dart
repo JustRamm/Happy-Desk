@@ -41,16 +41,16 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               const SizedBox(height: 16),
 
-              // Brand Logo on Top (logo_removedbg.png)
+              // Brand Logo on Top (logo_removedbg.png - Enlarged height 90)
               Center(
                 child: Image.asset(
                   'assets/brand/logo_removedbg.png',
-                  height: 48,
+                  height: 90,
                   fit: BoxFit.contain,
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
               // Title & Subtitle
               Text(
