@@ -42,16 +42,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
             children: [
               const SizedBox(height: 12),
 
-              const SizedBox(height: 20),
-
-              // Slogan Tagline
-              Text(
-                'Work hard, play hard. Let\'s get started.',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w500,
-                  color: AppTheme.textSecondary,
-                ),
+              // Brand Logo & Tagline Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'assets/brand/logo_removedbg.png',
+                    height: 44,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      'Work hard, play hard. Let\'s get started.',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
 
               const SizedBox(height: 24),
