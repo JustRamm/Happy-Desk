@@ -40,7 +40,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
           child: Column(
             children: [
-              const SizedBox(height: 12),
+              const SizedBox(height: 36),
 
               // Brand Logo & Tagline Row
               Row(
@@ -65,7 +65,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ],
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
 
               // Main Join the Team Card Container
               Container(
