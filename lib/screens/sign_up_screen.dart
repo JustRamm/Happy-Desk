@@ -169,6 +169,60 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 ),
                               ),
 
+                              const SizedBox(height: 16),
+
+                              // Or continue with Divider
+                              Row(
+                                children: [
+                                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                                    child: Text(
+                                      'Or continue with',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                                ],
+                              ),
+
+                              const SizedBox(height: 14),
+
+                              // Sign Up with Google Button
+                              SizedBox(
+                                width: double.infinity,
+                                height: 48,
+                                child: OutlinedButton(
+                                  onPressed: widget.onSignUpSuccess,
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    side: BorderSide(color: Colors.grey.shade300, width: 1),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      _buildGoogleIcon(),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        'Sign up with Google',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppTheme.titleDark,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
                               const SizedBox(height: 14),
 
                               // Already a member? Log in link
@@ -458,4 +512,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
     );
   }
+
+  Widget _buildGoogleIcon() {
+    return SizedBox(
+      width: 18,
+      height: 18,
+      child: CustomPaint(
+        painter: _GoogleIconPainter(),
+      ),
+    );
+  }
+}
+
+class _GoogleIconPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+
+    paint.color = const Color(0xFF4285F4); // Blue
+    canvas.drawCircle(center, radius, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
