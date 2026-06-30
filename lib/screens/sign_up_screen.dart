@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
@@ -527,12 +528,42 @@ class _SignUpScreenState extends State<SignUpScreen> {
 class _GoogleIconPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..style = PaintingStyle.fill;
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
+    final double w = size.width;
+    final double h = size.height;
+    final double cx = w / 2;
+    final double cy = h / 2;
+    final double stroke = w * 0.22;
+    final rect = Rect.fromCircle(center: Offset(cx, cy), radius: (w - stroke) / 2);
 
-    paint.color = const Color(0xFF4285F4); // Blue
-    canvas.drawCircle(center, radius, paint);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.butt;
+
+    // Red (top left)
+    paint.color = const Color(0xFFEA4335);
+    canvas.drawArc(rect, math.pi * 1.05, math.pi * 0.45, false, paint);
+
+    // Yellow (left)
+    paint.color = const Color(0xFFFBBC05);
+    canvas.drawArc(rect, math.pi * 0.60, math.pi * 0.45, false, paint);
+
+    // Green (bottom right)
+    paint.color = const Color(0xFF34A853);
+    canvas.drawArc(rect, 0.1, math.pi * 0.50, false, paint);
+
+    // Blue (right)
+    paint.color = const Color(0xFF4285F4);
+    canvas.drawArc(rect, math.pi * 1.5, math.pi * 0.6, false, paint);
+
+    // Blue center horizontal bar
+    final barPaint = Paint()
+      ..color = const Color(0xFF4285F4)
+      ..style = PaintingStyle.fill;
+    canvas.drawRect(
+      Rect.fromLTWH(cx, cy - stroke / 2, w / 2, stroke),
+      barPaint,
+    );
   }
 
   @override
