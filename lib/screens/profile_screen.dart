@@ -41,38 +41,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // User Avatar
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(22),
-                      child: Image.asset(
-                        'assets/images/user_avatar.png',
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: AppTheme.primaryRust,
-                          child: const Icon(Icons.person, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Brand Logo Asset
+                  // Brand Logo in Top Left Corner (Enlarged size 70)
                   Image.asset(
                     'assets/brand/logo_removedbg.png',
-                    height: 32,
+                    height: 70,
                     fit: BoxFit.contain,
                   ),
 

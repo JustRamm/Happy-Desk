@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import 'notifications_screen.dart';
 
 class HeroScreen extends StatefulWidget {
   const HeroScreen({super.key});
@@ -81,58 +82,26 @@ class _HeroScreenState extends State<HeroScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Brand Logo Asset
+                  // Brand Logo in Top Left Corner (Enlarged size 70)
                   Image.asset(
                     'assets/brand/logo_removedbg.png',
-                    height: 32,
+                    height: 70,
                     fit: BoxFit.contain,
                   ),
 
-                  Row(
-                    children: [
-                      // User Avatar
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.08),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(19),
-                          child: Image.asset(
-                            'assets/images/user_avatar.png',
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-
-                      // Notification Bell
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                          border: Border.all(
-                            color: AppTheme.primaryRust.withValues(alpha: 0.3),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.notifications_none_rounded,
-                          color: AppTheme.primaryRust,
-                          size: 20,
-                        ),
-                      ),
-                    ],
+                  // Notification Bell Button
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.notifications_none_rounded,
+                      color: Color(0xFF8B2600),
+                      size: 24,
+                    ),
                   ),
                 ],
               ),

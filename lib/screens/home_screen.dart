@@ -151,11 +151,10 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Brand Logo in Top Left Corner (Replacing Avatar)
+                  // Brand Logo in Top Left Corner (Enlarged size 70)
                   Image.asset(
                     'assets/brand/logo_removedbg.png',
-                    width: 42,
-                    height: 42,
+                    height: 70,
                     fit: BoxFit.contain,
                   ),
 
