@@ -151,34 +151,11 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // User Avatar
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(21),
-                      child: Image.asset(
-                        'assets/images/user_avatar.png',
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-
-                  // Brand Logo
+                  // Brand Logo in Top Left Corner (Replacing Avatar)
                   Image.asset(
                     'assets/brand/logo_removedbg.png',
-                    height: 32,
+                    width: 42,
+                    height: 42,
                     fit: BoxFit.contain,
                   ),
 

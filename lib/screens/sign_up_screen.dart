@@ -49,7 +49,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       children: [
                         const SizedBox(height: 8),
 
-                        // Brand Logo & Tagline Row (Comfortably Spaced)
+                        // Brand Logo & Tagline Row (Closer Spacing)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -58,7 +58,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               height: 38,
                               fit: BoxFit.contain,
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 4),
                             Flexible(
                               child: Text(
                                 'Work hard, play hard. Let\'s get started.',
@@ -374,45 +374,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ),
                             ),
                           ],
-                        ),
-
-                        const SizedBox(height: 14),
-
-                        // Security Pill Card
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEBEFFF),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(7),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(
-                                  Icons.verified_user_outlined,
-                                  color: Color(0xFFC84B1A),
-                                  size: 18,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'Data security and privacy first.',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: const Color(0xFF2E3A59),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
 
                         // Spacer to push copyright text to very bottom of screen
