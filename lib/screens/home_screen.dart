@@ -339,31 +339,107 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+              const SizedBox(height: 18),
 
-              const SizedBox(height: 14),
-
-              // Location Pill Button
+              // Team Clocked-In Status Live Hub
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
+                  color: Colors.black.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.location_on_outlined,
-                      size: 16,
-                      color: Color(0xFF4A1500),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.people_alt_rounded, size: 16, color: Color(0xFF4A1500)),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Team Clock-In Status Today',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF4A1500),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF007A5A), // Emerald Green Pill
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            _isClockedIn ? '4/5 Clocked In' : '3/5 Clocked In',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'HQ - San Francisco',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF4A1500),
+
+                    const SizedBox(height: 14),
+
+                    // Teammate Avatars Row with Live Active Status Dots
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: [
+                          // Teammate 1 - Sarah (Clocked In)
+                          _buildTeammateStatusAvatar(
+                            name: 'Sarah M.',
+                            assetPath: 'assets/avatars/avatar_1.png',
+                            isClockedIn: true,
+                            timeText: '9:15 AM',
+                          ),
+                          const SizedBox(width: 14),
+
+                          // Teammate 2 - Alex C. (Clocked In)
+                          _buildTeammateStatusAvatar(
+                            name: 'Alex C.',
+                            assetPath: 'assets/avatars/avatar_2.png',
+                            isClockedIn: true,
+                            timeText: '9:30 AM',
+                          ),
+                          const SizedBox(width: 14),
+
+                          // Teammate 3 - David R. (Clocked In)
+                          _buildTeammateStatusAvatar(
+                            name: 'David R.',
+                            assetPath: 'assets/avatars/avatar_3.png',
+                            isClockedIn: true,
+                            timeText: '9:45 AM',
+                          ),
+                          const SizedBox(width: 14),
+
+                          // Teammate 4 - Elena R. (Not Clocked In)
+                          _buildTeammateStatusAvatar(
+                            name: 'Elena R.',
+                            assetPath: 'assets/avatars/avatar_4.png',
+                            isClockedIn: false,
+                            timeText: 'Offline',
+                          ),
+                          const SizedBox(width: 14),
+
+                          // User (Dynamic live status!)
+                          _buildTeammateStatusAvatar(
+                            name: 'You',
+                            assetPath: 'assets/images/user_avatar.png',
+                            isClockedIn: _isClockedIn,
+                            timeText: _isClockedIn ? 'Active Now' : 'Not Yet',
+                            isCurrentUser: true,
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -373,6 +449,94 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // Teammate Avatar Status Helper Widget
+  Widget _buildTeammateStatusAvatar({
+    required String name,
+    required String assetPath,
+    required bool isClockedIn,
+    required String timeText,
+    bool isCurrentUser = false,
+  }) {
+    return Column(
+      children: [
+        Stack(
+          children: [
+            // Avatar Circle with Border
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isCurrentUser
+                      ? const Color(0xFFFFD166)
+                      : (isClockedIn ? Colors.white : Colors.white.withValues(alpha: 0.5)),
+                  width: isCurrentUser ? 2.5 : 2,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: Image.asset(
+                  assetPath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: Colors.white24,
+                    child: const Icon(Icons.person, color: Colors.white, size: 20),
+                  ),
+                ),
+              ),
+            ),
+
+            // Active Status Dot Indicator (🟢 Green for Clocked In, ⚪ Grey for Not Clocked In)
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                width: 13,
+                height: 13,
+                decoration: BoxDecoration(
+                  color: isClockedIn ? const Color(0xFF10B981) : const Color(0xFF9CA3AF),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: isClockedIn
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.6),
+                            blurRadius: 6,
+                          ),
+                        ]
+                      : null,
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 6),
+
+        // Teammate Name
+        Text(
+          name,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11.5,
+            fontWeight: isCurrentUser ? FontWeight.w800 : FontWeight.w700,
+            color: const Color(0xFF4A1500),
+          ),
+        ),
+
+        // Status Time Text
+        Text(
+          timeText,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 9.5,
+            fontWeight: FontWeight.w600,
+            color: isClockedIn ? const Color(0xFF007A5A) : const Color(0xFF8B2600),
+          ),
+        ),
+      ],
     );
   }
 
