@@ -489,8 +489,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   assetPath,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
-                    color: Colors.white24,
-                    child: const Icon(Icons.person, color: Colors.white, size: 20),
+                    color: isCurrentUser ? const Color(0xFFC84B1A) : const Color(0xFF594139),
+                    child: Center(
+                      child: Text(
+                        name.isNotEmpty ? name[0] : '?',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
