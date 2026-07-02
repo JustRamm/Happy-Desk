@@ -355,20 +355,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.people_alt_rounded, size: 16, color: Color(0xFF4A1500)),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Team Clock-In Status Today',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF4A1500),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              const Icon(Icons.people_alt_rounded, size: 16, color: Color(0xFF4A1500)),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Team Status Today',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF4A1500),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                           decoration: BoxDecoration(

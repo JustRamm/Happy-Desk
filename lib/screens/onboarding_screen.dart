@@ -27,7 +27,7 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen>
     with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
-  late AnimationController _rotationController;
+  AnimationController? _rotationController;
 
   @override
   bool get wantKeepAlive => true;
@@ -35,7 +35,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   @override
   void initState() {
     super.initState();
-    _rotationController = AnimationController(
+    _initController();
+  }
+
+  void _initController() {
+    _rotationController ??= AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 14000), // Smooth 14s clockwise rotation
     )..repeat();
@@ -43,7 +47,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   @override
   void dispose() {
-    _rotationController.dispose();
+    _rotationController?.dispose();
     super.dispose();
   }
 
@@ -95,9 +99,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 flex: 4,
                 child: Center(
                   child: AnimatedBuilder(
-                    animation: _rotationController,
+                    animation: _rotationController ?? AnimationController(vsync: this),
                     builder: (context, child) {
-                      final angle = _rotationController.value * 2 * math.pi; // 360 deg Clockwise
+                      _initController();
+                      final angle = (_rotationController?.value ?? 0) * 2 * math.pi; // 360 deg Clockwise
 
                       return Transform.rotate(
                         angle: angle, // Outer organic pick shape rotates Clockwise
