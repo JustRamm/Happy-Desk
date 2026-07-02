@@ -767,6 +767,33 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildHeroHashtag('#ProblemSolver'),
                   ],
                 ),
+
+                const SizedBox(height: 16),
+
+                // Anonymous Weekly Hero Rules CTA Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF044E38),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.shield_outlined, color: Color(0xFFA7F3D0), size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '1 Nomination per week • 100% Anonymous',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFFA7F3D0),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
