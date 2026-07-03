@@ -75,7 +75,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
     if (_hasNominatedThisWeek) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('⚡ You have already submitted your 1 nomination for this week!'),
+          content: Text('You have already submitted your 1 nomination for this week!'),
           backgroundColor: AppTheme.primaryRust,
         ),
       );
@@ -109,7 +109,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('🔒 Anonymous Hero nomination sent to $nominee! (+5 Team Points)'),
+        content: Text('Anonymous Hero nomination sent to $nominee! (+5 Team Points)'),
         backgroundColor: const Color(0xFF007A5A),
         duration: const Duration(seconds: 4),
       ),
@@ -191,8 +191,8 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                       indicatorSize: TabBarIndicatorSize.tab,
                       dividerColor: Colors.transparent,
                       tabs: [
-                        const Tab(text: 'Nominate Hero 🦸'),
-                        Tab(text: 'Received (${_receivedNominations.length}) 💌'),
+                        const Tab(text: 'Nominate Hero'),
+                        Tab(text: 'Received (${_receivedNominations.length})'),
                       ],
                     ),
                   ),
@@ -480,7 +480,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                         const Icon(Icons.lock_outline_rounded, size: 18, color: Colors.white),
                         const SizedBox(width: 8),
                         Text(
-                          _hasNominatedThisWeek ? 'Already Nominated This Week' : 'Nominate Anonymously 🦸',
+                          _hasNominatedThisWeek ? 'Already Nominated This Week' : 'Nominate Anonymously',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 15.5,
                             fontWeight: FontWeight.w800,
@@ -573,7 +573,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'You\'re a Hero This Week! 🎉',
+                            'You\'re a Hero This Week!',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -660,7 +660,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Anonymous Teammate 🕵️',
+                              'Anonymous Teammate',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,

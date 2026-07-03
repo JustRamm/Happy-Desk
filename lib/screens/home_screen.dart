@@ -23,8 +23,8 @@ class _HomeScreenState extends State<HomeScreen> {
       SnackBar(
         content: Text(
           _isClockedIn
-              ? '⚡ Clocked in successfully! Have a joyful session.'
-              : '👋 Clocked out. Great work today!',
+              ? 'Clocked in successfully! Have a joyful session.'
+              : 'Clocked out. Great work today!',
         ),
         backgroundColor: AppTheme.primaryRust,
         duration: const Duration(seconds: 2),
@@ -57,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Add Anonymous Note 💌',
+                    'Add Anonymous Note',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
@@ -107,8 +107,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('✨ Appreciation added to the jar!'),
-                          backgroundColor: Color(0xFF8C436E),
+                          content: Text('Appreciation added to the jar!'),
+                          backgroundColor: AppTheme.primaryRust,
                         ),
                       );
                     }
@@ -505,7 +505,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Active Status Dot Indicator (🟢 Green for Clocked In, ⚪ Grey for Not Clocked In)
+            // Active Status Dot Indicator (Green for Clocked In, Grey for Not Clocked In)
             Positioned(
               right: 0,
               bottom: 0,

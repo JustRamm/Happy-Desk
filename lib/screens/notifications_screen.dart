@@ -86,7 +86,7 @@ class NotificationsScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // Section 1: 🟠 NEW
+              // Section 1: NEW
               Row(
                 children: [
                   Container(
@@ -185,7 +185,7 @@ class NotificationsScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Text(
-                          '🎉 Celebrate',
+                          'Celebrate',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,

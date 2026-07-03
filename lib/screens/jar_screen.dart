@@ -42,7 +42,7 @@ class _JarScreenState extends State<JarScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Write Appreciation 💌',
+                        'Write Appreciation',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
@@ -122,7 +122,7 @@ class _JarScreenState extends State<JarScreen> {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('✨ Note added! Community Jar updated.'),
+                              content: Text('Note added! Community Jar updated.'),
                               backgroundColor: AppTheme.primaryRust,
                             ),
                           );
@@ -336,7 +336,7 @@ class _JarScreenState extends State<JarScreen> {
                     Text(
                       remaining > 0
                           ? 'Write $remaining more for others to open!'
-                          : '🎉 Community Jar Unlocked!',
+                          : 'Community Jar Unlocked!',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
@@ -387,7 +387,7 @@ class _JarScreenState extends State<JarScreen> {
 
               const SizedBox(height: 24),
 
-              // Primary Action Button: Write Appreciation ➤
+              // Primary Action Button: Write Appreciation
               SizedBox(
                 width: double.infinity,
                 height: 56,

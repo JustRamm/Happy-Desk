@@ -19,7 +19,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          _isClockedIn ? '⚡ Shift resumed! Running shift timer.' : '👋 Clocked out of shift!',
+          _isClockedIn ? 'Shift resumed! Running shift timer.' : 'Clocked out of shift!',
         ),
         backgroundColor: AppTheme.primaryRust,
       ),
@@ -93,8 +93,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: AppTheme.titleDark,
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  const Text('👋', style: TextStyle(fontSize: 22)),
                 ],
               ),
               const SizedBox(height: 4),
