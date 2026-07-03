@@ -404,7 +404,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           // Teammate 1 - Sarah (Clocked In)
                           _buildTeammateStatusAvatar(
                             name: 'Sarah M.',
-                            assetPath: 'assets/avatars/avatar_1.png',
+                            assetPath: 'assets/images/avatar_1.png',
                             isClockedIn: true,
                             timeText: '9:15 AM',
                           ),
@@ -413,7 +413,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           // Teammate 2 - Alex C. (Clocked In)
                           _buildTeammateStatusAvatar(
                             name: 'Alex C.',
-                            assetPath: 'assets/avatars/avatar_2.png',
+                            assetPath: 'assets/images/avatar_2.png',
                             isClockedIn: true,
                             timeText: '9:30 AM',
                           ),
@@ -422,7 +422,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           // Teammate 3 - David R. (Clocked In)
                           _buildTeammateStatusAvatar(
                             name: 'David R.',
-                            assetPath: 'assets/avatars/avatar_3.png',
+                            assetPath: 'assets/images/avatar_3.png',
                             isClockedIn: true,
                             timeText: '9:45 AM',
                           ),
@@ -431,7 +431,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           // Teammate 4 - Elena R. (Not Clocked In)
                           _buildTeammateStatusAvatar(
                             name: 'Elena R.',
-                            assetPath: 'assets/avatars/avatar_4.png',
+                            assetPath: 'assets/images/avatar_4.png',
                             isClockedIn: false,
                             timeText: 'Offline',
                           ),
@@ -466,6 +466,10 @@ class _HomeScreenState extends State<HomeScreen> {
     required String timeText,
     bool isCurrentUser = false,
   }) {
+    final altAssetPath = assetPath.contains('images/')
+        ? assetPath.replaceAll('images/', 'avatars/')
+        : assetPath.replaceAll('avatars/', 'images/');
+
     return Column(
       children: [
         Stack(
@@ -488,19 +492,25 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Image.asset(
                   assetPath,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: isCurrentUser ? const Color(0xFFC84B1A) : const Color(0xFF594139),
-                    child: Center(
-                      child: Text(
-                        name.isNotEmpty ? name[0] : '?',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Image.asset(
+                      altAssetPath,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: isCurrentUser ? const Color(0xFFC84B1A) : const Color(0xFF594139),
+                        child: Center(
+                          child: Text(
+                            name.isNotEmpty ? name[0] : '?',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
             ),

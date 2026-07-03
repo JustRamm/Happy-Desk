@@ -11,7 +11,6 @@ class HeroScreen extends StatefulWidget {
 }
 
 class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
   bool _hasNominatedThisWeek = false;
   String? _selectedCoworker;
   final TextEditingController _storyController = TextEditingController();
@@ -58,15 +57,22 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
     },
   ];
 
+  TabController? _tabController;
+
+  TabController get _effectiveTabController {
+    _tabController ??= TabController(length: 2, vsync: this);
+    return _tabController!;
+  }
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _effectiveTabController;
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     _storyController.dispose();
     super.dispose();
   }
@@ -166,7 +172,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: TabBar(
-                      controller: _tabController,
+                      controller: _effectiveTabController,
                       indicator: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
@@ -203,7 +209,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
             // Tab Bar View Body
             Expanded(
               child: TabBarView(
-                controller: _tabController,
+                controller: _effectiveTabController,
                 children: [
                   // Tab 1: Submit Anonymous Nomination
                   _buildNominateTab(),
