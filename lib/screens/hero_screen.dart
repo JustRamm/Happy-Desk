@@ -58,16 +58,20 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
   ];
 
   TabController? _tabController;
-
-  TabController get _effectiveTabController {
-    _tabController ??= TabController(length: 2, vsync: this);
-    return _tabController!;
-  }
+  bool _controllerInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _effectiveTabController;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_controllerInitialized) {
+      _tabController = TabController(length: 2, vsync: this);
+      _controllerInitialized = true;
+    }
   }
 
   @override
@@ -172,7 +176,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: TabBar(
-                      controller: _effectiveTabController,
+                      controller: _tabController,
                       indicator: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
@@ -209,7 +213,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
             // Tab Bar View Body
             Expanded(
               child: TabBarView(
-                controller: _effectiveTabController,
+                controller: _tabController,
                 children: [
                   // Tab 1: Submit Anonymous Nomination
                   _buildNominateTab(),
