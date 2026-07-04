@@ -41,7 +41,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   void _initController() {
     _rotationController ??= AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 14000), // Smooth 14s clockwise rotation
+      duration: const Duration(milliseconds: 30000), // Slow 30s clockwise rotation
     )..repeat();
   }
 
