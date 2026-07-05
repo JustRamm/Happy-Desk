@@ -12,15 +12,48 @@ class OnboardingWrapperScreen extends StatefulWidget {
 
 class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
   bool _isLoading = true;
-  int _currentPageIndex = 0;
+  bool _showSplashWidget = true;
   final PageController _pageController = PageController();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Precache all assets during splash animation so OnboardingScreen is 100% pre-loaded!
+    precacheImage(const AssetImage('assets/images/onboarding.png'), context);
+    precacheImage(const AssetImage('assets/images/onboarding_page_2.png'), context);
+    precacheImage(const AssetImage('assets/images/onboarding_page_3.png'), context);
+    precacheImage(const AssetImage('assets/brand/logo_removedbg.png'), context);
+  }
 
   void _finishLoading() {
     if (mounted) {
       setState(() {
         _isLoading = false;
       });
+      // After fade-out animation completes (400ms), unmount splash widget
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (mounted) {
+          setState(() {
+            _showSplashWidget = false;
+          });
+        }
+      });
     }
+  }
+
+  void _nextPage() {
+    _pageController.nextPage(
+      duration: const Duration(milliseconds: 550),
+      curve: Curves.fastOutSlowIn,
+    );
+  }
+
+  void _animateToPage(int index) {
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 550),
+      curve: Curves.fastOutSlowIn,
+    );
   }
 
   void _navigateToAuth({bool isLogin = false}) {
@@ -39,68 +72,62 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return SplashLoadingScreen(
-        onLoadingComplete: _finishLoading,
-      );
-    }
-
     return Scaffold(
       body: Stack(
         children: [
+          // 1. Fully Pre-Loaded Onboarding Screen (rendered in background during splash)
           PageView(
             controller: _pageController,
-            onPageChanged: (index) {
-              setState(() {
-                _currentPageIndex = index;
-              });
-            },
+            physics: const BouncingScrollPhysics(),
             children: [
-              // Page 1 - Onboarding Screen
+              // Page 1 - Build a happier office
               OnboardingScreen(
                 key: const ValueKey('onboarding_page_1'),
-                pageIndex: _currentPageIndex,
+                pageIndex: 0,
                 totalPages: 3,
                 imagePath: 'assets/images/onboarding.png',
-                onNextPressed: () {
-                  _pageController.nextPage(
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.easeInOut,
-                  );
-                },
+                onNextPressed: _nextPage,
                 onLoginPressed: () => _navigateToAuth(isLogin: true),
+                onDotTapped: _animateToPage,
               ),
 
-              // Page 2 - Team Recognition
-              OnboardingScreen(
+              // Page 2 - What brings you joy? (interest selector)
+              OnboardingScreenTwo(
                 key: const ValueKey('onboarding_page_2'),
-                pageIndex: _currentPageIndex,
+                pageIndex: 1,
                 totalPages: 3,
-                imagePath: 'assets/images/onboarding.png',
-                onNextPressed: () {
-                  _pageController.nextPage(
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.easeInOut,
-                  );
-                },
+                imagePath: 'assets/images/onboarding_page_2.png',
+                onNextPressed: _nextPage,
                 onLoginPressed: () => _navigateToAuth(isLogin: true),
+                onSkipPressed: () => _navigateToAuth(isLogin: true),
+                onDotTapped: _animateToPage,
               ),
 
-              // Page 3 - Get Started (Navigates to Join the Team Auth Screen)
-              OnboardingScreen(
+              // Page 3 - Ready to bring joy to your team? (final onboarding screen)
+              OnboardingScreenThree(
                 key: const ValueKey('onboarding_page_3'),
-                pageIndex: _currentPageIndex,
+                pageIndex: 2,
                 totalPages: 3,
-                imagePath: 'assets/images/onboarding.png',
-                onNextPressed: () => _navigateToAuth(isLogin: false),
+                imagePath: 'assets/images/onboarding_page_3.png',
+                onSignUpPressed: () => _navigateToAuth(isLogin: false),
                 onLoginPressed: () => _navigateToAuth(isLogin: true),
+                onDotTapped: _animateToPage,
               ),
             ],
           ),
 
-
+          // 2. Splash Loading Screen Overlay (fades out seamlessly upon completion)
+          if (_showSplashWidget)
+            AnimatedOpacity(
+              opacity: _isLoading ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 400),
+              child: SplashLoadingScreen(
+                onLoadingComplete: _finishLoading,
+              ),
+            ),
         ],
       ),
     );
   }
 }
+
