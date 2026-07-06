@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import 'jar_screen.dart';
 import 'notifications_screen.dart';
+import '../widgets/jar_icon_widget.dart';
 
 class HeroScreen extends StatefulWidget {
   const HeroScreen({super.key});
@@ -148,19 +150,37 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                         fit: BoxFit.contain,
                       ),
 
-                      // Notification Bell
-                      IconButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const NotificationsScreen()),
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.notifications_none_rounded,
-                          color: Color(0xFF8B2600),
-                          size: 24,
-                        ),
+                      // Jar + Notification icons
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const JarScreen()),
+                              );
+                            },
+                            icon: const JarIconWidget(
+                              size: 24,
+                              mainColor: Color(0xFF8B2600),
+                              lidColor: Color(0xFFC84B1A),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.notifications_none_rounded,
+                              color: Color(0xFF8B2600),
+                              size: 24,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

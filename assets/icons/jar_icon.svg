@@ -1,0 +1,12 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Jar Lid -->
+  <rect x="7" y="2.5" width="10" height="2.5" rx="1" fill="#C84B1A"/>
+  <!-- Jar Neck / Rim -->
+  <path d="M8 5H16V7H8V5Z" fill="#8B2600" opacity="0.8"/>
+  <!-- Jar Glass Body Outer Contour -->
+  <path d="M6 8.5C6 7.67157 6.67157 7 7.5 7H16.5C17.3284 7 18 7.67157 18 8.5V18.5C18 20.433 16.433 22 14.5 22H9.5C7.567 22 6 20.433 6 18.5V8.5Z" stroke="#8B2600" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- Inner Liquid Level -->
+  <path d="M7 14C8.5 13.5 10.5 14.5 12 14C13.5 13.5 15.5 14.5 17 14V18.5C17 19.8807 15.8807 21 14.5 21H9.5C8.11929 21 7 19.8807 7 18.5V14Z" fill="#FF8EA9" opacity="0.6"/>
+  <!-- Heart Icon inside Jar -->
+  <path d="M12 12C11.5 11.5 10.5 11.5 10 12C9.5 12.5 9.5 13.3 10 13.8L12 15.8L14 13.8C14.5 13.3 14.5 12.5 14 12C13.5 11.5 12.5 11.5 12 12Z" fill="#C84B1A"/>
+</svg>

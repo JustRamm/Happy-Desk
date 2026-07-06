@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import 'jar_screen.dart';
 import 'notifications_screen.dart';
+import '../widgets/jar_icon_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -158,19 +160,40 @@ class _HomeScreenState extends State<HomeScreen> {
                     fit: BoxFit.contain,
                   ),
 
-                  // Simple Notification Bell
-                  IconButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const NotificationsScreen()),
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.notifications_none_rounded,
-                      color: Color(0xFF8B2600),
-                      size: 24,
-                    ),
+                  // Jar + Notification icons
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Jar Icon
+                      IconButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const JarScreen()),
+                          );
+                        },
+                        icon: const JarIconWidget(
+                          size: 24,
+                          mainColor: Color(0xFF8B2600),
+                          lidColor: Color(0xFFC84B1A),
+                        ),
+                      ),
+
+                      // Notification Bell
+                      IconButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.notifications_none_rounded,
+                          color: Color(0xFF8B2600),
+                          size: 24,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -404,7 +427,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           // Teammate 1 - Sarah (Clocked In)
                           _buildTeammateStatusAvatar(
                             name: 'Sarah M.',
-                            assetPath: 'assets/images/avatar_1.png',
+                            assetPath: 'assets/avatars/avatar_1.png',
                             isClockedIn: true,
                             timeText: '9:15 AM',
                           ),
@@ -413,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           // Teammate 2 - Alex C. (Clocked In)
                           _buildTeammateStatusAvatar(
                             name: 'Alex C.',
-                            assetPath: 'assets/images/avatar_2.png',
+                            assetPath: 'assets/avatars/avatar_2.png',
                             isClockedIn: true,
                             timeText: '9:30 AM',
                           ),
@@ -422,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           // Teammate 3 - David R. (Clocked In)
                           _buildTeammateStatusAvatar(
                             name: 'David R.',
-                            assetPath: 'assets/images/avatar_3.png',
+                            assetPath: 'assets/avatars/avatar_3.png',
                             isClockedIn: true,
                             timeText: '9:45 AM',
                           ),
@@ -431,7 +454,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           // Teammate 4 - Elena R. (Not Clocked In)
                           _buildTeammateStatusAvatar(
                             name: 'Elena R.',
-                            assetPath: 'assets/images/avatar_4.png',
+                            assetPath: 'assets/avatars/avatar_4.png',
                             isClockedIn: false,
                             timeText: 'Offline',
                           ),
@@ -440,7 +463,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           // User (Dynamic live status!)
                           _buildTeammateStatusAvatar(
                             name: 'You',
-                            assetPath: 'assets/images/user_avatar.png',
+                            assetPath: 'assets/avatars/user_avatar.png',
                             isClockedIn: _isClockedIn,
                             timeText: _isClockedIn ? 'Active Now' : 'Not Yet',
                             isCurrentUser: true,
@@ -466,10 +489,6 @@ class _HomeScreenState extends State<HomeScreen> {
     required String timeText,
     bool isCurrentUser = false,
   }) {
-    final altAssetPath = assetPath.contains('images/')
-        ? assetPath.replaceAll('images/', 'avatars/')
-        : assetPath.replaceAll('avatars/', 'images/');
-
     return Column(
       children: [
         Stack(
@@ -492,25 +511,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Image.asset(
                   assetPath,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Image.asset(
-                      altAssetPath,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: isCurrentUser ? const Color(0xFFC84B1A) : const Color(0xFF594139),
-                        child: Center(
-                          child: Text(
-                            name.isNotEmpty ? name[0] : '?',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                            ),
-                          ),
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: isCurrentUser ? const Color(0xFFC84B1A) : const Color(0xFF594139),
+                    child: Center(
+                      child: Text(
+                        name.isNotEmpty ? name[0] : '?',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
                         ),
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -610,23 +623,14 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 14),
 
           // Jar Graphic Illustration
-          SizedBox(
-            height: 160,
-            child: Image.asset(
-              'assets/images/ngl_jar.png',
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: 120,
-                height: 140,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFCE7F3),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Icon(
-                  Icons.auto_awesome,
-                  size: 50,
-                  color: Color(0xFFEC4899),
-                ),
+          const SizedBox(
+            height: 140,
+            child: Center(
+              child: JarIconWidget(
+                size: 130,
+                mainColor: Color(0xFF7C3A68),
+                lidColor: Color(0xFF9D4B85),
+                liquidColor: Color(0xFFFF8EA9),
               ),
             ),
           ),
@@ -722,7 +726,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(24),
                       child: Image.asset(
-                        'assets/images/user_avatar.png',
+                        'assets/avatars/user_avatar.png',
                         fit: BoxFit.cover,
                       ),
                     ),
