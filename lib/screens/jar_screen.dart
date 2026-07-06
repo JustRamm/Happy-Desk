@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 
+import 'notifications_screen.dart';
+import '../widgets/jar_icon_widget.dart';
+
 class JarScreen extends StatefulWidget {
   const JarScreen({super.key});
 
@@ -185,27 +188,17 @@ class _JarScreenState extends State<JarScreen> {
                   ),
 
                   // Notification Bell
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                      border: Border.all(
-                        color: AppTheme.primaryRust.withValues(alpha: 0.3),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                      );
+                    },
+                    icon: const Icon(
                       Icons.notifications_none_rounded,
-                      color: AppTheme.primaryRust,
-                      size: 22,
+                      color: Color(0xFF8B2600),
+                      size: 24,
                     ),
                   ),
                 ],
@@ -293,10 +286,11 @@ class _JarScreenState extends State<JarScreen> {
                             ],
                           ),
                           child: const Center(
-                            child: Icon(
-                              Icons.lock_rounded,
-                              color: Colors.white,
-                              size: 54,
+                            child: JarIconWidget(
+                              size: 64,
+                              mainColor: Colors.white,
+                              lidColor: Color(0xFFC84B1A),
+                              liquidColor: Color(0xFFFFD6C7),
                             ),
                           ),
                         ),
