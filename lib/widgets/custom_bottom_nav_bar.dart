@@ -16,7 +16,6 @@ class CustomBottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = [
       _NavBarItem(icon: Icons.home_rounded, label: 'Home'),
-      _NavBarItem(icon: Icons.auto_awesome_rounded, label: 'Jar'),
       _NavBarItem(icon: Icons.emoji_events_rounded, label: 'Hero'),
       _NavBarItem(icon: Icons.person_rounded, label: 'Profile'),
     ];

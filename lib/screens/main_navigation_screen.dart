@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
-import 'jar_screen.dart';
 import 'hero_screen.dart';
 import 'profile_screen.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
@@ -28,7 +27,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   final List<Widget> _screens = const [
     HomeScreen(),
-    JarScreen(),
     HeroScreen(),
     ProfileScreen(),
   ];
@@ -51,3 +49,4 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 }
+
