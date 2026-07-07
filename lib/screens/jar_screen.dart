@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
-
 import 'notifications_screen.dart';
+import 'compose_ngl_note_screen.dart';
+import 'ngl_note_detail_screen.dart';
 import '../widgets/jar_icon_widget.dart';
 
 class JarScreen extends StatefulWidget {
@@ -16,151 +17,18 @@ class _JarScreenState extends State<JarScreen> {
   int _userContributions = 2; // e.g. 2 written out of 5 required to unlock
   final int _targetContributions = 5;
 
-  void _showWriteAppreciationModal() {
-    final noteController = TextEditingController();
-    String selectedCategory = 'Kindness';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-                top: 24,
-                left: 24,
-                right: 24,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Write Appreciation',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.brandTitleOrange,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close_rounded),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Drop an anonymous note into the Community Jar to spread joy!',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13.5,
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Category Chips
-                  Wrap(
-                    spacing: 8,
-                    children: ['Kindness', 'Great Job', 'Teamwork', 'Shoutout'].map((cat) {
-                      final isSel = selectedCategory == cat;
-                      return ChoiceChip(
-                        label: Text(cat),
-                        selected: isSel,
-                        onSelected: (selected) {
-                          if (selected) {
-                            setModalState(() {
-                              selectedCategory = cat;
-                            });
-                          }
-                        },
-                        selectedColor: AppTheme.primaryRustLight,
-                        labelStyle: TextStyle(
-                          color: isSel ? AppTheme.primaryRust : Colors.black87,
-                          fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  TextField(
-                    controller: noteController,
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      hintText: 'Spread some love... (e.g. Thanks for bringing delicious cookies to the team sync today!)',
-                      filled: true,
-                      fillColor: const Color(0xFFF9F6F8),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (noteController.text.trim().isNotEmpty) {
-                          setState(() {
-                            if (_userContributions < _targetContributions) {
-                              _userContributions++;
-                            }
-                          });
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Note added! Community Jar updated.'),
-                              backgroundColor: AppTheme.primaryRust,
-                            ),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryRust,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(26),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Send to Jar',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.send_rounded, size: 18, color: Colors.white),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+  void _openComposeNote() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ComposeNglNoteScreen()),
     );
+    if (result == true) {
+      setState(() {
+        if (_userContributions < _targetContributions) {
+          _userContributions++;
+        }
+      });
+    }
   }
 
   @override
@@ -214,24 +82,23 @@ class _JarScreenState extends State<JarScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  'COMMUNITY JOY',
+                  'Community Appreciation',
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
                     color: AppTheme.primaryRust,
-                    letterSpacing: 1.5,
                   ),
                 ),
               ),
 
               const SizedBox(height: 12),
 
-              // Headline & Subtitle
+              // Title Section: NGL Appreciation Jar
               Text(
-                'Today\'s Dose of Appreciation',
+                'NGL Appreciation Jar',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 22,
+                  fontSize: 24,
                   fontWeight: FontWeight.w800,
                   color: AppTheme.titleDark,
                 ),
@@ -250,7 +117,7 @@ class _JarScreenState extends State<JarScreen> {
 
               const SizedBox(height: 24),
 
-              // Main Elevated Card Container with Padlock & Progress
+              // Main Elevated Card Container with Jar Graphic & Progress
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(28),
@@ -267,7 +134,7 @@ class _JarScreenState extends State<JarScreen> {
                 ),
                 child: Column(
                   children: [
-                    // Pink Circle Padlock Graphic with 'New!' Tag
+                    // Pink Circle Badge with Jar Graphic
                     Stack(
                       clipBehavior: Clip.none,
                       children: [
@@ -295,7 +162,7 @@ class _JarScreenState extends State<JarScreen> {
                           ),
                         ),
 
-                        // New! Orange Tag Badge
+                        // Active Tag Badge
                         Positioned(
                           top: 0,
                           right: -10,
@@ -312,11 +179,11 @@ class _JarScreenState extends State<JarScreen> {
                               ],
                             ),
                             child: Text(
-                              'New!',
+                              'Active',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
                                 color: Colors.white,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
@@ -326,40 +193,40 @@ class _JarScreenState extends State<JarScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Progress Messages
+                    // Progress Status Title
                     Text(
-                      remaining > 0
-                          ? 'Write $remaining more for others to open!'
-                          : 'Community Jar Unlocked!',
-                      textAlign: TextAlign.center,
+                      _userContributions >= _targetContributions
+                          ? 'Jar Unlocked!'
+                          : 'Write $remaining more notes to unlock',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF8C436E),
+                        color: AppTheme.titleDark,
                       ),
                     ),
+
                     const SizedBox(height: 6),
+
+                    // Subtitle progress count
                     Text(
-                      'Spread some love to unlock\ntoday\'s dose.',
-                      textAlign: TextAlign.center,
+                      '$_userContributions / $_targetContributions Notes Contributed',
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
                         color: AppTheme.textSecondary,
-                        height: 1.3,
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
 
-                    // Progress Bar
+                    // Linear Progress Bar Track
                     Stack(
                       children: [
                         Container(
                           height: 8,
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE8EEFF),
+                            color: const Color(0xFFF3F4F6),
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
@@ -386,7 +253,7 @@ class _JarScreenState extends State<JarScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _showWriteAppreciationModal,
+                  onPressed: _openComposeNote,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryRust,
                     foregroundColor: Colors.white,
@@ -456,6 +323,84 @@ class _JarScreenState extends State<JarScreen> {
                 titleColor: const Color(0xFF7C3A68),
               ),
 
+              const SizedBox(height: 28),
+
+              // Section: Unlocked Recent Notes Preview
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'RECENT NOTES IN JAR',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.primaryRust,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  Text(
+                    'Unlocked',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF10B981),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // Note Preview Card 1
+              _buildNotePreviewCard(
+                recipient: 'Alex Miller',
+                category: 'Kindness',
+                snippet: 'Thank you for staying late to help me debug the design system...',
+                date: 'Today at 10:45 AM',
+                color: const Color(0xFFFFF0EB),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NglNoteDetailScreen(
+                        recipientName: 'Alex Miller',
+                        category: 'Kindness',
+                        message:
+                            'Thank you for staying late to help me debug the design system components before product release! Your support made all the difference.',
+                        date: 'Today at 10:45 AM',
+                        cardBgColor: Color(0xFFFFF0EB),
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              // Note Preview Card 2
+              _buildNotePreviewCard(
+                recipient: 'Sarah Chen',
+                category: 'Growth',
+                snippet: 'Your presentation at the all-hands meeting was super inspiring...',
+                date: 'Yesterday at 4:20 PM',
+                color: const Color(0xFFE6F7F0),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NglNoteDetailScreen(
+                        recipientName: 'Sarah Chen',
+                        category: 'Growth',
+                        message:
+                            'Your presentation at the all-hands meeting was super inspiring! Loved how you explained the new workflow so clearly.',
+                        date: 'Yesterday at 4:20 PM',
+                        cardBgColor: Color(0xFFE6F7F0),
+                      ),
+                    ),
+                  );
+                },
+              ),
+
               const SizedBox(height: 24),
             ],
           ),
@@ -517,6 +462,107 @@ class _JarScreenState extends State<JarScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNotePreviewCard({
+    required String recipient,
+    required String category,
+    required String snippet,
+    required String date,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'To $recipient',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.titleDark,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    category,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.primaryRust,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              snippet,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.titleDark,
+                height: 1.3,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  date,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                Row(
+                  children: [
+                    Text(
+                      'Read Note',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.primaryRust,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.chevron_right_rounded, size: 16, color: AppTheme.primaryRust),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
