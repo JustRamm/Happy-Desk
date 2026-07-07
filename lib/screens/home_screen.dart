@@ -17,6 +17,54 @@ class _HomeScreenState extends State<HomeScreen> {
   int _nglEntries = 13;
   final int _targetEntries = 20;
 
+  int _currentQuestIndex = 0;
+  bool _isQuestCompleted = false;
+
+  final List<Map<String, String>> _quests = const [
+    {
+      'title': 'Thank a teammate for their help this week',
+      'description': 'Send an appreciation note or shoutout to a colleague who supported you.',
+      'reward': '+1 NGL Note',
+    },
+    {
+      'title': 'Take a 5-minute hydration and stretch break',
+      'description': 'Step away from your desk, stretch your shoulders, and drink a glass of water.',
+      'reward': '+5% Reliability',
+    },
+    {
+      'title': 'Share a win in the NGL Jar',
+      'description': 'Drop a positive workplace accomplishment into the team appreciation jar.',
+      'reward': '+1 NGL Note',
+    },
+  ];
+
+  void _completeQuest() {
+    setState(() {
+      _isQuestCompleted = true;
+      _nglEntries++;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Quest completed! Reward claimed: ${_quests[_currentQuestIndex]['reward']}',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: const Color(0xFF10B981),
+      ),
+    );
+  }
+
+  void _nextQuest() {
+    setState(() {
+      _currentQuestIndex = (_currentQuestIndex + 1) % _quests.length;
+      _isQuestCompleted = false;
+    });
+  }
+
   void _toggleClockIn() {
     setState(() {
       _isClockedIn = !_isClockedIn;
@@ -219,7 +267,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 20),
 
-              // Card 2: Your NGL Jar Card (Soft Lavender)
+              // Card 2: Daily Joy Quest Card (Golden Cream)
+              _buildDailyJoyQuestCard(),
+
+              const SizedBox(height: 20),
+
+              // Card 3: Your NGL Jar Card (Soft Lavender)
               _buildNglJarCard(),
 
               const SizedBox(height: 20),
@@ -578,7 +631,172 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Card 2: NGL Jar Card
+  // Card 2: Daily Joy Quest Card
+  Widget _buildDailyJoyQuestCard() {
+    final currentQuest = _quests[_currentQuestIndex];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7ED), // Soft Golden Cream
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: const Color(0xFFFFD8A8),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFD97706).withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row: Tag Pill & Reward Badge
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryRust.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.stars_rounded, size: 14, color: AppTheme.primaryRust),
+                    const SizedBox(width: 5),
+                    Text(
+                      'DAILY JOY QUEST',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.primaryRust,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Reward Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  currentQuest['reward']!,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF047857),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // Quest Title
+          Text(
+            currentQuest['title']!,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.titleDark,
+              height: 1.25,
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          // Quest Description
+          Text(
+            currentQuest['description']!,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.textSecondary,
+              height: 1.35,
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          // Action Row
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 46,
+                  child: ElevatedButton(
+                    onPressed: _isQuestCompleted ? null : _completeQuest,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          _isQuestCompleted ? const Color(0xFF10B981) : AppTheme.primaryRust,
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(23),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _isQuestCompleted
+                              ? Icons.check_circle_rounded
+                              : Icons.task_alt_rounded,
+                          size: 18,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _isQuestCompleted ? 'Quest Completed' : 'Mark Quest Complete',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 10),
+
+              // Skip / Next Quest Button
+              Container(
+                height: 46,
+                width: 46,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(23),
+                  border: Border.all(color: const Color(0xFFFFD8A8), width: 1.2),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.refresh_rounded, size: 20, color: AppTheme.titleDark),
+                  onPressed: _nextQuest,
+                  tooltip: 'Next Quest',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Card 3: NGL Jar Card
   Widget _buildNglJarCard() {
     return Container(
       width: double.infinity,
