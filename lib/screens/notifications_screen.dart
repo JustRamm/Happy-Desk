@@ -28,7 +28,7 @@ class NotificationsScreen extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(18),
                 child: Image.asset(
-                  'assets/images/user_avatar.png',
+                  'assets/avatars/user_avatar.png',
                   fit: BoxFit.cover,
                 ),
               ),
