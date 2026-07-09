@@ -34,19 +34,36 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+      backgroundColor: const Color(0xFFFAF9F8),
+      body: Stack(
+        children: List.generate(_screens.length, (index) {
+          final isSelected = index == _currentIndex;
+          return AnimatedOpacity(
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeInOutCubic,
+            opacity: isSelected ? 1.0 : 0.0,
+            child: IgnorePointer(
+              ignoring: !isSelected,
+              child: AnimatedScale(
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeOutCubic,
+                scale: isSelected ? 1.0 : 0.97,
+                child: _screens[index],
+              ),
+            ),
+          );
+        }),
       ),
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: _currentIndex,
         onItemTapped: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          if (_currentIndex != index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          }
         },
       ),
     );
   }
 }
-
