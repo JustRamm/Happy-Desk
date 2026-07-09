@@ -11,17 +11,17 @@ class ComposeNglNoteScreen extends StatefulWidget {
 
 class _ComposeNglNoteScreenState extends State<ComposeNglNoteScreen> {
   final _messageController = TextEditingController();
-  String _selectedRecipient = 'Alex Miller';
+  String _selectedRecipient = 'Alex Miller (Founder & CEO)';
   String _selectedCategory = 'Kindness';
   int _selectedColorIndex = 0;
   bool _isAnonymous = true;
 
   final List<String> _recipients = [
-    'Alex Miller',
-    'Sarah Chen',
-    'Rownok Rahman',
-    'David Kim',
-    'Whole Team',
+    'Alex Miller (Founder & CEO)',
+    'Sarah Chen (Design Lead)',
+    'Rownok Rahman (Product Manager)',
+    'David Kim (Senior Engineer)',
+    'Whole Team (Community Jar)',
   ];
 
   final List<Map<String, dynamic>> _categories = [
@@ -176,6 +176,35 @@ class _ComposeNglNoteScreenState extends State<ComposeNglNoteScreen> {
                       }
                     },
                   ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Privacy Info Banner
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE6F7F0),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.shield_outlined, color: Color(0xFF047857), size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '100% Anonymous • Delivered privately to their jar.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF047857),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
