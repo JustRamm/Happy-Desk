@@ -8,73 +8,42 @@ class NotificationsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.titleDark),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 1.5),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: Image.asset(
-                  'assets/avatars/user_avatar.png',
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Image.asset(
-              'assets/brand/logo_removedbg.png',
-              height: 26,
-              fit: BoxFit.contain,
-            ),
-          ],
-        ),
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 16),
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF3F2FF),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.notifications_none_rounded,
-              color: AppTheme.primaryRust,
-              size: 20,
-            ),
-          ),
-        ],
-      ),
+      backgroundColor: const Color(0xFFFAF9F8), // Warm soft ambient background matching rest of app
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Headline Title & Subtitle
-              Text(
-                'Notifications',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.titleDark,
-                  letterSpacing: -0.5,
-                ),
+              // Top Header Row (Matching Settings & detail screens header style)
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: AppTheme.titleDark,
+                      size: 20,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Notifications',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.titleDark,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
+
+              const SizedBox(height: 6),
+
               Text(
                 'Catch up on all the joy and team wins.',
                 style: GoogleFonts.plusJakartaSans(
@@ -119,7 +88,8 @@ class NotificationsScreen extends StatelessWidget {
                 iconColor: AppTheme.primaryRust,
                 title: 'Someone just added a note to your Jar!',
                 time: 'Just now',
-                body: 'Open it up to read some anonymous appreciation from the team. You\'re doing great!',
+                body:
+                    'Open it up to read some anonymous appreciation from the team. You\'re doing great!',
                 actionWidget: Padding(
                   padding: const EdgeInsets.only(top: 14.0),
                   child: ElevatedButton(
@@ -131,7 +101,10 @@ class NotificationsScreen extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryRust,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 10,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -157,13 +130,17 @@ class NotificationsScreen extends StatelessWidget {
                 iconColor: const Color(0xFFEC4899),
                 title: 'Sarah Jenkins was named this week\'s Hero!',
                 time: '15m ago',
-                body: 'She crushed the sprint goals and helped three teammates with their blockers. Show some love!',
+                body:
+                    'She crushed the sprint goals and helped three teammates with their blockers. Show some love!',
                 actionWidget: Padding(
                   padding: const EdgeInsets.only(top: 14.0),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFD1FAE5),
                           borderRadius: BorderRadius.circular(14),
@@ -179,7 +156,10 @@ class NotificationsScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFCE7F3),
                           borderRadius: BorderRadius.circular(14),
@@ -220,7 +200,8 @@ class NotificationsScreen extends StatelessWidget {
                 iconColor: AppTheme.primaryRust,
                 title: 'Don\'t forget to clock in!',
                 time: '2h ago',
-                body: 'Your shift started 10 minutes ago. Tap here to start your Happy Day.',
+                body:
+                    'Your shift started 10 minutes ago. Tap here to start your Happy Day.',
                 isLightCard: true,
               ),
 
@@ -233,7 +214,8 @@ class NotificationsScreen extends StatelessWidget {
                 iconColor: const Color(0xFF10B981),
                 title: 'You have a new streak milestone: 8 Days!',
                 time: '5h ago',
-                body: 'You\'re on fire! 8 consecutive days of positive desk vibes. Keep it up!',
+                body:
+                    'You\'re on fire! 8 consecutive days of positive desk vibes. Keep it up!',
                 isLightCard: true,
               ),
 
@@ -246,7 +228,8 @@ class NotificationsScreen extends StatelessWidget {
                 iconColor: const Color(0xFF6B5B95),
                 title: 'System Update Completed',
                 time: 'Yesterday',
-                body: 'Happy Desk is now faster and includes new emojis for your Jar notes!',
+                body:
+                    'Happy Desk is now faster and includes new emojis for your Jar notes!',
                 isLightCard: true,
               ),
 
@@ -272,7 +255,10 @@ class NotificationsScreen extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: isLightCard ? const Color(0xFFF3F2FF).withValues(alpha: 0.6) : Colors.white,
+        color:
+            isLightCard
+                ? const Color(0xFFF3F2FF).withValues(alpha: 0.6)
+                : Colors.white,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.8),
@@ -296,11 +282,7 @@ class NotificationsScreen extends StatelessWidget {
               color: iconBg,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              color: iconColor,
-              size: 22,
-            ),
+            child: Icon(icon, color: iconColor, size: 22),
           ),
 
           const SizedBox(width: 14),
