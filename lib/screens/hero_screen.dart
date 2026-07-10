@@ -21,7 +21,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
     'Marcus Vance (Engineering)',
     'Sarah Chen (Design)',
     'Mary Jane (Product)',
-    'Alex Miller (Marketing)',
+    'Alex Miller (Founder & CEO)',
     'Elena Rostova (Customer Success)',
   ];
 
@@ -37,7 +37,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
     '#Innovator',
   ];
 
-  // Dummy list of nominations RECEIVED by current user (Anonymous)
+  // Private received nominations for the current user
   final List<Map<String, dynamic>> _receivedNominations = [
     {
       'time': '2 hours ago',
@@ -63,11 +63,6 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
   bool _controllerInitialized = false;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_controllerInitialized) {
@@ -86,8 +81,11 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
   void _submitNomination() {
     if (_hasNominatedThisWeek) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You have already submitted your 1 nomination for this week!'),
+        SnackBar(
+          content: Text(
+            'You have already submitted your 1 nomination for this week.',
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
+          ),
           backgroundColor: AppTheme.primaryRust,
         ),
       );
@@ -96,8 +94,11 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
 
     if (_selectedCoworker == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select the teammate who helped you!'),
+        SnackBar(
+          content: Text(
+            'Please select the teammate who helped you.',
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
+          ),
           backgroundColor: AppTheme.primaryRust,
         ),
       );
@@ -106,8 +107,11 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
 
     if (_storyController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please explain how they helped you in need this week!'),
+        SnackBar(
+          content: Text(
+            'Please explain how they helped you this week.',
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
+          ),
           backgroundColor: AppTheme.primaryRust,
         ),
       );
@@ -121,8 +125,14 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Anonymous Hero nomination sent to $nominee! (+5 Team Points)'),
-        backgroundColor: const Color(0xFF007A5A),
+        content: Text(
+          'Weekly Hero nomination anonymously delivered to $nominee.',
+          style: GoogleFonts.plusJakartaSans(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: const Color(0xFF047857),
         duration: const Duration(seconds: 4),
       ),
     );
@@ -158,7 +168,9 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const JarScreen()),
+                                MaterialPageRoute(
+                                  builder: (context) => const JarScreen(),
+                                ),
                               );
                             },
                             icon: const JarIconWidget(
@@ -171,7 +183,9 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                                MaterialPageRoute(
+                                  builder: (context) => const NotificationsScreen(),
+                                ),
                               );
                             },
                             icon: const Icon(
@@ -187,7 +201,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
 
                   const SizedBox(height: 10),
 
-                  // Segmented Tab Bar (Nominate vs Received Nominations)
+                  // Segmented Tab Bar (Nominate vs My Received Recognition)
                   Container(
                     height: 48,
                     padding: const EdgeInsets.all(4),
@@ -211,18 +225,18 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                       labelColor: const Color(0xFFC84B1A),
                       unselectedLabelColor: const Color(0xFF6B7280),
                       labelStyle: GoogleFonts.plusJakartaSans(
-                        fontSize: 13.5,
+                        fontSize: 13,
                         fontWeight: FontWeight.w800,
                       ),
                       unselectedLabelStyle: GoogleFonts.plusJakartaSans(
-                        fontSize: 13.5,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                       indicatorSize: TabBarIndicatorSize.tab,
                       dividerColor: Colors.transparent,
                       tabs: [
                         const Tab(text: 'Nominate Hero'),
-                        Tab(text: 'Received (${_receivedNominations.length})'),
+                        Tab(text: 'My Received (${_receivedNominations.length})'),
                       ],
                     ),
                   ),
@@ -238,7 +252,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                   // Tab 1: Submit Anonymous Nomination
                   _buildNominateTab(),
 
-                  // Tab 2: View Received Nominations (Recipient View)
+                  // Tab 2: View Private Received Recognition (Recipient View)
                   _buildReceivedTab(),
                 ],
               ),
@@ -257,12 +271,14 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Weekly Limit Rule Banner
+          // Weekly Limit & Anonymity Rule Banner
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: _hasNominatedThisWeek ? const Color(0xFFD1FAE5) : const Color(0xFFFFF0EB),
+              color: _hasNominatedThisWeek
+                  ? const Color(0xFFD1FAE5)
+                  : const Color(0xFFFFF0EB),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: _hasNominatedThisWeek
@@ -275,8 +291,10 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                 Icon(
                   _hasNominatedThisWeek
                       ? Icons.check_circle_rounded
-                      : Icons.info_outline_rounded,
-                  color: _hasNominatedThisWeek ? const Color(0xFF047857) : AppTheme.primaryRust,
+                      : Icons.favorite_border_rounded,
+                  color: _hasNominatedThisWeek
+                      ? const Color(0xFF047857)
+                      : AppTheme.primaryRust,
                   size: 20,
                 ),
                 const SizedBox(width: 10),
@@ -286,10 +304,10 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                     children: [
                       Text(
                         _hasNominatedThisWeek
-                            ? 'Weekly Nomination Submitted! (1/1)'
-                            : '1 Nomination Per Week Allowed',
+                            ? 'Weekly Nomination Submitted (1/1)'
+                            : '1 Weekly Hero Nomination Allowed',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
+                          fontSize: 13.5,
                           fontWeight: FontWeight.w800,
                           color: _hasNominatedThisWeek
                               ? const Color(0xFF047857)
@@ -299,13 +317,14 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                       const SizedBox(height: 2),
                       Text(
                         _hasNominatedThisWeek
-                            ? 'You\'ve nominated your hero for this week. Thank you!'
-                            : 'Nominate 1 teammate who helped you when in need this week.',
+                            ? 'You have nominated your hero for this week. Thank you for appreciating your team.'
+                            : 'Nominate 1 teammate or founder who helped you last week. Who nominated whom is never shown.',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           color: _hasNominatedThisWeek
                               ? const Color(0xFF065F46)
                               : const Color(0xFF6B1D00),
+                          height: 1.3,
                         ),
                       ),
                     ],
@@ -337,7 +356,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
               children: [
                 // Field 1: Who helped you in need?
                 Text(
-                  'Who helped you when in need this week?',
+                  'Who helped you last week?',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w800,
@@ -357,10 +376,14 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                       isExpanded: true,
                       hint: Row(
                         children: [
-                          const Icon(Icons.person_search_rounded, color: Colors.grey, size: 20),
+                          const Icon(
+                            Icons.person_search_rounded,
+                            color: Colors.grey,
+                            size: 20,
+                          ),
                           const SizedBox(width: 10),
                           Text(
-                            'Select a coworker...',
+                            'Select a teammate or founder...',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 13.5,
                               color: Colors.grey.shade500,
@@ -369,7 +392,10 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                         ],
                       ),
                       value: _selectedCoworker,
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey),
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Colors.grey,
+                      ),
                       items: _coworkers.map((name) {
                         return DropdownMenuItem(
                           value: name,
@@ -396,13 +422,21 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
 
                 const SizedBox(height: 18),
 
-                // Field 2: What did they do to help? (Reason shared with recipient)
+                // Field 2: What did they do to help?
                 Text(
-                  'How did they help you? (Shared with them anonymously)',
+                  'How did they help you?',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w800,
                     color: AppTheme.titleDark,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Shared anonymously with only the nominated person.',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -423,7 +457,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                     ),
                     decoration: InputDecoration(
                       hintText:
-                          'Explain what happened... (e.g. Marcus stayed late to help me fix the deployment bug when I was struggling!)',
+                          'Explain what happened (e.g. Marcus stayed late on Tuesday to help me debug the production deployment pipeline).',
                       hintStyle: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         color: Colors.grey.shade400,
@@ -439,7 +473,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
 
                 // Field 3: Superpower Tags
                 Text(
-                  'Select Superpowers',
+                  'Select Appreciation Tags',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w800,
@@ -458,7 +492,9 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,
-                          color: isSelected ? const Color(0xFF047857) : const Color(0xFF065F46),
+                          color: isSelected
+                              ? const Color(0xFF047857)
+                              : const Color(0xFF065F46),
                         ),
                       ),
                       selected: isSelected,
@@ -478,7 +514,9 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                         side: BorderSide(
-                          color: isSelected ? const Color(0xFF10B981) : Colors.transparent,
+                          color: isSelected
+                              ? const Color(0xFF10B981)
+                              : Colors.transparent,
                           width: 1.5,
                         ),
                       ),
@@ -489,7 +527,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
 
                 const SizedBox(height: 22),
 
-                // Submit Button (100% Anonymous)
+                // Submit Button
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -499,7 +537,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                       backgroundColor: const Color(0xFFC84B1A),
                       disabledBackgroundColor: Colors.grey.shade300,
                       foregroundColor: Colors.white,
-                      elevation: 3,
+                      elevation: 2,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(26),
                       ),
@@ -507,12 +545,18 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.lock_outline_rounded, size: 18, color: Colors.white),
+                        const Icon(
+                          Icons.lock_outline_rounded,
+                          size: 18,
+                          color: Colors.white,
+                        ),
                         const SizedBox(width: 8),
                         Text(
-                          _hasNominatedThisWeek ? 'Already Nominated This Week' : 'Nominate Anonymously',
+                          _hasNominatedThisWeek
+                              ? 'Nomination Submitted This Week'
+                              : 'Nominate Anonymously',
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 15.5,
+                            fontSize: 15,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -526,7 +570,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
 
           const SizedBox(height: 16),
 
-          // Anonymity Guarantee Pill
+          // Privacy Reassurance Banner
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -535,15 +579,20 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
             ),
             child: Row(
               children: [
-                const Icon(Icons.security_rounded, color: Color(0xFF2E3A59), size: 20),
+                const Icon(
+                  Icons.shield_outlined,
+                  color: Color(0xFF2E3A59),
+                  size: 20,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '100% Anonymous: Your identity will never be revealed to your nominee.',
+                    '100% Private: Only the nominated person sees their nomination. No public leaderboards or rankings.',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF2E3A59),
+                      height: 1.3,
                     ),
                   ),
                 ),
@@ -565,20 +614,20 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Recipient Hero Summary Banner
+          // Private Recipient Banner
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF007A5A), Color(0xFF10B981)],
+                colors: [Color(0xFF047857), Color(0xFF10B981)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(26),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF007A5A).withValues(alpha: 0.25),
+                  color: const Color(0xFF047857).withValues(alpha: 0.25),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -595,7 +644,11 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                         color: Colors.white24,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.emoji_events_rounded, color: Colors.white, size: 28),
+                      child: const Icon(
+                        Icons.military_tech_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -603,15 +656,15 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'You\'re a Hero This Week!',
+                            'Your Weekly Hero Nominations',
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 18,
+                              fontSize: 17.5,
                               fontWeight: FontWeight.w800,
                               color: Colors.white,
                             ),
                           ),
                           Text(
-                            'You received ${_receivedNominations.length} Anonymous Nominations',
+                            '${_receivedNominations.length} Teammates nominated you as their hero',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -625,7 +678,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Your teammates appreciated your help when they were in need! Read what they wrote below (sender identities stay anonymous).',
+                  'Your teammates appreciated your help when they were in need last week. Only you can see these nominations.',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12.5,
                     color: Colors.white.withValues(alpha: 0.95),
@@ -638,13 +691,36 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
 
           const SizedBox(height: 20),
 
-          Text(
-            'Reasons Teammates Nominated You:',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.titleDark,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Private Appreciations For You:',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.titleDark,
+                ),
+              ),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.lock_rounded,
+                    size: 12,
+                    color: Color(0xFF10B981),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Private',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF10B981),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
 
           const SizedBox(height: 12),
@@ -686,7 +762,11 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                                 color: Color(0xFFF4F4FD),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.person_pin_rounded, color: Color(0xFFC84B1A), size: 16),
+                              child: const Icon(
+                                Icons.person_pin_rounded,
+                                color: Color(0xFFC84B1A),
+                                size: 16,
+                              ),
                             ),
                             const SizedBox(width: 8),
                             Text(
@@ -717,7 +797,10 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                       spacing: 6,
                       children: (nom['tags'] as List<String>).map((tag) {
                         return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFD1FAE5),
                             borderRadius: BorderRadius.circular(12),

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import 'jar_screen.dart';
 import 'notifications_screen.dart';
+import 'hero_screen.dart';
 import '../widgets/jar_icon_widget.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -901,7 +902,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Card 3: Weekly Hero Card
+  // Card 3: Weekly Hero Card (Non-competitive peer recognition)
   Widget _buildWeeklyHeroCard() {
     return Container(
       width: double.infinity,
@@ -920,42 +921,14 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Stack(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(22, 32, 22, 22),
+            padding: const EdgeInsets.fromLTRB(22, 34, 22, 22),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Profile Image frame
-                Center(
-                  child: Container(
-                    width: 140,
-                    height: 140,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(4),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: Image.asset(
-                        'assets/avatars/user_avatar.png',
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                ),
+                const SizedBox(height: 12),
 
-                const SizedBox(height: 20),
-
-                // Team Spotlight Tag
                 Text(
-                  'TEAM SPOTLIGHT',
+                  'PEER APPRECIATION',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -966,58 +939,109 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 4),
 
-                // Name: Sarah Chen
                 Text(
-                  'Sarah Chen',
+                  'Nominate Someone Who Helped You',
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 24,
+                    fontSize: 22,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF06372B),
+                    color: Colors.white,
+                    height: 1.2,
                   ),
                 ),
 
                 const SizedBox(height: 8),
 
-                // Description Text
                 Text(
-                  'Helped 12 coworkers this week with the \'Neon Project\' launch. True legend!',
+                  'Did a teammate or founder step up to support you last week? Nominate 1 person anonymously to brighten their week. No competitions or public rankings.',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w500,
                     height: 1.4,
-                    color: const Color(0xFF06372B),
+                    color: const Color(0xFFE6F7F0),
                   ),
                 ),
 
                 const SizedBox(height: 16),
 
-                // Hashtags Row (#Supportive, #ProblemSolver)
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     _buildHeroHashtag('#Supportive'),
-                    const SizedBox(width: 8),
                     _buildHeroHashtag('#ProblemSolver'),
+                    _buildHeroHashtag('#TeamPlayer'),
                   ],
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
+
+                // CTA Button to open HeroScreen
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HeroScreen(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF007A5A),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Nominate Your Weekly Hero',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 16,
+                          color: Color(0xFF007A5A),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 14),
 
                 // Anonymous Weekly Hero Rules CTA Badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF044E38),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.shield_outlined, color: Color(0xFFA7F3D0), size: 16),
+                      const Icon(
+                        Icons.shield_outlined,
+                        color: Color(0xFFA7F3D0),
+                        size: 16,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          '1 Nomination per week • 100% Anonymous',
+                          '1 Nomination per week • 100% Anonymous & Private',
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
+                            fontSize: 11.5,
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFFA7F3D0),
                           ),
@@ -1037,7 +1061,10 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Transform.rotate(
               angle: -0.04,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFD000), // Vibrant Yellow
                   borderRadius: BorderRadius.circular(14),
