@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import '../widgets/brand_logo_widget.dart';
 
 class SignUpScreen extends StatefulWidget {
   final VoidCallback onLoginTap;
@@ -89,11 +90,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     constraints: const BoxConstraints(),
                                   ),
                                 if (_currentStep == 1) const SizedBox(width: 8),
-                                Image.asset(
-                                  'assets/brand/logo_removedbg.png',
-                                  height: 38,
-                                  fit: BoxFit.contain,
-                                ),
+                                const BrandLogoWidget(height: 38),
                               ],
                             ),
 
