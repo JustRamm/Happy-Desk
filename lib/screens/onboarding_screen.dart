@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../widgets/feature_badge_card.dart';
 import '../widgets/page_indicator.dart';
+import '../widgets/brand_logo_widget.dart';
 
 /// Main Onboarding Screen featuring stationary Header, Button, and Slider (Dots),
 /// where only the middle page content swiping animates smoothly.
@@ -73,10 +74,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _handleSkip() {
-    if (widget.onLoginPressed != null) {
-      widget.onLoginPressed!();
-    } else if (widget.onNavigateToAuth != null) {
-      widget.onNavigateToAuth!(true);
+    const finalPageIndex = 2; // Final onboarding page (index 2)
+    if (_currentPage < finalPageIndex) {
+      _pageController.animateToPage(
+        finalPageIndex,
+        duration: const Duration(milliseconds: 550),
+        curve: Curves.fastOutSlowIn,
+      );
+    } else {
+      if (widget.onLoginPressed != null) {
+        widget.onLoginPressed!();
+      } else if (widget.onNavigateToAuth != null) {
+        widget.onNavigateToAuth!(true);
+      }
     }
   }
 
@@ -113,11 +123,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Image.asset(
-                    'assets/brand/logo_removedbg.png',
-                    height: 90,
-                    fit: BoxFit.contain,
-                  ),
+                  const BrandLogoWidget(height: 54),
                   AnimatedOpacity(
                     duration: const Duration(milliseconds: 300),
                     opacity: _currentPage < 2 ? 1.0 : 0.0,

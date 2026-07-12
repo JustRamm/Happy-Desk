@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'splash_loading_screen.dart';
 import 'onboarding_screen.dart';
 import 'auth_screen.dart';
@@ -21,7 +22,7 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
     precacheImage(const AssetImage('assets/images/onboarding.png'), context);
     precacheImage(const AssetImage('assets/images/onboarding_page_2.png'), context);
     precacheImage(const AssetImage('assets/images/onboarding_page_3.png'), context);
-    precacheImage(const AssetImage('assets/brand/logo_removedbg.png'), context);
+    vg.loadPicture(const SvgAssetLoader('assets/brand/U&ME.svg'), null);
   }
 
   void _finishLoading() {

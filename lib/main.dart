@@ -33,7 +33,7 @@ class HappyDeskApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Happy Desk',
+      title: 'U & ME',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
       home: const OnboardingWrapperScreen(),

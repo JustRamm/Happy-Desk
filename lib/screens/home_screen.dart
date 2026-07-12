@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import 'jar_screen.dart';
-import 'notifications_screen.dart';
+import 'chat_notifications_screen.dart';
 import 'hero_screen.dart';
+import 'work_session_details_screen.dart';
 import '../widgets/jar_icon_widget.dart';
+import '../widgets/brand_logo_widget.dart';
+import '../widgets/box_breathing_modal.dart';
+import '../widgets/desk_stretches_modal.dart';
+import '../widgets/daily_stress_buster_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,6 +21,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _isClockedIn = false;
   int _nglEntries = 13;
+
   final int _targetEntries = 20;
 
   int _currentQuestIndex = 0;
@@ -202,12 +208,8 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Brand Logo in Top Left Corner (Enlarged size 70)
-                  Image.asset(
-                    'assets/brand/logo_removedbg.png',
-                    height: 70,
-                    fit: BoxFit.contain,
-                  ),
+                  // Brand Logo SVG
+                  const BrandLogoWidget(height: 48),
 
                   // Jar + Notification icons
                   Row(
@@ -218,7 +220,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const JarScreen()),
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const JarScreen(showBackButton: true)),
                           );
                         },
                         icon: const JarIconWidget(
@@ -228,16 +232,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
 
-                      // Notification Bell
+                      // Chat & Notifications Icon
                       IconButton(
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const ChatNotificationsScreen()),
                           );
                         },
                         icon: const Icon(
-                          Icons.notifications_none_rounded,
+                          Icons.forum_outlined,
                           color: Color(0xFF8B2600),
                           size: 24,
                         ),
@@ -263,8 +269,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 20),
 
-              // Card 1: Work Session Card (Orange)
+              // CARD 1: WORK SESSION / CLOCK-IN CARD (FIRST POSITION MANDATORY)
               _buildWorkSessionCard(),
+
+              const SizedBox(height: 20),
+
+              // Quick De-Stress Reset Pills (60s Breathing & Desk Stretches)
+              _buildQuickResetsPills(context),
+
+              const SizedBox(height: 20),
+
+              // Daily Stress Management Education Card
+              const DailyStressBusterCard(),
 
               const SizedBox(height: 20),
 
@@ -294,11 +310,91 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Quick De-Stress Reset Action Pills (60s Breathing & Desk Stretches)
+  Widget _buildQuickResetsPills(BuildContext context) {
+    return Row(
+      children: [
+        // 60s Breathing Pill
+        Expanded(
+          child: GestureDetector(
+            onTap: () => BoxBreathingModal.show(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEBF7F5),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFD1FAE5)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.spa_rounded,
+                      size: 18, color: Color(0xFF006C53)),
+                  const SizedBox(width: 8),
+                  Text(
+                    '60s Breathing',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF006C53),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+
+        // Desk Stretches Pill
+        Expanded(
+          child: GestureDetector(
+            onTap: () => DeskStretchesModal.show(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF0EB),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFFFD6C7)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.accessibility_rounded,
+                      size: 18, color: Color(0xFFAB3500)),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Desk Stretches',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFFAB3500),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+
   // Card 1: Work Session Card
   Widget _buildWorkSessionCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const WorkSessionDetailsScreen(),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: const Color(0xFFFF652F), // Vibrant Coral Orange
         borderRadius: BorderRadius.circular(28),
@@ -532,6 +628,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -984,7 +1081,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const HeroScreen(),
+                          builder: (context) =>
+                              const HeroScreen(showBackButton: true),
                         ),
                       );
                     },
