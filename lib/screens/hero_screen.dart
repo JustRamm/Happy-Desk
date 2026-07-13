@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import 'jar_screen.dart';
-import 'notifications_screen.dart';
+import 'chat_notifications_screen.dart';
 import '../widgets/jar_icon_widget.dart';
+import '../widgets/brand_logo_widget.dart';
 
 class HeroScreen extends StatefulWidget {
-  const HeroScreen({super.key});
+  final bool showBackButton;
+
+  const HeroScreen({super.key, this.showBackButton = false});
 
   @override
   State<HeroScreen> createState() => _HeroScreenState();
@@ -153,12 +156,14 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Brand Logo
-                      Image.asset(
-                        'assets/brand/logo_removedbg.png',
-                        height: 70,
-                        fit: BoxFit.contain,
-                      ),
+                      // Brand Logo SVG or Back Button if pushed from Home
+                      widget.showBackButton
+                          ? IconButton(
+                              icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                                  color: Color(0xFF171B2B), size: 20),
+                              onPressed: () => Navigator.of(context).pop(),
+                            )
+                          : const BrandLogoWidget(height: 48),
 
                       // Jar + Notification icons
                       Row(
@@ -184,12 +189,13 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const NotificationsScreen(),
+                                  builder: (context) =>
+                                      const ChatNotificationsScreen(),
                                 ),
                               );
                             },
                             icon: const Icon(
-                              Icons.notifications_none_rounded,
+                              Icons.forum_outlined,
                               color: Color(0xFF8B2600),
                               size: 24,
                             ),
