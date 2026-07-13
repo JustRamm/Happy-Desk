@@ -1,34 +1,23 @@
 {
-    "name": "happy_desk",
-    "short_name": "happy_desk",
+    "name": "Happy Desk",
+    "short_name": "Happy Desk",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FAF8FF",
+    "theme_color": "#AB3500",
+    "description": "Happy Desk — Modern workplace joy and stress management platform.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
         {
-            "src": "icons/Icon-192.png",
-            "sizes": "192x192",
-            "type": "image/png"
+            "src": "assets/brand/app icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
         },
         {
-            "src": "icons/Icon-512.png",
-            "sizes": "512x512",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-maskable-192.png",
-            "sizes": "192x192",
-            "type": "image/png",
-            "purpose": "maskable"
-        },
-        {
-            "src": "icons/Icon-maskable-512.png",
-            "sizes": "512x512",
-            "type": "image/png",
+            "src": "assets/brand/U&ME.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
             "purpose": "maskable"
         }
     ]
