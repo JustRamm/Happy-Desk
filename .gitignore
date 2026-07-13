@@ -44,5 +44,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# AI assistant context notes (do not commit)
+# AI assistant context notes & design concepts (do not commit)
 **/_ai_notes.md
+concept.md
+

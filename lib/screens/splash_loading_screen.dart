@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class SplashLoadingScreen extends StatefulWidget {
   final VoidCallback? onLoadingComplete;
@@ -18,14 +19,12 @@ class _SplashLoadingScreenState extends State<SplashLoadingScreen>
   late Animation<double> _logoFillAnimation;
   late Animation<double> _logoScaleAnimation;
   late Animation<double> _logoOpacityAnimation;
-  late Animation<double> _textOpacityAnimation;
-  late Animation<double> _textScaleAnimation;
 
   @override
   void initState() {
     super.initState();
 
-    // 6.5 second duration for fluid movement & text water fill reveal
+    // 6.5 second duration for fluid movement
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 6500),
@@ -43,20 +42,6 @@ class _SplashLoadingScreenState extends State<SplashLoadingScreen>
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.0, 0.15, curve: Curves.easeIn),
-      ),
-    );
-
-    _textOpacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.18, curve: Curves.easeOut),
-      ),
-    );
-
-    _textScaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.22, curve: Curves.easeOutBack),
       ),
     );
 
@@ -157,36 +142,20 @@ class _SplashLoadingScreenState extends State<SplashLoadingScreen>
                                     // Faint translucent placeholder outline
                                     Opacity(
                                       opacity: 0.15,
-                                      child: Image.asset(
-                                        'assets/brand/logo_removedbg.png',
+                                      child: SvgPicture.asset(
+                                        'assets/brand/U&ME.svg',
                                         height: 320,
                                         fit: BoxFit.contain,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return const Icon(
-                                            Icons
-                                                .sentiment_very_satisfied_rounded,
-                                            size: 200,
-                                            color: Color(0xFFFFB299),
-                                          );
-                                        },
                                       ),
                                     ),
 
-                                    // Liquid fill reveal of the ORIGINAL logo image
+                                    // Liquid fill reveal of the U & ME logo SVG
                                     ClipRect(
                                       clipper: _LiquidFillClipper(fillProgress),
-                                      child: Image.asset(
-                                        'assets/brand/logo_removedbg.png',
+                                      child: SvgPicture.asset(
+                                        'assets/brand/U&ME.svg',
                                         height: 320,
                                         fit: BoxFit.contain,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return const Icon(
-                                            Icons
-                                                .sentiment_very_satisfied_rounded,
-                                            size: 200,
-                                            color: Color(0xFFC84B1A),
-                                          );
-                                        },
                                       ),
                                     ),
                                   ],
@@ -195,72 +164,19 @@ class _SplashLoadingScreenState extends State<SplashLoadingScreen>
                             ),
                           ),
 
-                          const SizedBox(height: 28),
+                          const SizedBox(height: 24),
 
-                          // Playful "Happy Desk" title with light orange outline container + rising liquid water fill effect!
+                          // Subtitle Tagline ("WORKPLACE JOY REINVENTED")
                           Opacity(
-                            opacity: _textOpacityAnimation.value.clamp(
-                              0.0,
-                              1.0,
-                            ),
-                            child: Transform.scale(
-                              scale: _textScaleAnimation.value.clamp(0.0, 1.1),
-                              child: Column(
-                                children: [
-                                  // Text Stack: Outline Container + Rising Water Fill
-                                  Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      // Faint translucent placeholder text (15% opacity matching logo image!)
-                                      Opacity(
-                                        opacity: 0.15,
-                                        child: Text(
-                                          'Happy Desk',
-                                          textAlign: TextAlign.center,
-                                          style: GoogleFonts.baloo2(
-                                            fontSize: 54,
-                                            fontWeight: FontWeight.w800,
-                                            height: 1.1,
-                                            letterSpacing: -0.5,
-                                            color: const Color(0xFFC84B1A),
-                                          ),
-                                        ),
-                                      ),
-
-                                      // Layer 2: Liquid Water Fill rising inside letters from bottom to top!
-                                      ClipRect(
-                                        clipper: _LiquidFillClipper(
-                                          fillProgress,
-                                        ),
-                                        child: Text(
-                                          'Happy Desk',
-                                          textAlign: TextAlign.center,
-                                          style: GoogleFonts.baloo2(
-                                            fontSize: 54,
-                                            fontWeight: FontWeight.w800,
-                                            height: 1.1,
-                                            letterSpacing: -0.5,
-                                            color: const Color(0xFFC84B1A),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-
-                                  const SizedBox(height: 12),
-
-                                  // Subtitle
-                                  Text(
-                                    'WORKPLACE JOY REINVENTED',
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF594139),
-                                      letterSpacing: 2.8,
-                                    ),
-                                  ),
-                                ],
+                            opacity: _logoOpacityAnimation.value.clamp(0.0, 1.0),
+                            child: Text(
+                              'WORKPLACE JOY REINVENTED',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF594139),
+                                letterSpacing: 2.8,
                               ),
                             ),
                           ),

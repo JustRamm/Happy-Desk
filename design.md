@@ -1,5 +1,5 @@
 ---
-name: Happy Desk Design System
+name: U & ME Design System
 colors:
   surface: '#faf8ff'
   surface-dim: '#d6d9ef'
@@ -110,71 +110,40 @@ spacing:
   margin-desktop: 80px
 ---
 
+## Mandatory Design Rules & Directives
+
+> **STRICT EMOJI POLICY:** No use of emojis is appreciated anywhere in the codebase, UI text, notifications, or assets. Always use clean vector Material icons (`Icons.*`) or custom SVG painters.  
+> **DESIGN ANALYSIS RULE:** Always inspect and analyze `design.md` before implementing any UI changes, and update this document whenever design patterns evolve.
+
+---
+
 ## Brand & Style
 
-The brand personality is exuberant, supportive, and community-driven. It aims to transform mundane workplace tasks like clocking in into moments of joy and connection. The target audience consists of modern startup teams who value transparency, mental well-being, and a "people-first" culture.
+**App Name:** U & ME  
+The brand personality is exuberant, supportive, and community-driven. It aims to transform mundane workplace stress into moments of calm, connection, and appreciation between colleagues. The target audience consists of modern startup and hybrid teams who value mental well-being, psychological safety, and a "people-first" culture.
 
-The visual style is a mix of **Modern Minimalist structure** and **Tactile/Vibrant energy**. It utilizes organic, non-geometric shapes and character-driven illustrations to humanize the interface. A key differentiator is the use of subtle grainy textures on cards and surfaces, giving the digital experience a more grounded, physical feel that avoids the sterile look of traditional enterprise software.
+The visual style is a mix of **Modern Minimalist structure** and **Tactile/Vibrant energy**. It utilizes organic rounded shapes and character illustrations to humanize the interface. A key differentiator is the use of subtle textures and soft elevation.
 
-## Colors
+---
 
-The palette is intentionally high-contrast and saturated to evoke energy and optimism. 
+## Screen Architecture & Layout Rules
 
-- **Primary (Vivid Orange):** Used for main actions and the most critical information like 'Clock-in'.
-- **Secondary (Soft Pink):** Used for supportive features, wellness prompts, and the 'NGL Jar'.
-- **Tertiary (Bright Green):** Indicates success states, positive attendance streaks, and 'Weekly Hero' status.
-- **Accent (Sunny Yellow):** Used for highlights, playful icons, and decorative background elements.
-- **Neutral:** A deep navy-charcoal is used for typography to maintain legibility against the vibrant background colors, rather than using pure black.
+1. **Home Screen (`HomeScreen`):**
+   - **Top Header Bar:** Brand logo on left + **Chat Icon** (`Icons.forum_rounded`) on right.
+   - **Greeting Headline:** "Let's spread some joy today."
+   - **First Card Position:** **Clock-In / Work Session Card** is ALWAYS first.
+   - **De-Stress Quick Actions:** 60s Breathing & Desk Stretches.
+   - **Educational Cards:** Daily Stress-Buster Skill Card, Daily Joy Quest Card, NGL Jar & Weekly Hero cards.
 
-All surfaces should use the warm off-white background to keep the interface feeling approachable and soft.
+2. **NGL Jar Screen (`JarScreen`):**
+   - Contains the **Paper Shredder Stress Vent** widget with custom SVG vector shredder, text-to-paper-strips shredding animation, and sound effect.
 
-## Typography
+3. **Unified Chat Screen (`ChatNotificationsScreen`):**
+   - Opened via the top right Chat icon (`Icons.forum_rounded`).
+   - Title: **"Chat"** (no logo, no tab toggle).
+   - **Top-Right Action:** Coffee Icon (`Icons.local_cafe_rounded`) opens `MultiCoffeeResetModal` for multi-selecting teammates for group break invites.
+   - **Single Unified Stream:** Direct Messages section + Recent Workplace Alerts.
 
-The typography system prioritizes warmth and personality. **Plus Jakarta Sans** is used for headings; its rounded terminals and geometric-yet-friendly construction perfectly mirror the brand's optimism. **Be Vietnam Pro** is used for body text and labels to ensure high readability with a contemporary, casual flair.
-
-Headlines should use tight letter-spacing and heavy weights to command attention. Body text is kept airy with generous line heights to ensure the app feels "breathable" and stress-free.
-
-## Layout & Spacing
-
-This design system utilizes a **Fluid Grid** model with a focus on generous internal padding. Elements are not cramped; they are given "room to breathe" to reduce cognitive load.
-
-- **Mobile:** A 4-column fluid grid with 20px side margins. Content cards usually span the full width of the grid.
-- **Desktop:** A 12-column grid centered in a max-width container of 1280px. 
-- **Rhythm:** All spacing follows an 8px base unit. Component internal padding should lean towards the 'md' (24px) scale to reinforce the "large and friendly" aesthetic.
-
-## Elevation & Depth
-
-Hierarchy is achieved through **Tonal Layers** and **Ambient Shadows** rather than traditional heavy shadows.
-
-- **Soft Shadows:** Use extremely diffused shadows with a slight tint of the primary or secondary color (e.g., a subtle orange-tinted shadow for a primary button). Shadow opacity should never exceed 10%.
-- **Grainy Textures:** Apply a 5% opacity monochromatic noise overlay to card surfaces to create a tactile, "paper-like" depth.
-- **Organic Overlays:** Backgrounds should feature large, semi-transparent blobs or "squiggles" in secondary colors to create a sense of three-dimensional space without using formal Z-index layers.
-
-## Shapes
-
-The shape language is dominated by **Organic Roundedness**. Straight lines and sharp corners are strictly avoided to maintain the friendly tone.
-
-- **Primary Radius:** 16px (1rem) for standard cards and containers.
-- **Large Radius:** 32px (2rem) for prominent dashboard headers and "Hero" cards.
-- **Icons:** Icons should feature rounded caps and joins, avoiding any razor-sharp points.
-- **Buttons:** Use fully pill-shaped (rounded-full) containers for primary calls to action.
-
-## Components
-
-### Buttons
-Primary buttons are large, pill-shaped, and use the Primary Orange. They should have a subtle 2px bottom "offset" shadow of a darker orange to give them a "squishy," pressable feel.
-
-### Cards
-Cards are the primary container. They must feature a subtle grain texture and a 1px soft border that is 10% darker than the card's background color. This ensures they "pop" against the off-white app background.
-
-### Input Fields
-Inputs should have a thick 2px border and high internal padding (16px). When focused, the border color should switch to the Secondary Pink, accompanied by a soft glow.
-
-### The 'NGL Jar' (Special Component)
-A container with a unique, slightly asymmetrical organic shape (resembling a glass jar) with a semi-transparent background and a "shimmer" effect.
-
-### Chips & Badges
-Used for 'Weekly Hero' tags. These should use the Tertiary Green with white text, featuring a high-contrast bold font weight to stand out as an achievement.
-
-### Interaction States
-Hover and active states should involve a slight scale-up (1.02x) rather than just a color change, reinforcing the playful, bouncy nature of the UI.
+4. **1-on-1 Direct Chat Screen (`DirectChatScreen`):**
+   - Dedicated 1-on-1 direct messaging interface for each colleague.
+   - **Top-Right Action:** Coffee Icon (`Icons.local_cafe_rounded`) immediately sends an individual 5-minute coffee break invite to that colleague.
