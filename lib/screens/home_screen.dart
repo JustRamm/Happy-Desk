@@ -1,8 +1,9 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import '../widgets/apply_leave_modal.dart';
 import 'jar_screen.dart';
-import 'chat_notifications_screen.dart';
 import 'hero_screen.dart';
 import 'work_session_details_screen.dart';
 import '../widgets/jar_icon_widget.dart';
@@ -20,6 +21,10 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _isClockedIn = false;
+  bool _isOnBreak = false;
+  String? _lastClockInTime;
+  String? _lastClockInLocation;
+  String? _breakStartTime;
   int _nglEntries = 13;
 
   final int _targetEntries = 20;
@@ -30,17 +35,20 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Map<String, String>> _quests = const [
     {
       'title': 'Thank a teammate for their help this week',
-      'description': 'Send an appreciation note or shoutout to a colleague who supported you.',
+      'description':
+          'Send an appreciation note or shoutout to a colleague who supported you.',
       'reward': '+1 NGL Note',
     },
     {
       'title': 'Take a 5-minute hydration and stretch break',
-      'description': 'Step away from your desk, stretch your shoulders, and drink a glass of water.',
+      'description':
+          'Step away from your desk, stretch your shoulders, and drink a glass of water.',
       'reward': '+5% Reliability',
     },
     {
       'title': 'Share a win in the NGL Jar',
-      'description': 'Drop a positive workplace accomplishment into the team appreciation jar.',
+      'description':
+          'Drop a positive workplace accomplishment into the team appreciation jar.',
       'reward': '+1 NGL Note',
     },
   ];
@@ -75,16 +83,100 @@ class _HomeScreenState extends State<HomeScreen> {
   void _toggleClockIn() {
     setState(() {
       _isClockedIn = !_isClockedIn;
+      if (_isClockedIn) {
+        final now = DateTime.now();
+        final hour = now.hour > 12
+            ? now.hour - 12
+            : (now.hour == 0 ? 12 : now.hour);
+        final minute = now.minute.toString().padLeft(2, '0');
+        final period = now.hour >= 12 ? 'PM' : 'AM';
+        _lastClockInTime = '$hour:$minute $period';
+
+        // Auto-detect workplace location on clock-in
+        final locations = const [
+          'HQ - Floor 3',
+          'Home Office (Remote)',
+          'Innovation Hub - Floor 2',
+          'Client Site (TechPark)',
+          'Branch Office - Floor 4',
+        ];
+        final randomLoc = locations[math.Random().nextInt(locations.length)];
+        _lastClockInLocation = randomLoc;
+        _isOnBreak = false;
+      } else {
+        _isOnBreak = false;
+      }
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          _isClockedIn
-              ? 'Clocked in successfully! Have a joyful session.'
-              : 'Clocked out. Great work today!',
+        content: Row(
+          children: [
+            const Icon(
+              Icons.my_location_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _isClockedIn
+                    ? 'Auto-Detected Location: $_lastClockInLocation at $_lastClockInTime!'
+                    : 'Clocked out successfully!',
+                style: GoogleFonts.beVietnamPro(
+                  fontSize: 13,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
         ),
-        backgroundColor: AppTheme.primaryRust,
-        duration: const Duration(seconds: 2),
+        backgroundColor:
+            _isClockedIn ? const Color(0xFF007A5A) : const Color(0xFF3D1200),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  void _toggleBreak() {
+    setState(() {
+      _isOnBreak = !_isOnBreak;
+      if (_isOnBreak) {
+        _breakStartTime =
+            '${TimeOfDay.now().hour}:${TimeOfDay.now().minute.toString().padLeft(2, '0')}';
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              _isOnBreak
+                  ? Icons.pause_circle_filled_rounded
+                  : Icons.play_circle_fill_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _isOnBreak
+                    ? 'Work timer paused for break at $_breakStartTime!'
+                    : 'Shift resumed! Work timer active.',
+                style: GoogleFonts.beVietnamPro(
+                  fontSize: 13,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor:
+            _isOnBreak ? const Color(0xFFFF9F1C) : const Color(0xFFFF6B35),
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
   }
@@ -215,14 +307,34 @@ class _HomeScreenState extends State<HomeScreen> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Weekly Hero / Trophy Icon (Outlined when on Home Screen)
+                      IconButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const HeroScreen(showBackButton: true),
+                            ),
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.emoji_events_outlined,
+                          color: Color(0xFF8B2600),
+                          size: 26,
+                        ),
+                        tooltip: 'Weekly Hero',
+                      ),
+
                       // Jar Icon
                       IconButton(
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) =>
-                                    const JarScreen(showBackButton: true)),
+                              builder: (context) =>
+                                  const JarScreen(showBackButton: true),
+                            ),
                           );
                         },
                         icon: const JarIconWidget(
@@ -230,23 +342,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           mainColor: Color(0xFF8B2600),
                           lidColor: Color(0xFFC84B1A),
                         ),
-                      ),
-
-                      // Chat & Notifications Icon
-                      IconButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    const ChatNotificationsScreen()),
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.forum_outlined,
-                          color: Color(0xFF8B2600),
-                          size: 24,
-                        ),
+                        tooltip: 'NGL Jar',
                       ),
                     ],
                   ),
@@ -302,7 +398,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // Card 4: Your Week Summary Card (Productivity & Vibe Check)
               _buildYourWeekCard(),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 90),
             ],
           ),
         ),
@@ -328,8 +424,11 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.spa_rounded,
-                      size: 18, color: Color(0xFF006C53)),
+                  const Icon(
+                    Icons.spa_rounded,
+                    size: 18,
+                    color: Color(0xFF006C53),
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     '60s Breathing',
@@ -360,8 +459,11 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.accessibility_rounded,
-                      size: 18, color: Color(0xFFAB3500)),
+                  const Icon(
+                    Icons.accessibility_rounded,
+                    size: 18,
+                    color: Color(0xFFAB3500),
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Desk Stretches',
@@ -380,7 +482,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
   // Card 1: Work Session Card
   Widget _buildWorkSessionCard() {
     return GestureDetector(
@@ -395,242 +496,329 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFF652F), // Vibrant Coral Orange
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFF652F).withValues(alpha: 0.25),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          // Background Watermark Clock Graphic
-          Positioned(
-            right: -10,
-            top: 10,
-            child: Opacity(
-              opacity: 0.15,
-              child: Container(
-                width: 130,
-                height: 130,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF4A1500),
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.access_time_filled_rounded,
-                    size: 84,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFF652F), // Vibrant Coral Orange
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF652F).withValues(alpha: 0.25),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
-          ),
-
-          // Card Content
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Status Tag Pill
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  _isClockedIn ? 'Status: Clocked In (Active)' : 'Status: Not Clocked In',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF4A1500),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              // Headline
-              Text(
-                _isClockedIn ? 'Work session in progress!' : 'Ready to start your\nwork session?',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF4A1500),
-                  height: 1.2,
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // Subtitle Text
-              Text(
-                "Every minute counts toward the team's\nweekly happiness target!",
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF6B1D00),
-                  height: 1.35,
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Primary Action Button (Clock In / Clock Out)
-              ElevatedButton(
-                onPressed: _toggleClockIn,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3D1200), // Dark Brown
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _isClockedIn ? 'Clock Out' : 'Clock In',
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Header Row: Status Pill on Left, Leave Stats + Clock Badge on Right
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Status Tag Pill
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      _isOnBreak
+                          ? 'Status: On Break\n(Paused at $_breakStartTime • $_lastClockInLocation)'
+                          : (_isClockedIn
+                              ? 'Status: Clocked In\n($_lastClockInTime • $_lastClockInLocation)'
+                              : 'Status: Not Clocked In'),
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 15,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
+                        color: const Color(0xFF4A1500),
+                        height: 1.35,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      _isClockedIn ? Icons.stop_circle_rounded : Icons.arrow_forward_rounded,
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // Modern Clock Badge
+                _ModernClockBadge(
+                    isClockedIn: _isClockedIn, isOnBreak: _isOnBreak),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+
+            // Headline
+            Text(
+              _isOnBreak
+                  ? 'Shift on pause'
+                  : (_isClockedIn
+                      ? 'Work session in progress!'
+                      : 'Ready to start your\nwork session?'),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF4A1500),
+                height: 1.2,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Subtitle Text
+            Text(
+              _isOnBreak
+                  ? 'Enjoy your break! Tap Resume Shift when you are back at your desk.'
+                  : "Every minute counts toward the team's\nweekly happiness target!",
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF6B1D00),
+                height: 1.35,
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            // Action Buttons Row: Clock In/Out + Take Break + Apply Leave
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                // 1. Clock In / Out Button
+                ElevatedButton(
+                  onPressed: _toggleClockIn,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3D1200), // Dark Brown
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _isClockedIn ? 'Clock Out' : 'Clock In',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(
+                        _isClockedIn
+                            ? Icons.stop_circle_rounded
+                            : Icons.arrow_forward_rounded,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                    ],
+                  ),
+                ),
+
+                // 2. Take Break / Resume Shift Button (Only when Clocked In)
+                if (_isClockedIn)
+                  ElevatedButton.icon(
+                    onPressed: _toggleBreak,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isOnBreak
+                          ? const Color(0xFF007A5A)
+                          : const Color(0xFFFF9F1C),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    icon: Icon(
+                      _isOnBreak
+                          ? Icons.play_circle_fill_rounded
+                          : Icons.pause_circle_filled_rounded,
                       size: 18,
                       color: Colors.white,
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
+                    label: Text(
+                      _isOnBreak ? 'Resume Shift' : 'Take Break',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
 
-              // Team Clocked-In Status Live Hub
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
+                // 3. Apply for Leave Button (Employee Leave Modal)
+                OutlinedButton.icon(
+                  onPressed: () => ApplyLeaveModal.show(context),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    side: const BorderSide(
+                      color: Color(0xFF4A1500),
+                      width: 1.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  icon: const Icon(
+                    Icons.beach_access_rounded,
+                    size: 18,
+                    color: Color(0xFF4A1500),
+                  ),
+                  label: Text(
+                    'Apply for Leave',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF4A1500),
+                    ),
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              const Icon(Icons.people_alt_rounded, size: 16, color: Color(0xFF4A1500)),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  'Team Status Today',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF4A1500),
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
+              ],
+            ),
+                const SizedBox(height: 18),
+
+                // Team Clocked-In Status Live Hub
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.people_alt_rounded,
+                                  size: 16,
+                                  color: Color(0xFF4A1500),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF007A5A), // Emerald Green Pill
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            _isClockedIn ? '4/5 Clocked In' : '3/5 Clocked In',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'Team Status Today',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF4A1500),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // Teammate Avatars Row with Live Active Status Dots
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        children: [
-                          // Teammate 1 - Sarah (Clocked In)
-                          _buildTeammateStatusAvatar(
-                            name: 'Sarah M.',
-                            assetPath: 'assets/avatars/avatar_1.png',
-                            isClockedIn: true,
-                            timeText: '9:15 AM',
-                          ),
-                          const SizedBox(width: 14),
-
-                          // Teammate 2 - Alex C. (Clocked In)
-                          _buildTeammateStatusAvatar(
-                            name: 'Alex C.',
-                            assetPath: 'assets/avatars/avatar_2.png',
-                            isClockedIn: true,
-                            timeText: '9:30 AM',
-                          ),
-                          const SizedBox(width: 14),
-
-                          // Teammate 3 - David R. (Clocked In)
-                          _buildTeammateStatusAvatar(
-                            name: 'David R.',
-                            assetPath: 'assets/avatars/avatar_3.png',
-                            isClockedIn: true,
-                            timeText: '9:45 AM',
-                          ),
-                          const SizedBox(width: 14),
-
-                          // Teammate 4 - Elena R. (Not Clocked In)
-                          _buildTeammateStatusAvatar(
-                            name: 'Elena R.',
-                            assetPath: 'assets/avatars/avatar_4.png',
-                            isClockedIn: false,
-                            timeText: 'Offline',
-                          ),
-                          const SizedBox(width: 14),
-
-                          // User (Dynamic live status!)
-                          _buildTeammateStatusAvatar(
-                            name: 'You',
-                            assetPath: 'assets/avatars/user_avatar.png',
-                            isClockedIn: _isClockedIn,
-                            timeText: _isClockedIn ? 'Active Now' : 'Not Yet',
-                            isCurrentUser: true,
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF007A5A,
+                              ), // Emerald Green Pill
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              _isClockedIn
+                                  ? '4/5 Clocked In'
+                                  : '3/5 Clocked In',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 14),
+
+                      // Teammate Avatars Row with Live Active Status Dots
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: [
+                            // Teammate 1 - Sarah (Clocked In)
+                            _buildTeammateStatusAvatar(
+                              name: 'Sarah M.',
+                              assetPath: 'assets/avatars/avatar_1.png',
+                              isClockedIn: true,
+                              timeText: '9:15 AM',
+                            ),
+                            const SizedBox(width: 14),
+
+                            // Teammate 2 - Alex C. (Clocked In)
+                            _buildTeammateStatusAvatar(
+                              name: 'Alex C.',
+                              assetPath: 'assets/avatars/avatar_2.png',
+                              isClockedIn: true,
+                              timeText: '9:30 AM',
+                            ),
+                            const SizedBox(width: 14),
+
+                            // Teammate 3 - David R. (Clocked In)
+                            _buildTeammateStatusAvatar(
+                              name: 'David R.',
+                              assetPath: 'assets/avatars/avatar_3.png',
+                              isClockedIn: true,
+                              timeText: '9:45 AM',
+                            ),
+                            const SizedBox(width: 14),
+
+                            // Teammate 4 - Elena R. (Not Clocked In)
+                            _buildTeammateStatusAvatar(
+                              name: 'Elena R.',
+                              assetPath: 'assets/avatars/avatar_4.png',
+                              isClockedIn: false,
+                              timeText: 'Offline',
+                            ),
+                            const SizedBox(width: 14),
+
+                            // User (Dynamic live status!)
+                            _buildTeammateStatusAvatar(
+                              name: 'You',
+                              assetPath: 'assets/avatars/user_avatar.png',
+                              isClockedIn: _isClockedIn,
+                              timeText: _isClockedIn ? 'Active Now' : 'Not Yet',
+                              isCurrentUser: true,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ],
-      ),
-    ),
-    );
-  }
+        );
+      }
 
   // Teammate Avatar Status Helper Widget
   Widget _buildTeammateStatusAvatar({
@@ -653,7 +841,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 border: Border.all(
                   color: isCurrentUser
                       ? const Color(0xFFFFD166)
-                      : (isClockedIn ? Colors.white : Colors.white.withValues(alpha: 0.5)),
+                      : (isClockedIn
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.5)),
                   width: isCurrentUser ? 2.5 : 2,
                 ),
               ),
@@ -663,7 +853,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   assetPath,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
-                    color: isCurrentUser ? const Color(0xFFC84B1A) : const Color(0xFF594139),
+                    color: isCurrentUser
+                        ? const Color(0xFFC84B1A)
+                        : const Color(0xFF594139),
                     child: Center(
                       child: Text(
                         name.isNotEmpty ? name[0] : '?',
@@ -687,13 +879,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: 13,
                 height: 13,
                 decoration: BoxDecoration(
-                  color: isClockedIn ? const Color(0xFF10B981) : const Color(0xFF9CA3AF),
+                  color: isClockedIn
+                      ? const Color(0xFF10B981)
+                      : const Color(0xFF9CA3AF),
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 2),
                   boxShadow: isClockedIn
                       ? [
                           BoxShadow(
-                            color: const Color(0xFF10B981).withValues(alpha: 0.6),
+                            color: const Color(
+                              0xFF10B981,
+                            ).withValues(alpha: 0.6),
                             blurRadius: 6,
                           ),
                         ]
@@ -722,7 +918,9 @@ class _HomeScreenState extends State<HomeScreen> {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 9.5,
             fontWeight: FontWeight.w600,
-            color: isClockedIn ? const Color(0xFF007A5A) : const Color(0xFF8B2600),
+            color: isClockedIn
+                ? const Color(0xFF007A5A)
+                : const Color(0xFF8B2600),
           ),
         ),
       ],
@@ -739,10 +937,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFFFF7ED), // Soft Golden Cream
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: const Color(0xFFFFD8A8),
-          width: 1.5,
-        ),
+        border: Border.all(color: const Color(0xFFFFD8A8), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFFD97706).withValues(alpha: 0.06),
@@ -759,7 +954,10 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.primaryRust.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -767,7 +965,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.stars_rounded, size: 14, color: AppTheme.primaryRust),
+                    const Icon(
+                      Icons.stars_rounded,
+                      size: 14,
+                      color: AppTheme.primaryRust,
+                    ),
                     const SizedBox(width: 5),
                     Text(
                       'DAILY JOY QUEST',
@@ -784,7 +986,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Reward Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF10B981).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
@@ -838,8 +1043,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: ElevatedButton(
                     onPressed: _isQuestCompleted ? null : _completeQuest,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          _isQuestCompleted ? const Color(0xFF10B981) : AppTheme.primaryRust,
+                      backgroundColor: _isQuestCompleted
+                          ? const Color(0xFF10B981)
+                          : AppTheme.primaryRust,
                       foregroundColor: Colors.white,
                       elevation: 2,
                       shape: RoundedRectangleBorder(
@@ -858,7 +1064,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          _isQuestCompleted ? 'Quest Completed' : 'Mark Quest Complete',
+                          _isQuestCompleted
+                              ? 'Quest Completed'
+                              : 'Mark Quest Complete',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -879,10 +1087,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(23),
-                  border: Border.all(color: const Color(0xFFFFD8A8), width: 1.2),
+                  border: Border.all(
+                    color: const Color(0xFFFFD8A8),
+                    width: 1.2,
+                  ),
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.refresh_rounded, size: 20, color: AppTheme.titleDark),
+                  icon: const Icon(
+                    Icons.refresh_rounded,
+                    size: 20,
+                    color: AppTheme.titleDark,
+                  ),
                   onPressed: _nextQuest,
                   tooltip: 'Next Quest',
                 ),
@@ -974,25 +1189,69 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 16),
 
-          // Button: Add Entry
-          ElevatedButton(
-            onPressed: _showAddEntryModal,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8C436E),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
+          // Buttons Row: Add Entry + Open Jar Notes
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton.icon(
+                onPressed: _showAddEntryModal,
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: Text(
+                  'Add Entry',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8C436E),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                ),
               ),
-            ),
-            child: Text(
-              'Add Entry',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 14.5,
-                fontWeight: FontWeight.w700,
+              const SizedBox(width: 10),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const JarScreen(showBackButton: true),
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  Icons.auto_awesome_rounded,
+                  size: 16,
+                  color: Color(0xFF8C436E),
+                ),
+                label: Text(
+                  'Open Jar Notes',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF8C436E),
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  side: const BorderSide(color: Color(0xFF8C436E), width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -1216,10 +1475,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: const Color(0xFFFFF0F5),
-          width: 1.5,
-        ),
+        border: Border.all(color: const Color(0xFFFFF0F5), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -1345,7 +1601,9 @@ class _HomeScreenState extends State<HomeScreen> {
             child: OutlinedButton(
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Opening Weekly Analytics Report')),
+                  const SnackBar(
+                    content: Text('Opening Weekly Analytics Report'),
+                  ),
                 );
               },
               style: OutlinedButton.styleFrom(
@@ -1378,5 +1636,152 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Modern Glassmorphic Clock Badge Widget & Painter
+// ---------------------------------------------------------------------------
+class _ModernClockBadge extends StatelessWidget {
+  final bool isClockedIn;
+  final bool isOnBreak;
+
+  const _ModernClockBadge({
+    required this.isClockedIn,
+    this.isOnBreak = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color dotColor = isOnBreak
+        ? const Color(0xFFFF9F1C)
+        : (isClockedIn ? const Color(0xFF00C49A) : const Color(0xFFFF6B35));
+
+    return Container(
+      width: 78,
+      height: 78,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isClockedIn
+              ? [
+                  Colors.white.withValues(alpha: 0.40),
+                  Colors.white.withValues(alpha: 0.15),
+                ]
+              : [
+                  Colors.white.withValues(alpha: 0.30),
+                  Colors.white.withValues(alpha: 0.10),
+                ],
+        ),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.50),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Clock Face Custom Painter (Tick marks + Minimalist Hands)
+          CustomPaint(
+            size: const Size(78, 78),
+            painter: _ClockFacePainter(
+                isClockedIn: isClockedIn, isOnBreak: isOnBreak),
+          ),
+
+          // Center Live Status Indicator Dot
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: dotColor,
+              boxShadow: [
+                BoxShadow(
+                  color: dotColor.withValues(alpha: 0.6),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ClockFacePainter extends CustomPainter {
+  final bool isClockedIn;
+  final bool isOnBreak;
+
+  _ClockFacePainter({required this.isClockedIn, this.isOnBreak = false});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+
+    // 1. Outer Ring
+    final outerRingPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.25)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+    canvas.drawCircle(center, radius - 6, outerRingPaint);
+
+    // 2. Tick Marks for 12, 3, 6, 9
+    final tickPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.70)
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+
+    for (int i = 0; i < 4; i++) {
+      final angle = i * (math.pi / 2);
+      final p1 = Offset(
+        center.dx + (radius - 14) * math.cos(angle),
+        center.dy + (radius - 14) * math.sin(angle),
+      );
+      final p2 = Offset(
+        center.dx + (radius - 8) * math.cos(angle),
+        center.dy + (radius - 8) * math.sin(angle),
+      );
+      canvas.drawLine(p1, p2, tickPaint);
+    }
+
+    // 3. Hour Hand (pointing at 10 o'clock)
+    final hourHandPaint = Paint()
+      ..color = const Color(0xFF2D3142)
+      ..strokeWidth = 3.0
+      ..strokeCap = StrokeCap.round;
+    final hourAngle = -math.pi * 0.75; // 10:00 position
+    final hourHandEnd = Offset(
+      center.dx + (radius * 0.38) * math.cos(hourAngle),
+      center.dy + (radius * 0.38) * math.sin(hourAngle),
+    );
+    canvas.drawLine(center, hourHandEnd, hourHandPaint);
+
+    // 4. Minute Hand (pointing at 2 o'clock)
+    final minuteHandPaint = Paint()
+      ..color = const Color(0xFF2D3142)
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round;
+    final minuteAngle = -math.pi * 0.25; // 2:00 position
+    final minuteHandEnd = Offset(
+      center.dx + (radius * 0.55) * math.cos(minuteAngle),
+      center.dy + (radius * 0.55) * math.sin(minuteAngle),
+    );
+    canvas.drawLine(center, minuteHandEnd, minuteHandPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ClockFacePainter oldDelegate) {
+    return oldDelegate.isClockedIn != isClockedIn;
   }
 }
