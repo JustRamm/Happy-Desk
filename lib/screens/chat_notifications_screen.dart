@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/multi_coffee_reset_modal.dart';
+import '../widgets/brand_logo_widget.dart';
 import 'direct_chat_screen.dart';
+import 'notifications_screen.dart';
 
 class ChatNotificationsScreen extends StatefulWidget {
   const ChatNotificationsScreen({super.key});
@@ -53,30 +55,7 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
     },
   ];
 
-  final List<Map<String, dynamic>> _notifications = [
-    {
-      'title': 'New Appreciation Note Added',
-      'time': '10 Mins Ago',
-      'body':
-          'An anonymous teammate dropped an appreciation note into your private NGL Jar.',
-      'type': 'jar',
-      'isNew': true,
-    },
-    {
-      'title': 'Sarah Chen Named Weekly Hero',
-      'time': '2 Hours Ago',
-      'body': 'Sarah received 8 peer nominations for outstanding support!',
-      'type': 'hero',
-      'isNew': true,
-    },
-    {
-      'title': 'Attendance Streak Milestone',
-      'time': 'Yesterday',
-      'body': 'You reached a 7-day joyful clock-in streak!',
-      'type': 'streak',
-      'isNew': false,
-    },
-  ];
+
 
   @override
   void dispose() {
@@ -92,51 +71,79 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Color(0xFF171B2B), size: 20),
-          onPressed: () => Navigator.of(context).pop(),
+        automaticallyImplyLeading: false,
+        titleSpacing: 16,
+        title: Row(
+          children: [
+            // Brand Logo SVG in place of back button
+            const BrandLogoWidget(height: 44),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Container(
+                height: 40,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFE4E7FE)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.search_rounded,
+                      color: Color(0xFFAB3500),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        style: GoogleFonts.beVietnamPro(
+                          fontSize: 12.5,
+                          color: const Color(0xFF171B2B),
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Search messages...',
+                          hintStyle: GoogleFonts.beVietnamPro(
+                            fontSize: 12,
+                            color: const Color(0xFF8D7168),
+                          ),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-        title: Container(
-          height: 42,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: const Color(0xFFE4E7FE)),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.search_rounded,
+        actions: [
+          IconButton(
+            tooltip: 'Notifications',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationsScreen(),
+                ),
+              );
+            },
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFFF0EB),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.notifications_rounded,
                 color: Color(0xFFAB3500),
                 size: 20,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  style: GoogleFonts.beVietnamPro(
-                    fontSize: 13.5,
-                    color: const Color(0xFF171B2B),
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Search messages or alerts...',
-                    hintStyle: GoogleFonts.beVietnamPro(
-                      fontSize: 13,
-                      color: const Color(0xFF8D7168),
-                    ),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-        actions: [
-          // TOP RIGHT COFFEE ICON: Multi-Select Group Coffee Reset Selector!
           IconButton(
             tooltip: 'Group Coffee Break Reset',
             onPressed: () => MultiCoffeeResetModal.show(context),
@@ -158,262 +165,160 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.only(bottom: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            // Section 1: Direct Messages
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Direct Messages',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF171B2B),
-                  ),
-                ),
-                Text(
-                  '${_chats.length} Teammates',
-                  style: GoogleFonts.beVietnamPro(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF8D7168),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // Teammate Conversations List
-            ..._chats.map((chat) {
+            // Teammate Conversations List (Stretched Edge-to-Edge, Gap: 0, Separated by Divider)
+            ..._chats.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final chat = entry.value;
               final isOnline = chat['isOnline'] == true;
               final isUnread = chat['unread'] == true;
 
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => DirectChatScreen(teammate: chat),
-                    ),
-                  );
-                },
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isUnread
-                          ? const Color(0xFFFFD6C7)
-                          : const Color(0xFFE4E7FE),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFAB3500).withValues(alpha: 0.03),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      // Avatar with Online Status Indicator
-                      Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 22,
-                            backgroundColor: const Color(0xFFFFF0EB),
-                            backgroundImage: AssetImage(chat['avatar']),
+              return Column(
+                children: [
+                  Material(
+                    color: isUnread
+                        ? const Color(0xFFFFF6F3)
+                        : Colors.white,
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                DirectChatScreen(teammate: chat),
                           ),
-                          if (isOnline)
-                            Positioned(
-                              right: 0,
-                              bottom: 0,
-                              child: Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF00AE88),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: Colors.white, width: 2),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(width: 14),
-
-                      // Name, Message & Time
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        );
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 14),
+                        child: Row(
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            Stack(
                               children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      chat['name'],
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFF171B2B),
+                                CircleAvatar(
+                                  radius: 22,
+                                  backgroundColor: const Color(0xFFFFF0EB),
+                                  backgroundImage: AssetImage(chat['avatar']),
+                                ),
+                                if (isOnline)
+                                  Positioned(
+                                    right: 0,
+                                    bottom: 0,
+                                    child: Container(
+                                      width: 12,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF00AE88),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                            color: Colors.white, width: 2),
                                       ),
                                     ),
-                                    if (isUnread) ...[
-                                      const SizedBox(width: 6),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 7, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFAB3500),
-                                          borderRadius:
-                                              BorderRadius.circular(10),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(width: 14),
+
+                            // Name, Message & Time
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                chat['name'],
+                                                style:
+                                                    GoogleFonts.plusJakartaSans(
+                                                  fontSize: 14.5,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: const Color(0xFF171B2B),
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            if (isUnread) ...[
+                                              const SizedBox(width: 6),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 7,
+                                                        vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFAB3500),
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                ),
+                                                child: Text(
+                                                  'NEW',
+                                                  style:
+                                                      GoogleFonts.plusJakartaSans(
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ],
                                         ),
-                                        child: Text(
-                                          'NEW',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w800,
-                                            color: Colors.white,
-                                          ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        chat['time'],
+                                        style: GoogleFonts.beVietnamPro(
+                                          fontSize: 11.5,
+                                          color: const Color(0xFF8D7168),
                                         ),
                                       ),
                                     ],
-                                  ],
-                                ),
-                                Text(
-                                  chat['time'],
-                                  style: GoogleFonts.beVietnamPro(
-                                    fontSize: 11.5,
-                                    color: const Color(0xFF8D7168),
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              chat['lastMessage'],
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.beVietnamPro(
-                                fontSize: 13,
-                                color: isUnread
-                                    ? const Color(0xFF171B2B)
-                                    : const Color(0xFF594139),
-                                fontWeight: isUnread
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    chat['lastMessage'],
+                                    style: GoogleFonts.beVietnamPro(
+                                      fontSize: 12.5,
+                                      fontWeight: isUnread
+                                          ? FontWeight.w700
+                                          : FontWeight.w400,
+                                      color: isUnread
+                                          ? const Color(0xFF171B2B)
+                                          : const Color(0xFF594139),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      const Icon(Icons.chevron_right_rounded,
-                          color: Color(0xFF8D7168), size: 20),
-                    ],
+                    ),
                   ),
-                ),
+                  if (idx < _chats.length - 1)
+                    const Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: Color(0xFFF0EFF8),
+                    ),
+                ],
               );
             }),
 
-            const SizedBox(height: 24),
 
-            // Section 2: Recent Workplace Alerts
-            Text(
-              'Recent Workplace Alerts',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF171B2B),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            ..._notifications.map((notif) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color:
-                      notif['isNew'] ? Colors.white : const Color(0xFFF3F2FF),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: notif['isNew']
-                        ? const Color(0xFFFFD6C7)
-                        : const Color(0xFFDEE1F8),
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFFF0EB),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        notif['type'] == 'jar'
-                            ? Icons.mark_email_unread_rounded
-                            : notif['type'] == 'hero'
-                                ? Icons.emoji_events_rounded
-                                : Icons.workspace_premium_rounded,
-                        color: const Color(0xFFAB3500),
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  notif['title'],
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: const Color(0xFF171B2B),
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                notif['time'],
-                                style: GoogleFonts.beVietnamPro(
-                                  fontSize: 11,
-                                  color: const Color(0xFF8D7168),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            notif['body'],
-                            style: GoogleFonts.beVietnamPro(
-                              fontSize: 12.5,
-                              color: const Color(0xFF594139),
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
+            const SizedBox(height: 90),
           ],
         ),
       ),
