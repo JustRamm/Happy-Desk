@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../theme/app_theme.dart';
 import 'settings_screen.dart';
-import 'chat_notifications_screen.dart';
+import 'hero_screen.dart';
 import '../widgets/brand_logo_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -51,14 +50,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Header Bar: Logo & Settings Icon
+              // Top Header Bar: Logo & Trophy Icon + Settings Icon
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Brand Logo SVG
                   const BrandLogoWidget(height: 48),
 
-                  // Right Header Actions: Chat + Settings
+                  // Right Header Actions: Hero Trophy + Settings
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -67,48 +66,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) =>
-                                    const ChatNotificationsScreen()),
+                              builder: (context) =>
+                                  const HeroScreen(showBackButton: true),
+                            ),
                           );
                         },
                         icon: const Icon(
-                          Icons.forum_outlined,
+                          Icons.emoji_events_outlined,
                           color: Color(0xFF8B2600),
-                          size: 24,
+                          size: 26,
                         ),
+                        tooltip: 'Weekly Hero',
                       ),
                       const SizedBox(width: 4),
-                      GestureDetector(
-                        onTap: () {
+                      IconButton(
+                        onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (context) => const SettingsScreen()),
                           );
                         },
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                            border: Border.all(
-                              color: AppTheme.primaryRust.withValues(alpha: 0.3),
-                              width: 1.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04),
-                                blurRadius: 8,
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.settings_outlined,
-                            color: AppTheme.primaryRust,
-                            size: 22,
-                          ),
+                        icon: const Icon(
+                          Icons.settings_outlined,
+                          color: Color(0xFF8B2600),
+                          size: 26,
                         ),
+                        tooltip: 'Settings',
                       ),
                     ],
                   ),
@@ -341,7 +325,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 90),
             ],
           ),
         ),
