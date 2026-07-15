@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_logo_widget.dart';
@@ -19,47 +20,116 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  int _currentStep = 0; // 0 = Step 1 (Personal Credentials), 1 = Step 2 (Role & Workspace Setup)
-  String _selectedRole = 'team'; // 'team' or 'founder'
+  // 0 = Role Selection, 1 = Credentials, 2 = Profile & Avatar, 3 = Workplace Details
+  int _currentStep = 0;
+  String _selectedRole = ''; // 'employee' or 'founder'
+  bool _isLeadershipRole = false; // For employees: team lead / manager checkbox
+  String _generatedLeaderCode = '';
+  String _selectedAvatar = 'assets/avatars/user_avatar.png';
+  String _selectedDepartment = 'Design';
+
+  final List<String> _avatarPresets = [
+    'assets/avatars/user_avatar.png',
+    'assets/avatars/avatar_1.png',
+    'assets/avatars/avatar_2.png',
+    'assets/avatars/avatar_3.png',
+  ];
+
+  final List<String> _departments = [
+    'Design',
+    'Engineering',
+    'Operations',
+    'Marketing',
+    'People / HR',
+  ];
 
   // Step 1 Controllers (Credentials)
-  final _nameController = TextEditingController(text: 'Alex Miller');
-  final _emailController = TextEditingController(text: 'alex@company.com');
-  final _passwordController = TextEditingController(text: 'password123');
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
-  // Step 2 Controllers (Role & Workspace Details)
-  final _inviteCodeController = TextEditingController(text: 'HAPPY-8821');
-  final _jobRoleController = TextEditingController(text: 'Product Designer');
-  final _workspaceNameController = TextEditingController(text: 'Acme Studio');
+  // Step 2 Controllers (Profile Details)
+  final _jobRoleController = TextEditingController();
+  final _bioController = TextEditingController();
+
+  // Step 3 Controllers (Workplace Details)
+  final _inviteCodeController = TextEditingController();
+  final _workspaceNameController = TextEditingController();
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _inviteCodeController.dispose();
+    _confirmPasswordController.dispose();
     _jobRoleController.dispose();
+    _bioController.dispose();
+    _inviteCodeController.dispose();
     _workspaceNameController.dispose();
     super.dispose();
   }
 
+  String _generateCode() {
+    final rand = math.Random();
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final code = List.generate(6, (_) => chars[rand.nextInt(chars.length)]).join();
+    return 'LEAD-$code';
+  }
+
   void _nextStep() {
-    setState(() {
-      _currentStep = 1;
-    });
+    if (_currentStep == 0) {
+      // Role selection step: must have a role selected
+      if (_selectedRole.isEmpty) return;
+
+      // If employee with leadership role, generate a code
+      if (_selectedRole == 'employee' && _isLeadershipRole && _generatedLeaderCode.isEmpty) {
+        _generatedLeaderCode = _generateCode();
+      }
+    }
+
+    if (_currentStep < 3) {
+      setState(() {
+        _currentStep++;
+      });
+    } else {
+      widget.onSignUpSuccess();
+    }
   }
 
   void _previousStep() {
-    setState(() {
-      _currentStep = 0;
-    });
+    if (_currentStep > 0) {
+      setState(() {
+        _currentStep--;
+      });
+    }
   }
+
+  int get _totalSteps => 4;
+
+  double get _profileProgress {
+    switch (_currentStep) {
+      case 0:
+        return 0.15;
+      case 1:
+        return 0.40;
+      case 2:
+        return 0.70;
+      case 3:
+        return 1.00;
+      default:
+        return 0.15;
+    }
+  }
+
+  int get _progressPercent => (_profileProgress * 100).toInt();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F8), // Warm soft background matching all auth screens
+      backgroundColor: const Color(0xFFFAF9F8),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -74,14 +144,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       children: [
                         const SizedBox(height: 8),
 
-                        // Brand Logo & Header Bar
+                        // Top Header Bar: Logo & Step Badge
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                if (_currentStep == 1)
+                                if (_currentStep > 0)
                                   IconButton(
                                     icon: const Icon(Icons.arrow_back_ios_new_rounded,
                                         color: AppTheme.titleDark, size: 18),
@@ -89,7 +159,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
                                   ),
-                                if (_currentStep == 1) const SizedBox(width: 8),
+                                if (_currentStep > 0) const SizedBox(width: 8),
                                 const BrandLogoWidget(height: 38),
                               ],
                             ),
@@ -103,7 +173,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Text(
-                                _currentStep == 0 ? 'Step 1 of 2' : 'Step 2 of 2',
+                                'Step ${_currentStep + 1} of $_totalSteps',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
@@ -114,9 +184,86 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ],
                         ),
 
+                        const SizedBox(height: 14),
+
+                        // Profile Completion Progress Bar Card
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: const Color(0xFFE4E7FE)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        _currentStep == 3
+                                            ? Icons.check_circle_rounded
+                                            : Icons.account_circle_rounded,
+                                        size: 18,
+                                        color: _currentStep == 3
+                                            ? const Color(0xFF00AE88)
+                                            : AppTheme.primaryRust,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Profile Completeness',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppTheme.titleDark,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    '$_progressPercent% Complete',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: _progressPercent >= 50
+                                          ? const Color(0xFF00AE88)
+                                          : AppTheme.primaryRust,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+
+                              // Animated Progress Indicator Bar
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: LinearProgressIndicator(
+                                  value: _profileProgress,
+                                  minHeight: 8,
+                                  backgroundColor: const Color(0xFFF0EFF8),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    _progressPercent == 100
+                                        ? const Color(0xFF00AE88)
+                                        : AppTheme.primaryRust,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
                         const SizedBox(height: 16),
 
-                        // Animated Step Transition Container
+                        // Animated Step Content Page Switcher
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 350),
                           switchInCurve: Curves.easeInOutCubic,
@@ -133,9 +280,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ),
                             );
                           },
-                          child: _currentStep == 0
-                              ? _buildStepOneCard(key: const ValueKey('step_1'))
-                              : _buildStepTwoCard(key: const ValueKey('step_2')),
+                          child: _buildCurrentStepCard(),
                         ),
 
                         const SizedBox(height: 16),
@@ -143,13 +288,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         // Social Proof Cards Row
                         Row(
                           children: [
-                            // Card 1: 1,200+ Teams Connected
+                            // Card 1: Teams Connected
                             Expanded(
                               child: Container(
-                                height: 115,
+                                height: 105,
                                 padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF00B887), // Emerald Green
+                                  color: const Color(0xFF00B887),
                                   borderRadius: BorderRadius.circular(22),
                                   boxShadow: [
                                     BoxShadow(
@@ -191,15 +336,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                             const SizedBox(width: 12),
 
-                            // Card 2: Join a thriving community
+                            // Card 2: Community Avatars
                             Expanded(
                               child: Transform.rotate(
                                 angle: 0.02,
                                 child: Container(
-                                  height: 115,
+                                  height: 105,
                                   padding: const EdgeInsets.all(14),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFF8EA9), // Soft Pink
+                                    color: const Color(0xFFFF8EA9),
                                     borderRadius: BorderRadius.circular(22),
                                     boxShadow: [
                                       BoxShadow(
@@ -213,14 +358,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      // Overlapping Avatars
                                       Row(
                                         children: [
                                           _buildSmallAvatar('assets/avatars/user_avatar.png'),
                                           Transform.translate(
                                             offset: const Offset(-8, 0),
                                             child:
-                                                _buildSmallAvatar('assets/avatars/user_avatar.png'),
+                                                _buildSmallAvatar('assets/avatars/avatar_1.png'),
                                           ),
                                           Transform.translate(
                                             offset: const Offset(-16, 0),
@@ -259,14 +403,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ],
                         ),
 
-                        // Spacer to push copyright text to very bottom of screen
                         const Spacer(),
 
                         const SizedBox(height: 16),
 
-                        // Footer Copyright at Very Bottom
+                        // Footer Copyright
                         Text(
-                          '© 2024 Happy Desk. All tasks turned into play.',
+                          '2024 Happy Desk. All tasks turned into play.',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w500,
@@ -287,10 +430,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
+  Widget _buildCurrentStepCard() {
+    switch (_currentStep) {
+      case 0:
+        return _buildStepZeroRoleSelection(key: const ValueKey('step_0'));
+      case 1:
+        return _buildStepOneCredentials(key: const ValueKey('step_1'));
+      case 2:
+        return _buildStepTwoProfile(key: const ValueKey('step_2'));
+      case 3:
+        return _buildStepThreeWorkplace(key: const ValueKey('step_3'));
+      default:
+        return _buildStepZeroRoleSelection(key: const ValueKey('step_0'));
+    }
+  }
+
   // ---------------------------------------------------------------------------
-  // STEP 1 CARD: Name, Work Email, Password & Continue Button
+  // STEP 0: Role Selection (Founder / Employee)
   // ---------------------------------------------------------------------------
-  Widget _buildStepOneCard({required Key key}) {
+  Widget _buildStepZeroRoleSelection({required Key key}) {
     return Container(
       key: key,
       width: double.infinity,
@@ -311,7 +469,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         children: [
           Center(
             child: Text(
-              'Create Account',
+              'Select Your Role',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
@@ -322,7 +480,437 @@ class _SignUpScreenState extends State<SignUpScreen> {
           const SizedBox(height: 4),
           Center(
             child: Text(
-              'Enter your basic details to get started.',
+              'How will you be using Happy Desk?',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 22),
+
+          // Role Selection Cards
+          Row(
+            children: [
+              Expanded(
+                child: _buildRoleSelectionCard(
+                  id: 'founder',
+                  title: 'Founder / Admin',
+                  subtitle: 'Create & manage\nyour company',
+                  icon: Icons.workspace_premium_rounded,
+                  accentColor: const Color(0xFFFF652F),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _buildRoleSelectionCard(
+                  id: 'employee',
+                  title: 'Employee',
+                  subtitle: 'Join an existing\nworkplace',
+                  icon: Icons.badge_rounded,
+                  accentColor: const Color(0xFF4B7BF5),
+                ),
+              ),
+            ],
+          ),
+
+          // Employee Leadership Checkbox (only visible when employee is selected)
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOutCubic,
+            child: _selectedRole == 'employee'
+                ? Column(
+                    children: [
+                      const SizedBox(height: 18),
+
+                      // Leadership checkbox
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _isLeadershipRole = !_isLeadershipRole;
+                            if (!_isLeadershipRole) {
+                              _generatedLeaderCode = '';
+                            }
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: _isLeadershipRole
+                                ? const Color(0xFFFFF3EE)
+                                : const Color(0xFFF4F4FD),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _isLeadershipRole
+                                  ? AppTheme.primaryRust.withValues(alpha: 0.4)
+                                  : const Color(0xFFE4E7FE),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                width: 22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  color: _isLeadershipRole
+                                      ? AppTheme.primaryRust
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: _isLeadershipRole
+                                        ? AppTheme.primaryRust
+                                        : const Color(0xFFBFC3D9),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: _isLeadershipRole
+                                    ? const Icon(Icons.check_rounded,
+                                        color: Colors.white, size: 16)
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'I have a leadership role',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppTheme.titleDark,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Team Lead, Manager, or Department Head',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                        color: AppTheme.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Show generated code for leaders, or invite code input for regular employees
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOutCubic,
+                        child: _isLeadershipRole
+                            ? _buildLeaderCodeSection()
+                            : _buildEmployeeInviteSection(),
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+          ),
+
+          // Founder workspace name (only visible when founder is selected)
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOutCubic,
+            child: _selectedRole == 'founder'
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 18),
+                      _buildInputLabel('Workspace / Company Name'),
+                      const SizedBox(height: 6),
+                      _buildTextField(
+                        controller: _workspaceNameController,
+                        hintText: 'e.g. Acme Studio Inc.',
+                        icon: Icons.business_rounded,
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+          ),
+
+          const SizedBox(height: 22),
+
+          // Continue Button
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: _selectedRole.isNotEmpty ? _nextStep : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryRust,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: const Color(0xFFE0DDD9),
+                disabledForegroundColor: const Color(0xFF9E9A95),
+                elevation: _selectedRole.isNotEmpty ? 3 : 0,
+                shadowColor: AppTheme.primaryRust.withValues(alpha: 0.35),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(26),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Continue',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward_rounded, size: 18),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // Already a member? Log in link
+          Center(
+            child: GestureDetector(
+              onTap: widget.onLoginTap,
+              child: RichText(
+                text: TextSpan(
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  children: [
+                    const TextSpan(text: 'Already a member? '),
+                    TextSpan(
+                      text: 'Log In',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.primaryRust,
+                        fontWeight: FontWeight.w700,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Section shown when employee has leadership role checked - displays generated code
+  Widget _buildLeaderCodeSection() {
+    if (_generatedLeaderCode.isEmpty) {
+      // Generate button
+      return Padding(
+        padding: const EdgeInsets.only(top: 14),
+        child: SizedBox(
+          width: double.infinity,
+          height: 46,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              setState(() {
+                _generatedLeaderCode = _generateCode();
+              });
+            },
+            icon: const Icon(Icons.vpn_key_rounded, size: 18),
+            label: Text(
+              'Generate Your Leader Code',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primaryRust,
+              side: BorderSide(color: AppTheme.primaryRust.withValues(alpha: 0.4)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Show generated code with copy button
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0FBF7),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF00AE88).withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF00AE88),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.key_rounded, color: Colors.white, size: 14),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Your Leader Code',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF005844),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF00AE88).withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _generatedLeaderCode,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF005844),
+                      letterSpacing: 3,
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: _generatedLeaderCode));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Code copied to clipboard',
+                            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+                          ),
+                          backgroundColor: const Color(0xFF00AE88),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00AE88).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.copy_rounded,
+                        size: 18,
+                        color: Color(0xFF00AE88),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Share this code with your team members so they can join.',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF006C53),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Section shown when employee does NOT have leadership role - invite code input
+  Widget _buildEmployeeInviteSection() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildInputLabel('Team Invite Code'),
+          const SizedBox(height: 6),
+          _buildTextField(
+            controller: _inviteCodeController,
+            hintText: 'e.g. LEAD-ABC123',
+            icon: Icons.vpn_key_outlined,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Enter the code shared by your team lead or admin.',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // STEP 1: Account Credentials & Password Match Check
+  // ---------------------------------------------------------------------------
+  Widget _buildStepOneCredentials({required Key key}) {
+    final passwordsMatch = _passwordController.text.isNotEmpty &&
+        _passwordController.text == _confirmPasswordController.text;
+
+    return Container(
+      key: key,
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Text(
+              'Create Your Account',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.titleDark,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Center(
+            child: Text(
+              'Enter your login credentials',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w500,
@@ -360,7 +948,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           const SizedBox(height: 6),
           _buildTextField(
             controller: _passwordController,
-            hintText: '••••••••',
+            hintText: 'Enter password',
             icon: Icons.lock_outline_rounded,
             isPassword: true,
             obscureText: _obscurePassword,
@@ -369,6 +957,56 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 _obscurePassword = !_obscurePassword;
               });
             },
+            onChanged: (val) => setState(() {}),
+          ),
+
+          const SizedBox(height: 14),
+
+          // Confirm Password Field
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildInputLabel('Confirm Password'),
+              if (_confirmPasswordController.text.isNotEmpty)
+                Row(
+                  children: [
+                    Icon(
+                      passwordsMatch
+                          ? Icons.check_circle_rounded
+                          : Icons.cancel_rounded,
+                      size: 14,
+                      color: passwordsMatch
+                          ? const Color(0xFF00AE88)
+                          : const Color(0xFFD32F2F),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      passwordsMatch ? 'Passwords match' : 'Passwords do not match',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: passwordsMatch
+                            ? const Color(0xFF00AE88)
+                            : const Color(0xFFD32F2F),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          _buildTextField(
+            controller: _confirmPasswordController,
+            hintText: 'Re-enter password',
+            icon: Icons.lock_reset_rounded,
+            isPassword: true,
+            obscureText: _obscureConfirmPassword,
+            onToggleVisibility: () {
+              setState(() {
+                _obscureConfirmPassword = !_obscureConfirmPassword;
+              });
+            },
+            onChanged: (val) => setState(() {}),
           ),
 
           const SizedBox(height: 20),
@@ -392,9 +1030,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Continue',
+                    'Continue to Profile Setup',
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16.5,
+                      fontSize: 16,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -404,98 +1042,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             ),
           ),
-
-          const SizedBox(height: 16),
-
-          // Or continue with Divider
-          Row(
-            children: [
-              Expanded(child: Divider(color: Colors.grey.shade300)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Text(
-                  'Or continue with',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ),
-              Expanded(child: Divider(color: Colors.grey.shade300)),
-            ],
-          ),
-
-          const SizedBox(height: 14),
-
-          // Sign Up with Google Button
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: OutlinedButton(
-              onPressed: _nextStep,
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                side: BorderSide(color: Colors.grey.shade300, width: 1),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildGoogleIcon(),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Sign up with Google',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.titleDark,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 14),
-
-          // Already a member? Log in link
-          Center(
-            child: GestureDetector(
-              onTap: widget.onLoginTap,
-              child: RichText(
-                text: TextSpan(
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13,
-                    color: AppTheme.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  children: [
-                    const TextSpan(text: 'Already a member? '),
-                    TextSpan(
-                      text: 'Log In',
-                      style: GoogleFonts.plusJakartaSans(
-                        color: AppTheme.primaryRust,
-                        fontWeight: FontWeight.w700,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 
   // ---------------------------------------------------------------------------
-  // STEP 2 CARD: Select Role (Founder / Team Member), Invite Code & Job Role
+  // STEP 2: Profile Customization & Avatar Upload
   // ---------------------------------------------------------------------------
-  Widget _buildStepTwoCard({required Key key}) {
+  Widget _buildStepTwoProfile({required Key key}) {
     return Container(
       key: key,
       width: double.infinity,
@@ -516,7 +1071,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         children: [
           Center(
             child: Text(
-              'Select Your Role',
+              'Customize Your Profile',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
@@ -527,7 +1082,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           const SizedBox(height: 4),
           Center(
             child: Text(
-              'Tell us how you will be using Happy Desk.',
+              'Upload photo & enter job role',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w500,
@@ -538,78 +1093,348 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
           const SizedBox(height: 18),
 
-          // Role Selection Cards (Team Member vs Founder/Leader)
-          Row(
-            children: [
-              // Role Option 1: Team Member
-              Expanded(
-                child: _buildRoleCard(
-                  id: 'team',
-                  title: 'Team Member',
-                  subtitle: 'Joining an existing team',
-                  icon: Icons.groups_rounded,
+          // Avatar Upload / Picker Section
+          Center(
+            child: Column(
+              children: [
+                Stack(
+                  children: [
+                    Container(
+                      width: 86,
+                      height: 86,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppTheme.primaryRust, width: 2.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primaryRust.withValues(alpha: 0.15),
+                            blurRadius: 14,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(43),
+                        child: Image.asset(_selectedAvatar, fit: BoxFit.cover),
+                      ),
+                    ),
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                          color: AppTheme.primaryRust,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 12),
+                const SizedBox(height: 10),
+                Text(
+                  'Choose Profile Avatar',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.titleDark,
+                  ),
+                ),
+                const SizedBox(height: 8),
 
-              // Role Option 2: Founder / Leader
-              Expanded(
-                child: _buildRoleCard(
-                  id: 'founder',
-                  title: 'Founder / Leader',
-                  subtitle: 'Managing company & team',
-                  icon: Icons.workspace_premium_rounded,
+                // Preset Avatar Options
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: _avatarPresets.map((asset) {
+                    final isSelected = _selectedAvatar == asset;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedAvatar = asset;
+                        });
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected
+                                ? AppTheme.primaryRust
+                                : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: 16,
+                          backgroundImage: AssetImage(asset),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
 
           const SizedBox(height: 18),
 
-          // Dynamic Inputs based on selected role
-          if (_selectedRole == 'team') ...[
-            // Team Member Fields
-            _buildInputLabel('Team Invite Code'),
-            const SizedBox(height: 6),
-            _buildTextField(
-              controller: _inviteCodeController,
-              hintText: 'e.g. HAPPY-8821',
-              icon: Icons.vpn_key_outlined,
-            ),
+          // Job Title / Role
+          _buildInputLabel('Job Title / Position'),
+          const SizedBox(height: 6),
+          _buildTextField(
+            controller: _jobRoleController,
+            hintText: 'e.g. Product Designer, Software Engineer',
+            icon: Icons.work_outline_rounded,
+          ),
 
-            const SizedBox(height: 14),
+          const SizedBox(height: 14),
 
-            _buildInputLabel('Your Job Role'),
-            const SizedBox(height: 6),
-            _buildTextField(
-              controller: _jobRoleController,
-              hintText: 'e.g. Product Designer, Engineer',
-              icon: Icons.badge_outlined,
-            ),
-          ] else ...[
-            // Founder / Leader Fields
-            _buildInputLabel('Workspace / Company Name'),
-            const SizedBox(height: 6),
-            _buildTextField(
-              controller: _workspaceNameController,
-              hintText: 'e.g. Acme Studio Inc.',
-              icon: Icons.business_rounded,
-            ),
+          // Department Selection Chips
+          _buildInputLabel('Department'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _departments.map((dept) {
+              final isSelected = _selectedDepartment == dept;
+              return ChoiceChip(
+                showCheckmark: false,
+                label: Text(dept),
+                labelStyle: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? Colors.white : AppTheme.titleDark,
+                ),
+                selected: isSelected,
+                selectedColor: AppTheme.primaryRust,
+                backgroundColor: const Color(0xFFF4F4FD),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: isSelected
+                        ? AppTheme.primaryRust
+                        : Colors.transparent,
+                  ),
+                ),
+                onSelected: (selected) {
+                  if (selected) {
+                    setState(() {
+                      _selectedDepartment = dept;
+                    });
+                  }
+                },
+              );
+            }).toList(),
+          ),
 
-            const SizedBox(height: 14),
+          const SizedBox(height: 14),
 
-            _buildInputLabel('Your Job Title'),
-            const SizedBox(height: 6),
-            _buildTextField(
-              controller: _jobRoleController,
-              hintText: 'e.g. CEO, Head of People',
-              icon: Icons.work_outline_rounded,
-            ),
-          ],
+          // Short Bio / Motto
+          _buildInputLabel('Bio / Personal Motto'),
+          const SizedBox(height: 6),
+          _buildTextField(
+            controller: _bioController,
+            hintText: 'e.g. Building delightful products & team spirit!',
+            icon: Icons.chat_bubble_outline_rounded,
+          ),
 
           const SizedBox(height: 20),
 
-          // Join the Team Button (Final Submit - No Emoji!)
+          // Continue Button to Step 3
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: _nextStep,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryRust,
+                foregroundColor: Colors.white,
+                elevation: 3,
+                shadowColor: AppTheme.primaryRust.withValues(alpha: 0.35),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(26),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Next: Finalize Setup',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // STEP 3: Final Review & Account Creation
+  // ---------------------------------------------------------------------------
+  Widget _buildStepThreeWorkplace({required Key key}) {
+    final roleLabel = _selectedRole == 'founder'
+        ? 'Founder / Admin'
+        : _isLeadershipRole
+            ? 'Employee (Team Lead)'
+            : 'Employee (Team Member)';
+
+    return Container(
+      key: key,
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Text(
+              'Finalize Setup',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.titleDark,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Center(
+            child: Text(
+              'Review your details & complete signup',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          // Review Summary Card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F7FC),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFE4E7FE)),
+            ),
+            child: Column(
+              children: [
+                _buildReviewRow(Icons.person_rounded, 'Role', roleLabel),
+                const Divider(height: 20),
+                _buildReviewRow(
+                  Icons.email_rounded,
+                  'Email',
+                  _emailController.text.isNotEmpty
+                      ? _emailController.text
+                      : 'Not set',
+                ),
+                const Divider(height: 20),
+                _buildReviewRow(
+                  Icons.work_rounded,
+                  'Job Title',
+                  _jobRoleController.text.isNotEmpty
+                      ? _jobRoleController.text
+                      : 'Not set',
+                ),
+                const Divider(height: 20),
+                _buildReviewRow(
+                  Icons.apartment_rounded,
+                  'Department',
+                  _selectedDepartment,
+                ),
+                if (_selectedRole == 'founder') ...[
+                  const Divider(height: 20),
+                  _buildReviewRow(
+                    Icons.business_rounded,
+                    'Workspace',
+                    _workspaceNameController.text.isNotEmpty
+                        ? _workspaceNameController.text
+                        : 'Not set',
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          // Profile Ready Banner Card
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEBF7F5),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF00AE88).withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF00AE88),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_rounded,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Profile 100% Complete!',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF005844),
+                        ),
+                      ),
+                      Text(
+                        'All required details, avatar & workplace preferences saved.',
+                        style: GoogleFonts.beVietnamPro(
+                          fontSize: 11.5,
+                          color: const Color(0xFF006C53),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Create Account Button (Final Submit)
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -625,39 +1450,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
               child: Text(
-                'Join the Team',
+                'Complete Account Setup',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16.5,
                   fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 14),
-
-          // Already a member? Log in link
-          Center(
-            child: GestureDetector(
-              onTap: widget.onLoginTap,
-              child: RichText(
-                text: TextSpan(
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13,
-                    color: AppTheme.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  children: [
-                    const TextSpan(text: 'Already a member? '),
-                    TextSpan(
-                      text: 'Log In',
-                      style: GoogleFonts.plusJakartaSans(
-                        color: AppTheme.primaryRust,
-                        fontWeight: FontWeight.w700,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ),
@@ -667,48 +1463,100 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  // Helper Widget: Role Card Option (Team Member vs Founder)
-  Widget _buildRoleCard({
+  Widget _buildReviewRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppTheme.primaryRust),
+        const SizedBox(width: 10),
+        Text(
+          '$label:',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.titleDark,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRoleSelectionCard({
     required String id,
     required String title,
     required String subtitle,
     required IconData icon,
+    required Color accentColor,
   }) {
     final isSelected = _selectedRole == id;
     return GestureDetector(
       onTap: () {
         setState(() {
           _selectedRole = id;
+          // Reset leadership when switching roles
+          if (id == 'founder') {
+            _isLeadershipRole = false;
+            _generatedLeaderCode = '';
+          }
         });
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppTheme.primaryRust.withValues(alpha: 0.08)
+              ? accentColor.withValues(alpha: 0.08)
               : const Color(0xFFF4F4FD),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppTheme.primaryRust : Colors.transparent,
-            width: 2,
+            color: isSelected ? accentColor : const Color(0xFFE4E7FE),
+            width: isSelected ? 2 : 1,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: accentColor.withValues(alpha: 0.12),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [],
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
-              size: 26,
-              color: isSelected ? AppTheme.primaryRust : const Color(0xFF6B7280),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? accentColor.withValues(alpha: 0.15)
+                    : const Color(0xFFE8E7F0),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 26,
+                color: isSelected ? accentColor : const Color(0xFF6B7280),
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               title,
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: isSelected ? AppTheme.primaryRust : AppTheme.titleDark,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w800,
+                color: isSelected ? accentColor : AppTheme.titleDark,
               ),
             ),
             const SizedBox(height: 4),
@@ -719,6 +1567,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 fontSize: 10.5,
                 fontWeight: FontWeight.w500,
                 color: AppTheme.textSecondary,
+                height: 1.3,
               ),
             ),
           ],
@@ -745,6 +1594,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     bool isPassword = false,
     bool obscureText = false,
     VoidCallback? onToggleVisibility,
+    ValueChanged<String>? onChanged,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -754,6 +1604,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       child: TextField(
         controller: controller,
         obscureText: obscureText,
+        onChanged: onChanged,
         style: GoogleFonts.plusJakartaSans(
           fontSize: 14,
           fontWeight: FontWeight.w600,
@@ -797,59 +1648,4 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
     );
   }
-
-  Widget _buildGoogleIcon() {
-    return SizedBox(
-      width: 18,
-      height: 18,
-      child: CustomPaint(
-        painter: _GoogleIconPainter(),
-      ),
-    );
-  }
-}
-
-class _GoogleIconPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final double w = size.width;
-    final double h = size.height;
-    final double cx = w / 2;
-    final double cy = h / 2;
-    final double stroke = w * 0.22;
-    final rect = Rect.fromCircle(center: Offset(cx, cy), radius: (w - stroke) / 2);
-
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.butt;
-
-    // Red (top left)
-    paint.color = const Color(0xFFEA4335);
-    canvas.drawArc(rect, math.pi * 1.05, math.pi * 0.45, false, paint);
-
-    // Yellow (left)
-    paint.color = const Color(0xFFFBBC05);
-    canvas.drawArc(rect, math.pi * 0.60, math.pi * 0.45, false, paint);
-
-    // Green (bottom right)
-    paint.color = const Color(0xFF34A853);
-    canvas.drawArc(rect, 0.1, math.pi * 0.50, false, paint);
-
-    // Blue (right)
-    paint.color = const Color(0xFF4285F4);
-    canvas.drawArc(rect, math.pi * 1.5, math.pi * 0.6, false, paint);
-
-    // Blue center horizontal bar
-    final barPaint = Paint()
-      ..color = const Color(0xFF4285F4)
-      ..style = PaintingStyle.fill;
-    canvas.drawRect(
-      Rect.fromLTWH(cx, cy - stroke / 2, w / 2, stroke),
-      barPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
