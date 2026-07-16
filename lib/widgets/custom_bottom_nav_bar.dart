@@ -15,22 +15,40 @@ class CustomBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      _NavBarItem(icon: Icons.home_rounded, label: 'Home'),
-      _NavBarItem(icon: Icons.emoji_events_rounded, label: 'Hero'),
-      _NavBarItem(icon: Icons.person_rounded, label: 'Profile'),
+      _NavBarItem(
+        icon: Icons.home_rounded,
+        activeIcon: Icons.home_rounded,
+        label: 'Home',
+      ),
+      _NavBarItem(
+        icon: Icons.forum_outlined,
+        activeIcon: Icons.forum_rounded,
+        label: 'Messages',
+      ),
+      _NavBarItem(
+        icon: Icons.person_outline_rounded,
+        activeIcon: Icons.person_rounded,
+        label: 'Profile',
+      ),
     ];
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(36),
+        border: Border.all(color: const Color(0xFFFAF0EB), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.07),
-            blurRadius: 24,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 28,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: AppTheme.primaryRust.withValues(alpha: 0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -43,56 +61,79 @@ class CustomBottomNavBar extends StatelessWidget {
           return GestureDetector(
             onTap: () => onItemTapped(index),
             behavior: HitTestBehavior.opaque,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 320),
-              curve: Curves.fastOutSlowIn,
-              padding: EdgeInsets.symmetric(
-                horizontal: isSelected ? 18 : 12,
-                vertical: 10,
-              ),
-              decoration: BoxDecoration(
-                color: isSelected ? AppTheme.primaryRust : Colors.transparent,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
-                    transitionBuilder: (child, animation) => FadeTransition(
-                      opacity: animation,
-                      child: ScaleTransition(scale: animation, child: child),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Shadow glow container with AnimatedOpacity (Zero BoxShadow lerp assertion risk)
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 250),
+                  opacity: isSelected ? 1.0 : 0.0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(26),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x59FF6B35), // 35% alpha #FF6B35
+                          blurRadius: 12.0,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: Icon(
-                      item.icon,
-                      key: ValueKey('${item.label}_$isSelected'),
-                      size: 20,
-                      color: isSelected ? Colors.white : AppTheme.textSecondary,
-                    ),
+                    child: const SizedBox(height: 20, width: 50),
                   ),
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.fastOutSlowIn,
-                    child: isSelected
-                        ? Padding(
-                            padding: const EdgeInsets.only(left: 6.0),
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 250),
-                              opacity: isSelected ? 1.0 : 0.0,
-                              child: Text(
-                                item.label,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
+                ),
+
+                // Main Button Container (Animates background gradient, padding, and text)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOutCubic,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSelected ? 14 : 10,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: isSelected
+                        ? const LinearGradient(
+                            colors: [Color(0xFFFF6B35), Color(0xFFFF8552)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           )
-                        : const SizedBox.shrink(),
+                        : null,
+                    color: isSelected ? null : Colors.transparent,
+                    borderRadius: BorderRadius.circular(26),
                   ),
-                ],
-              ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isSelected ? item.activeIcon : item.icon,
+                        key: ValueKey('${item.label}_$isSelected'),
+                        size: 20,
+                        color:
+                            isSelected ? Colors.white : AppTheme.textSecondary,
+                      ),
+                      if (isSelected) ...[
+                        const SizedBox(width: 5),
+                        Flexible(
+                          child: Text(
+                            item.label,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 0.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
           );
         }),
@@ -103,7 +144,12 @@ class CustomBottomNavBar extends StatelessWidget {
 
 class _NavBarItem {
   final IconData icon;
+  final IconData activeIcon;
   final String label;
 
-  _NavBarItem({required this.icon, required this.label});
+  _NavBarItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+  });
 }

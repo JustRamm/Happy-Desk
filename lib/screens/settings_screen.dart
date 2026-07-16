@@ -49,7 +49,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context); // Close dialog
+              Navigator.pop(context);
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(
                   builder: (context) => const AuthScreen(initialIsLogin: true),
@@ -76,10 +76,421 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _showEditProfileModal() {
+    final nameController = TextEditingController(text: 'Rownok Ahmed');
+    final roleController = TextEditingController(text: 'Senior Product Architect');
+    final teamController = TextEditingController(text: 'U & ME Engineering');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            top: 24,
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Edit Profile',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.titleDark,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              Text('Full Name', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: const Color(0xFFFAF8FF),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE4E7FE))),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              Text('Job Role / Title', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: roleController,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: const Color(0xFFFAF8FF),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE4E7FE))),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              Text('Workplace Team', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: teamController,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: const Color(0xFFFAF8FF),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE4E7FE))),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Profile details updated successfully!'),
+                        backgroundColor: AppTheme.primaryRust,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryRust,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                  ),
+                  child: Text('Save Profile Changes', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSecurityModal() {
+    bool twoFactor = true;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                top: 24,
+                left: 20,
+                right: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Security & Password',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.titleDark,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  Text('Current Password', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      hintText: '••••••••',
+                      filled: true,
+                      fillColor: const Color(0xFFFAF8FF),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE4E7FE))),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  Text('New Password', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      hintText: '••••••••',
+                      filled: true,
+                      fillColor: const Color(0xFFFAF8FF),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE4E7FE))),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Two-Factor Auth (2FA)', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700)),
+                          Text('Secure login with Google Authenticator', style: GoogleFonts.beVietnamPro(fontSize: 12, color: Colors.grey.shade600)),
+                        ],
+                      ),
+                      Switch(
+                        value: twoFactor,
+                        activeThumbColor: AppTheme.primaryRust,
+                        onChanged: (val) => setModalState(() => twoFactor = val),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Security settings updated!'),
+                            backgroundColor: const Color(0xFF006C53),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryRust,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                      ),
+                      child: Text('Update Password & Security', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showWorkspaceModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Workspace Preferences',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.titleDark,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              Text('Current Team Workspace', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF8FF),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE4E7FE)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.business_rounded, color: AppTheme.primaryRust, size: 22),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('U & ME Engineering Team', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700)),
+                        Text('Role: Team Lead & Admin', style: GoogleFonts.beVietnamPro(fontSize: 12, color: Colors.grey.shade600)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Text('Team Invite Code', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF0EB),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('HAPPY-DESK-2026', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.primaryRust)),
+                    IconButton(
+                      icon: const Icon(Icons.copy_rounded, color: AppTheme.primaryRust, size: 20),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Invite code HAPPY-DESK-2026 copied!')),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showHelpCenterModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.7,
+          maxChildSize: 0.9,
+          builder: (context, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: ListView(
+                controller: scrollController,
+                children: [
+                  Text('Help Center & FAQ', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 8),
+                  Text('Got questions? We have answers.', style: GoogleFonts.beVietnamPro(fontSize: 13, color: Colors.grey.shade600)),
+                  const SizedBox(height: 16),
+
+                  _buildFaqTile('How does NGL Jar anonymity work?', 'All notes submitted into the NGL Jar are 100% encrypted. Unless you explicitly choose to sign your name, your identity is completely hidden.'),
+                  _buildFaqTile('How are Weekly Heroes selected?', 'Heroes are nominated peer-to-peer by teammates. Nominations reset every Sunday night, and top nominees earn community badges.'),
+                  _buildFaqTile('How does Clock-In location logging work?', 'When clocking in, you select your location (e.g. HQ Floor 3 or Home Office). It logs the location and sends an optional team broadcast.'),
+                  _buildFaqTile('Can I integrate with Google Workspace?', 'Yes! Happy Desk integrates with Google Classroom, Sheets, Calendar, Slides, and Chat.'),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFaqTile(String question, String answer) {
+    return ExpansionTile(
+      title: Text(question, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700)),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Text(answer, style: GoogleFonts.beVietnamPro(fontSize: 12.5, color: Colors.grey.shade700, height: 1.4)),
+        ),
+      ],
+    );
+  }
+
+  void _showPrivacyPolicyModal() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text('Privacy Policy', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800)),
+        content: SingleChildScrollView(
+          child: Text(
+            'Happy Desk respects your personal and workplace data. We use end-to-end security measures for peer notes and clock-in logs. We never share your workplace insights with third-party advertisers.',
+            style: GoogleFonts.beVietnamPro(fontSize: 13, height: 1.4),
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showTermsModal() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text('Terms of Service', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800)),
+        content: SingleChildScrollView(
+          child: Text(
+            'By using Happy Desk, you agree to foster psychological safety, mutual peer appreciation, and constructive workplace communication.',
+            style: GoogleFonts.beVietnamPro(fontSize: 13, height: 1.4),
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F8), // Warm soft ambient background
+      backgroundColor: const Color(0xFFFAF9F8),
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -121,21 +532,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: Icons.person_outline_rounded,
                     title: 'Edit Profile',
                     subtitle: 'Name, job role, profile picture',
-                    onTap: () {},
+                    onTap: _showEditProfileModal,
                   ),
                   _buildDivider(),
                   _buildListTile(
                     icon: Icons.lock_outline_rounded,
                     title: 'Security & Password',
                     subtitle: 'Change password, 2FA',
-                    onTap: () {},
+                    onTap: _showSecurityModal,
                   ),
                   _buildDivider(),
                   _buildListTile(
                     icon: Icons.workspace_premium_outlined,
                     title: 'Workspace Preferences',
                     subtitle: 'Team invite code, role settings',
-                    onTap: () {},
+                    onTap: _showWorkspaceModal,
                   ),
                 ],
               ),
@@ -200,19 +611,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildListTile(
                     icon: Icons.help_outline_rounded,
                     title: 'Help Center & FAQ',
-                    onTap: () {},
+                    onTap: _showHelpCenterModal,
                   ),
                   _buildDivider(),
                   _buildListTile(
                     icon: Icons.privacy_tip_outlined,
                     title: 'Privacy Policy',
-                    onTap: () {},
+                    onTap: _showPrivacyPolicyModal,
                   ),
                   _buildDivider(),
                   _buildListTile(
                     icon: Icons.description_outlined,
                     title: 'Terms of Service',
-                    onTap: () {},
+                    onTap: _showTermsModal,
                   ),
                 ],
               ),
@@ -245,7 +656,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               const SizedBox(height: 20),
 
-              // App Version
               Center(
                 child: Text(
                   'Happy Desk v1.0.0 • Workplace Joy Reinvented',

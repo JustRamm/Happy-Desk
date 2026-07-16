@@ -168,7 +168,10 @@ class _SplashLoadingScreenState extends State<SplashLoadingScreen>
 
                           // Subtitle Tagline ("WORKPLACE JOY REINVENTED")
                           Opacity(
-                            opacity: _logoOpacityAnimation.value.clamp(0.0, 1.0),
+                            opacity: _logoOpacityAnimation.value.clamp(
+                              0.0,
+                              1.0,
+                            ),
                             child: Text(
                               'WORKPLACE JOY REINVENTED',
                               textAlign: TextAlign.center,

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import 'jar_screen.dart';
-import 'chat_notifications_screen.dart';
 import '../widgets/jar_icon_widget.dart';
 import '../widgets/brand_logo_widget.dart';
 
@@ -165,16 +164,25 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                             )
                           : const BrandLogoWidget(height: 48),
 
-                      // Jar + Notification icons
+                      // Header Action Icons (Filled Trophy Icon for current screen + Jar Icon)
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          IconButton(
+                            onPressed: () {},
+                            icon: const Icon(
+                              Icons.emoji_events_rounded,
+                              color: Color(0xFFAB3500),
+                              size: 26,
+                            ),
+                            tooltip: 'Weekly Hero (Active)',
+                          ),
                           IconButton(
                             onPressed: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const JarScreen(),
+                                  builder: (context) => const JarScreen(showBackButton: true),
                                 ),
                               );
                             },
@@ -183,22 +191,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                               mainColor: Color(0xFF8B2600),
                               lidColor: Color(0xFFC84B1A),
                             ),
-                          ),
-                          IconButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const ChatNotificationsScreen(),
-                                ),
-                              );
-                            },
-                            icon: const Icon(
-                              Icons.forum_outlined,
-                              color: Color(0xFF8B2600),
-                              size: 24,
-                            ),
+                            tooltip: 'NGL Jar',
                           ),
                         ],
                       ),

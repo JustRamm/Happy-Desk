@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/coffee_notification_store.dart';
 
 class MultiCoffeeResetModal extends StatefulWidget {
   const MultiCoffeeResetModal({super.key});
@@ -222,6 +223,13 @@ class _MultiCoffeeResetModalState extends State<MultiCoffeeResetModal> {
                 onPressed: selectedCount == 0
                     ? null
                     : () {
+                        CoffeeNotificationStore.addCoffeeInvite(
+                          senderName: 'Group Team',
+                          message: _noteController.text.trim().isEmpty
+                              ? 'Group 5-min coffee break reset started!'
+                              : _noteController.text.trim(),
+                          isGroup: true,
+                        );
                         Navigator.of(context).pop();
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -229,7 +237,7 @@ class _MultiCoffeeResetModalState extends State<MultiCoffeeResetModal> {
                               'Group coffee break invite sent to $selectedCount teammates!',
                               style: GoogleFonts.beVietnamPro(fontSize: 13.5),
                             ),
-                            backgroundColor: const Color(0xFF95416C),
+                            backgroundColor: const Color(0xFFFF6B35),
                             duration: const Duration(seconds: 3),
                           ),
                         );
