@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
-import 'chat_notifications_screen.dart';
+import 'hero_screen.dart';
 import 'compose_ngl_note_screen.dart';
 import 'ngl_note_detail_screen.dart';
 import '../widgets/jar_icon_widget.dart';
@@ -117,9 +117,9 @@ class _JarScreenState extends State<JarScreen> {
                               color: Color(0xFF171B2B), size: 20),
                           onPressed: () => Navigator.of(context).pop(),
                         )
-                      : const BrandLogoWidget(height: 48),
+                      : const BrandLogoWidget(height: 54),
 
-                  // Right Header Action Bar (Filled Active NGL Jar Icon + Bell)
+                  // Right Header Action Bar (Filled Active NGL Jar Icon + Weekly Hero Trophy)
                   Row(
                     children: [
                       // Active Color-Filled NGL Jar Pill Indicator
@@ -165,21 +165,22 @@ class _JarScreenState extends State<JarScreen> {
 
                       const SizedBox(width: 8),
 
-                      // Chat & Notifications Icon
+                      // Weekly Hero Trophy Icon Action Button
                       IconButton(
+                        tooltip: 'Weekly Hero',
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
-                                  const ChatNotificationsScreen(),
+                                  const HeroScreen(showBackButton: true),
                             ),
                           );
                         },
                         icon: const Icon(
-                          Icons.forum_outlined,
+                          Icons.emoji_events_outlined,
                           color: Color(0xFF8B2600),
-                          size: 24,
+                          size: 28,
                         ),
                       ),
                     ],

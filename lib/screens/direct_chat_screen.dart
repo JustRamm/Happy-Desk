@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/coffee_notification_store.dart';
+import 'audio_video_call_screen.dart';
 
 class DirectChatScreen extends StatefulWidget {
   final Map<String, dynamic> teammate;
@@ -170,23 +171,6 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                       });
                     },
                   ),
-                  _buildAttachmentTile(
-                    icon: Icons.poll_rounded,
-                    label: 'Team Poll',
-                    color: const Color(0xFF95416C),
-                    onTap: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Quick Poll tool opened!',
-                            style: GoogleFonts.beVietnamPro(),
-                          ),
-                          backgroundColor: const Color(0xFF95416C),
-                        ),
-                      );
-                    },
-                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -337,6 +321,58 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: 'Audio Call',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AudioVideoCallScreen(
+                    teammate: widget.teammate,
+                    isVideoCall: false,
+                  ),
+                ),
+              );
+            },
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFFF0EB),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.phone_rounded,
+                color: Color(0xFFAB3500),
+                size: 18,
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Video Call',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AudioVideoCallScreen(
+                    teammate: widget.teammate,
+                    isVideoCall: true,
+                  ),
+                ),
+              );
+            },
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFEBF7F5),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.videocam_rounded,
+                color: Color(0xFF006C53),
+                size: 18,
+              ),
+            ),
+          ),
+          IconButton(
             tooltip: 'Send Coffee Break Invite',
             onPressed: _triggerIndividualCoffeeReset,
             icon: Container(
@@ -359,89 +395,97 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         children: [
           // Messages Feed
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(20),
-              physics: const BouncingScrollPhysics(),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                final isUser = msg['isUser'] == true;
-                final attachmentType = msg['attachmentType'];
+            child: RefreshIndicator(
+              color: const Color(0xFFFF6B35),
+              backgroundColor: Colors.white,
+              onRefresh: () async {
+                await Future.delayed(const Duration(milliseconds: 1000));
+              },
+              child: ListView.builder(
+                padding: const EdgeInsets.all(20),
+                physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics()),
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  final msg = _messages[index];
+                  final isUser = msg['isUser'] == true;
+                  final attachmentType = msg['attachmentType'];
 
-                return Align(
-                  alignment:
-                      isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 14),
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.78,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: isUser ? const Color(0xFFFF6B35) : Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(20),
-                        topRight: const Radius.circular(20),
-                        bottomLeft: Radius.circular(isUser ? 20 : 4),
-                        bottomRight: Radius.circular(isUser ? 4 : 20),
+                  return Align(
+                    alignment:
+                        isUser ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 14),
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.78,
                       ),
-                      border: isUser
-                          ? null
-                          : Border.all(color: const Color(0xFFE4E7FE)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isUser
-                              ? const Color(0x33FF6B35)
-                              : Colors.black.withValues(alpha: 0.03),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isUser ? const Color(0xFFFF6B35) : Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: const Radius.circular(20),
+                          topRight: const Radius.circular(20),
+                          bottomLeft: Radius.circular(isUser ? 20 : 4),
+                          bottomRight: Radius.circular(isUser ? 4 : 20),
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: isUser
-                          ? CrossAxisAlignment.end
-                          : CrossAxisAlignment.start,
-                      children: [
-                        // Text Content (if present)
-                        if (msg['text'] != null &&
-                            (msg['text'] as String).isNotEmpty) ...[
+                        border: isUser
+                            ? null
+                            : Border.all(color: const Color(0xFFE4E7FE)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isUser
+                                ? const Color(0x33FF6B35)
+                                : Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: isUser
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
+                        children: [
+                          // Text Content (if present)
+                          if (msg['text'] != null &&
+                              (msg['text'] as String).isNotEmpty) ...[
+                            Text(
+                              msg['text'],
+                              style: GoogleFonts.beVietnamPro(
+                                fontSize: 14,
+                                color: isUser
+                                    ? Colors.white
+                                    : const Color(0xFF2D3142),
+                                height: 1.45,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+
+                          // Attachment Renderers
+                          if (attachmentType == 'file')
+                            _buildFileBubble(msg, isUser),
+                          if (attachmentType == 'image')
+                            _buildImageBubble(msg, isUser),
+                          if (attachmentType == 'voice')
+                            _buildVoiceBubble(msg, isUser),
+
+                          const SizedBox(height: 4),
                           Text(
-                            msg['text'],
+                            msg['time'],
                             style: GoogleFonts.beVietnamPro(
-                              fontSize: 14,
-                              color: isUser
-                                  ? Colors.white
-                                  : const Color(0xFF2D3142),
-                              height: 1.45,
+                              fontSize: 10.5,
+                              color:
+                                  isUser ? Colors.white70 : const Color(0xFF8D7168),
                             ),
                           ),
-                          const SizedBox(height: 8),
                         ],
-
-                        // Attachment Renderers
-                        if (attachmentType == 'file')
-                          _buildFileBubble(msg, isUser),
-                        if (attachmentType == 'image')
-                          _buildImageBubble(msg, isUser),
-                        if (attachmentType == 'voice')
-                          _buildVoiceBubble(msg, isUser),
-
-                        const SizedBox(height: 4),
-                        Text(
-                          msg['time'],
-                          style: GoogleFonts.beVietnamPro(
-                            fontSize: 10.5,
-                            color:
-                                isUser ? Colors.white70 : const Color(0xFF8D7168),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
 
@@ -652,8 +696,27 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80',
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
-            return const Center(
-              child: Icon(Icons.image_not_supported_rounded, color: Colors.grey),
+            return Container(
+              color: const Color(0xFFF3F2FF),
+              padding: const EdgeInsets.all(12),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.photo_library_rounded,
+                        color: Color(0xFF95416C), size: 28),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Image Attachment (Offline Preview)',
+                      style: GoogleFonts.beVietnamPro(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF594139),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             );
           },
         ),

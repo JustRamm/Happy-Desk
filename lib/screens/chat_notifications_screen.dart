@@ -4,6 +4,7 @@ import '../widgets/multi_coffee_reset_modal.dart';
 import '../widgets/brand_logo_widget.dart';
 import 'direct_chat_screen.dart';
 import 'notifications_screen.dart';
+import 'new_chat_selector_screen.dart';
 
 class ChatNotificationsScreen extends StatefulWidget {
   const ChatNotificationsScreen({super.key});
@@ -76,7 +77,7 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
         title: Row(
           children: [
             // Brand Logo SVG in place of back button
-            const BrandLogoWidget(height: 44),
+            const BrandLogoWidget(height: 54),
             const SizedBox(width: 12),
             Expanded(
               child: Container(
@@ -92,7 +93,7 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
                     const Icon(
                       Icons.search_rounded,
                       color: Color(0xFFAB3500),
-                      size: 18,
+                      size: 20,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
@@ -140,7 +141,7 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
               child: const Icon(
                 Icons.notifications_rounded,
                 color: Color(0xFFAB3500),
-                size: 20,
+                size: 24,
               ),
             ),
           ),
@@ -156,15 +157,22 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
               child: const Icon(
                 Icons.local_cafe_rounded,
                 color: Color(0xFF95416C),
-                size: 20,
+                size: 24,
               ),
             ),
           ),
           const SizedBox(width: 8),
         ],
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
+      body: RefreshIndicator(
+        color: const Color(0xFFAB3500),
+        backgroundColor: Colors.white,
+        onRefresh: () async {
+          await Future.delayed(const Duration(milliseconds: 1000));
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics()),
         padding: const EdgeInsets.only(bottom: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,6 +328,28 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
 
             const SizedBox(height: 90),
           ],
+        ),
+      ),
+    ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const NewChatSelectorScreen(),
+            ),
+          );
+        },
+        backgroundColor: const Color(0xFFAB3500),
+        foregroundColor: Colors.white,
+        elevation: 4,
+        icon: const Icon(Icons.chat_rounded, size: 20),
+        label: Text(
+          'New Chat',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );

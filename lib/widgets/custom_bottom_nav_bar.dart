@@ -85,12 +85,12 @@ class CustomBottomNavBar extends StatelessWidget {
                   ),
                 ),
 
-                // Main Button Container (Animates background gradient, padding, and text)
+                // Main Button Container (Animates background gradient, padding, icon scale and sliding label)
                 AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOutCubic,
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeInOutCubic,
                   padding: EdgeInsets.symmetric(
-                    horizontal: isSelected ? 14 : 10,
+                    horizontal: isSelected ? 16 : 12,
                     vertical: 9,
                   ),
                   decoration: BoxDecoration(
@@ -107,29 +107,44 @@ class CustomBottomNavBar extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        isSelected ? item.activeIcon : item.icon,
-                        key: ValueKey('${item.label}_$isSelected'),
-                        size: 20,
-                        color:
-                            isSelected ? Colors.white : AppTheme.textSecondary,
-                      ),
-                      if (isSelected) ...[
-                        const SizedBox(width: 5),
-                        Flexible(
-                          child: Text(
-                            item.label,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: 0.2,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                      AnimatedScale(
+                        scale: isSelected ? 1.14 : 1.0,
+                        duration: const Duration(milliseconds: 280),
+                        curve: Curves.easeOutBack,
+                        child: Icon(
+                          isSelected ? item.activeIcon : item.icon,
+                          size: 20,
+                          color:
+                              isSelected ? Colors.white : AppTheme.textSecondary,
                         ),
-                      ],
+                      ),
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 280),
+                        curve: Curves.easeInOutCubic,
+                        child: isSelected
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(width: 6),
+                                  AnimatedOpacity(
+                                    duration: const Duration(milliseconds: 240),
+                                    opacity: isSelected ? 1.0 : 0.0,
+                                    child: Text(
+                                      item.label,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                        letterSpacing: 0.2,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.clip,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
+                      ),
                     ],
                   ),
                 ),

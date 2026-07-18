@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'settings_screen.dart';
-import 'hero_screen.dart';
 import '../widgets/brand_logo_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -55,46 +54,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Brand Logo SVG
-                  const BrandLogoWidget(height: 48),
+                  const BrandLogoWidget(height: 54),
 
-                  // Right Header Actions: Hero Trophy + Settings
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const HeroScreen(showBackButton: true),
-                            ),
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.emoji_events_outlined,
-                          color: Color(0xFF8B2600),
-                          size: 26,
-                        ),
-                        tooltip: 'Weekly Hero',
-                      ),
-                      const SizedBox(width: 4),
-                      IconButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const SettingsScreen()),
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.settings_outlined,
-                          color: Color(0xFF8B2600),
-                          size: 26,
-                        ),
-                        tooltip: 'Settings',
-                      ),
-                    ],
+                  // Right Header Action: Settings
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const SettingsScreen()),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.settings_outlined,
+                      color: Color(0xFF8B2600),
+                      size: 28,
+                    ),
+                    tooltip: 'Settings',
                   ),
                 ],
               ),

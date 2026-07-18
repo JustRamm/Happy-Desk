@@ -11,6 +11,9 @@ import '../widgets/brand_logo_widget.dart';
 import '../widgets/box_breathing_modal.dart';
 import '../widgets/desk_stretches_modal.dart';
 import '../widgets/daily_stress_buster_card.dart';
+import '../widgets/teammate_profile_modal.dart';
+import '../services/user_preferences_store.dart';
+import 'stress_vent_sounding_board_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -80,6 +83,28 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    final clockedIn = await UserPreferencesStore.isClockedIn();
+    final onBreak = await UserPreferencesStore.isOnBreak();
+    final time = await UserPreferencesStore.getLastClockInTime();
+    final location = await UserPreferencesStore.getLastClockInLocation();
+
+    if (mounted) {
+      setState(() {
+        _isClockedIn = clockedIn;
+        _isOnBreak = onBreak;
+        _lastClockInTime = time;
+        _lastClockInLocation = location;
+      });
+    }
+  }
+
   void _toggleClockIn() {
     setState(() {
       _isClockedIn = !_isClockedIn;
@@ -107,6 +132,16 @@ class _HomeScreenState extends State<HomeScreen> {
         _isOnBreak = false;
       }
     });
+
+    UserPreferencesStore.setClockedIn(_isClockedIn);
+    UserPreferencesStore.setOnBreak(_isOnBreak);
+    if (_lastClockInTime != null) {
+      UserPreferencesStore.setLastClockInTime(_lastClockInTime!);
+    }
+    if (_lastClockInLocation != null) {
+      UserPreferencesStore.setLastClockInLocation(_lastClockInLocation!);
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -146,6 +181,8 @@ class _HomeScreenState extends State<HomeScreen> {
             '${TimeOfDay.now().hour}:${TimeOfDay.now().minute.toString().padLeft(2, '0')}';
       }
     });
+
+    UserPreferencesStore.setOnBreak(_isOnBreak);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -291,7 +328,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: const Color(0xFFF9F8FE), // Warm ambient light background
       body: SafeArea(
         child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
+          physics: const ClampingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -301,7 +338,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Brand Logo SVG
-                  const BrandLogoWidget(height: 48),
+                  const BrandLogoWidget(height: 54),
 
                   // Jar + Notification icons
                   Row(
@@ -321,7 +358,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: const Icon(
                           Icons.emoji_events_outlined,
                           color: Color(0xFF8B2600),
-                          size: 26,
+                          size: 28,
                         ),
                         tooltip: 'Weekly Hero',
                       ),
@@ -338,7 +375,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                         icon: const JarIconWidget(
-                          size: 24,
+                          size: 28,
                           mainColor: Color(0xFF8B2600),
                           lidColor: Color(0xFFC84B1A),
                         ),
@@ -370,13 +407,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 20),
 
-              // Quick De-Stress Reset Pills (60s Breathing & Desk Stretches)
-              _buildQuickResetsPills(context),
-
-              const SizedBox(height: 20),
-
-              // Daily Stress Management Education Card
-              const DailyStressBusterCard(),
+              // DE-STRESS & WELLBEING HUB (Consolidated 60s Breathing, Stretches, Daily Stress Lesson & Sounding Board)
+              _buildDeStressAndWellbeingHub(context),
 
               const SizedBox(height: 20),
 
@@ -406,79 +438,217 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Quick De-Stress Reset Action Pills (60s Breathing & Desk Stretches)
-  Widget _buildQuickResetsPills(BuildContext context) {
-    return Row(
-      children: [
-        // 60s Breathing Pill
-        Expanded(
-          child: GestureDetector(
-            onTap: () => BoxBreathingModal.show(context),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEBF7F5),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFD1FAE5)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.spa_rounded,
-                    size: 18,
-                    color: Color(0xFF006C53),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '60s Breathing',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF006C53),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+  // Unified De-Stress & Wellbeing Hub Container (Clubs 60s Breathing, Stretches, Stress-Buster Card & Sounding Board)
+  Widget _buildDeStressAndWellbeingHub(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F3FF), // Soft serene lavender surface
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFE4E7FE)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF95416C).withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
-        ),
-        const SizedBox(width: 12),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Title Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFF0F7),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.spa_rounded,
+                  color: Color(0xFF95416C),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'De-Stress & Wellbeing Hub',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF2D3142),
+                      ),
+                    ),
+                    Text(
+                      'Micro-resets for your mind, body & stress relief',
+                      style: GoogleFonts.beVietnamPro(
+                        fontSize: 12,
+                        color: const Color(0xFF8D7168),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
 
-        // Desk Stretches Pill
-        Expanded(
-          child: GestureDetector(
-            onTap: () => DeskStretchesModal.show(context),
+          const SizedBox(height: 16),
+
+          // 1. Quick Resets Action Buttons Row (60s Breathing + Desk Stretches)
+          Row(
+            children: [
+              // 60s Breathing Pill
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => BoxBreathingModal.show(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEBF7F5),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFD1FAE5)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.air_rounded,
+                          size: 18,
+                          color: Color(0xFF006C53),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '60s Breathing',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF006C53),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+
+              // Desk Stretches Pill
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => DeskStretchesModal.show(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF0EB),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFFFD6C7)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.accessibility_rounded,
+                          size: 18,
+                          color: Color(0xFFAB3500),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Desk Stretches',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFFAB3500),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // 2. Daily Stress-Buster Micro-Lesson Card
+          const DailyStressBusterCard(),
+
+          const SizedBox(height: 14),
+
+          // 3. Anonymous Sounding Board & Vent Shortcut Banner
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const StressVentSoundingBoardScreen(),
+                ),
+              );
+            },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF0EB),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFFFD6C7)),
+                border: Border.all(color: const Color(0xFFE4E7FE)),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.accessibility_rounded,
-                    size: 18,
-                    color: Color(0xFFAB3500),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Desk Stretches',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFFAB3500),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF3F2FF),
+                      shape: BoxShape.circle,
                     ),
+                    child: const Icon(
+                      Icons.shield_rounded,
+                      color: Color(0xFF95416C),
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Anonymous Stress Vent & Sounding Board',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF2D3142),
+                          ),
+                        ),
+                        Text(
+                          'Encrypted Vent Shredder & Peer Mentor Chat',
+                          style: GoogleFonts.beVietnamPro(
+                            fontSize: 11.5,
+                            color: const Color(0xFF8D7168),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Color(0xFF95416C),
+                    size: 22,
                   ),
                 ],
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -828,102 +998,112 @@ class _HomeScreenState extends State<HomeScreen> {
     required String timeText,
     bool isCurrentUser = false,
   }) {
-    return Column(
-      children: [
-        Stack(
-          children: [
-            // Avatar Circle with Border
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isCurrentUser
-                      ? const Color(0xFFFFD166)
-                      : (isClockedIn
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.5)),
-                  width: isCurrentUser ? 2.5 : 2,
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(22),
-                child: Image.asset(
-                  assetPath,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
+    return GestureDetector(
+      onTap: () {
+        TeammateProfileModal.show(context, {
+          'name': isCurrentUser ? 'Rownok Ahmed' : name,
+          'role': isCurrentUser ? 'Senior Product Architect' : 'Team Member',
+          'avatar': assetPath,
+          'isOnline': isClockedIn,
+        });
+      },
+      child: Column(
+        children: [
+          Stack(
+            children: [
+              // Avatar Circle with Border
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
                     color: isCurrentUser
-                        ? const Color(0xFFC84B1A)
-                        : const Color(0xFF594139),
-                    child: Center(
-                      child: Text(
-                        name.isNotEmpty ? name[0] : '?',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                        ? const Color(0xFFFFD166)
+                        : (isClockedIn
+                              ? Colors.white
+                              : Colors.white.withValues(alpha: 0.5)),
+                    width: isCurrentUser ? 2.5 : 2,
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
+                  child: Image.asset(
+                    assetPath,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: isCurrentUser
+                          ? const Color(0xFFC84B1A)
+                          : const Color(0xFF594139),
+                      child: Center(
+                        child: Text(
+                          name.isNotEmpty ? name[0] : '?',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
 
-            // Active Status Dot Indicator (Green for Clocked In, Grey for Not Clocked In)
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: Container(
-                width: 13,
-                height: 13,
-                decoration: BoxDecoration(
-                  color: isClockedIn
-                      ? const Color(0xFF10B981)
-                      : const Color(0xFF9CA3AF),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: isClockedIn
-                      ? [
-                          BoxShadow(
-                            color: const Color(
-                              0xFF10B981,
-                            ).withValues(alpha: 0.6),
-                            blurRadius: 6,
-                          ),
-                        ]
-                      : null,
+              // Active Status Dot Indicator (Green for Clocked In, Grey for Not Clocked In)
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  width: 13,
+                  height: 13,
+                  decoration: BoxDecoration(
+                    color: isClockedIn
+                        ? const Color(0xFF10B981)
+                        : const Color(0xFF9CA3AF),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: isClockedIn
+                        ? [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF10B981,
+                              ).withValues(alpha: 0.6),
+                              blurRadius: 6,
+                            ),
+                          ]
+                        : null,
+                  ),
                 ),
               ),
+            ],
+          ),
+
+          const SizedBox(height: 6),
+
+          // Teammate Name
+          Text(
+            name,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11.5,
+              fontWeight: isCurrentUser ? FontWeight.w800 : FontWeight.w700,
+              color: const Color(0xFF4A1500),
             ),
-          ],
-        ),
-
-        const SizedBox(height: 6),
-
-        // Teammate Name
-        Text(
-          name,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 11.5,
-            fontWeight: isCurrentUser ? FontWeight.w800 : FontWeight.w700,
-            color: const Color(0xFF4A1500),
           ),
-        ),
 
-        // Status Time Text
-        Text(
-          timeText,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 9.5,
-            fontWeight: FontWeight.w600,
-            color: isClockedIn
-                ? const Color(0xFF007A5A)
-                : const Color(0xFF8B2600),
+          // Status Time Text
+          Text(
+            timeText,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w600,
+              color: isClockedIn
+                  ? const Color(0xFF007A5A)
+                  : const Color(0xFF8B2600),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
