@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import '../services/user_preferences_store.dart';
 import 'auth_screen.dart';
+import 'notification_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -159,11 +162,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
+                  onPressed: () async {
+                    final navigator = Navigator.of(context);
+                    final messenger = ScaffoldMessenger.of(context);
+                    await UserPreferencesStore.setUserProfile(
+                      name: nameController.text.trim(),
+                      role: roleController.text.trim(),
+                      team: teamController.text.trim(),
+                    );
+                    navigator.pop();
+                    messenger.showSnackBar(
                       SnackBar(
-                        content: const Text('Profile details updated successfully!'),
+                        content: const Text('Profile details updated & saved!'),
                         backgroundColor: AppTheme.primaryRust,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -378,8 +388,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     IconButton(
                       icon: const Icon(Icons.copy_rounded, color: AppTheme.primaryRust, size: 20),
                       onPressed: () {
+                        Clipboard.setData(const ClipboardData(text: 'HAPPY-DESK-2026'));
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Invite code HAPPY-DESK-2026 copied!')),
+                          SnackBar(
+                            content: const Text('Invite code HAPPY-DESK-2026 copied to clipboard!'),
+                            backgroundColor: AppTheme.primaryRust,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
                         );
                       },
                     ),
@@ -558,6 +574,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 10),
               _buildSettingsCard(
                 children: [
+                  _buildListTile(
+                    icon: Icons.tune_rounded,
+                    title: 'Granular Notification Preferences',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationSettingsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildDivider(),
                   _buildSwitchTile(
                     icon: Icons.notifications_active_outlined,
                     title: 'Push Notifications',
