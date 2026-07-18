@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Happy Desk requires camera access for 1-on-1 video calls with teammates.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Happy Desk requires microphone access for 1-on-1 audio calls and voice notes.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
