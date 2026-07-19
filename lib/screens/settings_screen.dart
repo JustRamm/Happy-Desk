@@ -33,7 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         content: Text(
-          'Are you sure you want to log out of Happy Desk?',
+          'Are you sure you want to log out of U & ME?',
           style: GoogleFonts.plusJakartaSans(
             color: AppTheme.textSecondary,
             fontSize: 14,
@@ -437,7 +437,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildFaqTile('How does NGL Jar anonymity work?', 'All notes submitted into the NGL Jar are 100% encrypted. Unless you explicitly choose to sign your name, your identity is completely hidden.'),
                   _buildFaqTile('How are Weekly Heroes selected?', 'Heroes are nominated peer-to-peer by teammates. Nominations reset every Sunday night, and top nominees earn community badges.'),
                   _buildFaqTile('How does Clock-In location logging work?', 'When clocking in, you select your location (e.g. HQ Floor 3 or Home Office). It logs the location and sends an optional team broadcast.'),
-                  _buildFaqTile('Can I integrate with Google Workspace?', 'Yes! Happy Desk integrates with Google Classroom, Sheets, Calendar, Slides, and Chat.'),
+                  _buildFaqTile('Can I integrate with Google Workspace?', 'Yes! U & ME integrates with Google Classroom, Sheets, Calendar, Slides, and Chat.'),
                 ],
               ),
             );
@@ -467,7 +467,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: Text('Privacy Policy', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800)),
         content: SingleChildScrollView(
           child: Text(
-            'Happy Desk respects your personal and workplace data. We use end-to-end security measures for peer notes and clock-in logs. We never share your workplace insights with third-party advertisers.',
+            'U & ME respects your personal and workplace data. We use end-to-end security measures for peer notes and clock-in logs. We never share your workplace insights with third-party advertisers.',
             style: GoogleFonts.beVietnamPro(fontSize: 13, height: 1.4),
           ),
         ),
@@ -489,7 +489,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: Text('Terms of Service', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800)),
         content: SingleChildScrollView(
           child: Text(
-            'By using Happy Desk, you agree to foster psychological safety, mutual peer appreciation, and constructive workplace communication.',
+            'By using U & ME, you agree to foster psychological safety, mutual peer appreciation, and constructive workplace communication.',
             style: GoogleFonts.beVietnamPro(fontSize: 13, height: 1.4),
           ),
         ),
@@ -687,7 +687,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               Center(
                 child: Text(
-                  'Happy Desk v1.0.0 • Workplace Joy Reinvented',
+                  'U & ME v1.0.0 • Workplace Joy Reinvented',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,

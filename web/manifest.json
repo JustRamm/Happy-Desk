@@ -1,11 +1,11 @@
 {
-    "name": "Happy Desk",
-    "short_name": "Happy Desk",
+    "name": "U & ME",
+    "short_name": "U & ME",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#FAF8FF",
     "theme_color": "#AB3500",
-    "description": "Happy Desk — Modern workplace joy and stress management platform.",
+    "description": "U & ME — Modern workplace joy and stress management platform.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

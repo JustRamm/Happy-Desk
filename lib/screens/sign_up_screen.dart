@@ -409,7 +409,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                         // Footer Copyright
                         Text(
-                          '2024 Happy Desk. All tasks turned into play.',
+                          '2026 U & ME. All tasks turned into play.',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w500,
@@ -480,7 +480,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           const SizedBox(height: 4),
           Center(
             child: Text(
-              'How will you be using Happy Desk?',
+              'How will you be using U & ME?',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w500,
