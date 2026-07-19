@@ -290,7 +290,41 @@ class _ComposeNglNoteScreenState extends State<ComposeNglNoteScreen> {
               const SizedBox(height: 20),
 
               // Section 4: Dynamic Note Card Input Container
-              _buildSectionLabel('YOUR NOTE'),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildSectionLabel('YOUR NOTE'),
+                  GestureDetector(
+                    onTap: _showAiAssistModal,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F2FF),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE4E7FE)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.auto_awesome_rounded,
+                            size: 14,
+                            color: Color(0xFF95416C),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            'AI Magic Assist',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF95416C),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 8),
               AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
@@ -497,6 +531,156 @@ class _ComposeNglNoteScreenState extends State<ComposeNglNoteScreen> {
           letterSpacing: 1.0,
         ),
       ),
+    );
+  }
+
+  void _showAiAssistModal() {
+    final aiPrompts = [
+      {
+        'title': 'Teamwork & Crunch Time',
+        'prompt':
+            'Huge thanks for stepping in and helping me finish our sprint deliverables under crunch time! Couldn\'t have done it without your support.',
+        'category': 'Teamwork',
+      },
+      {
+        'title': 'Kindness & Mentorship',
+        'prompt':
+            'I really appreciate how patient and encouraging you were during our team sync today. Your guidance made a huge difference!',
+        'category': 'Kindness',
+      },
+      {
+        'title': 'Problem Solving & Innovation',
+        'prompt':
+            'Not gonna lie, your brilliant quick thinking on the backend architectural issue saved our entire deployment sprint this week!',
+        'category': 'Excellence',
+      },
+      {
+        'title': 'Daily Energy & Positivity',
+        'prompt':
+            'Thank you for bringing so much warmth, positivity, and uplifting energy to our workplace every single day!',
+        'category': 'Growth',
+      },
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF3F2FF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Color(0xFF95416C),
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'AI Gratitude & Praise Writer',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.titleDark,
+                          ),
+                        ),
+                        Text(
+                          'Select an AI appreciation prompt to auto-draft your note',
+                          style: GoogleFonts.beVietnamPro(
+                            fontSize: 12,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              ...aiPrompts.map((item) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  child: Material(
+                    color: const Color(0xFFFAF8FF),
+                    borderRadius: BorderRadius.circular(16),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        setState(() {
+                          _messageController.text = item['prompt']!;
+                          _selectedCategory = item['category']!;
+                        });
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'AI appreciation note generated!',
+                              style: GoogleFonts.plusJakartaSans(
+                                  color: Colors.white, fontWeight: FontWeight.w600),
+                            ),
+                            backgroundColor: const Color(0xFF95416C),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14)),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE4E7FE)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item['title']!,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF95416C),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              item['prompt']!,
+                              style: GoogleFonts.beVietnamPro(
+                                fontSize: 12.5,
+                                color: AppTheme.titleDark,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
     );
   }
 }

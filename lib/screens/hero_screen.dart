@@ -140,6 +140,44 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
     );
   }
 
+  void _generateAiStory() {
+    final name = _selectedCoworker != null
+        ? _selectedCoworker!.split(' ')[0]
+        : 'My teammate';
+
+    String aiStory;
+    if (_selectedSuperpowers.contains('#LifeSaver')) {
+      aiStory =
+          '$name was an absolute lifesaver this week—staying late and taking full ownership when we hit a critical deadline!';
+    } else if (_selectedSuperpowers.contains('#ProblemSolver')) {
+      aiStory =
+          '$name stepped up with brilliant problem-solving skills to resolve a complex blocker for the team when we were stuck.';
+    } else if (_selectedSuperpowers.contains('#Supportive')) {
+      aiStory =
+          '$name went above and beyond to support me during a high-pressure week, making sure I had everything needed to succeed.';
+    } else {
+      aiStory =
+          '$name demonstrated incredible teamwork, dedication, and uplifting energy this week that inspired our entire team!';
+    }
+
+    setState(() {
+      _storyController.text = aiStory;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'AI nomination story generated for $name!',
+          style: GoogleFonts.plusJakartaSans(
+              color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: const Color(0xFF047857),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -422,13 +460,47 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                 const SizedBox(height: 18),
 
                 // Field 2: What did they do to help?
-                Text(
-                  'How did they help you?',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.titleDark,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'How did they help you?',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.titleDark,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _hasNominatedThisWeek ? null : _generateAiStory,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE6F7F0),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFA7F3D0)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 14,
+                              color: Color(0xFF047857),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'AI Draft Assistant',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF047857),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(

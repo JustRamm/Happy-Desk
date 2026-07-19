@@ -15,7 +15,7 @@ class SplashLoadingScreen extends StatefulWidget {
 class _SplashLoadingScreenState extends State<SplashLoadingScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _fluidShrinkAnimation;
+  late Animation<double> _fluidFlowAnimation;
   late Animation<double> _logoFillAnimation;
   late Animation<double> _logoScaleAnimation;
   late Animation<double> _logoOpacityAnimation;
@@ -24,38 +24,37 @@ class _SplashLoadingScreenState extends State<SplashLoadingScreen>
   void initState() {
     super.initState();
 
-    // 6.5 second duration for fluid movement
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 6500),
+      duration: const Duration(milliseconds: 4500),
     );
 
-    // Phase 1: Outlines pop up immediately at start (0.0 -> 0.20)
-    _logoScaleAnimation = Tween<double>(begin: 0.6, end: 1.0).animate(
+    // Phase 1: Logo scales & fades in cleanly
+    _logoScaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.22, curve: Curves.easeOutBack),
+        curve: const Interval(0.0, 0.35, curve: Curves.easeOutCubic),
       ),
     );
 
     _logoOpacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.15, curve: Curves.easeIn),
+        curve: const Interval(0.0, 0.20, curve: Curves.easeIn),
       ),
     );
 
-    // Phase 2: Fluid background shrink (0.0 -> 0.60)
-    _fluidShrinkAnimation = CurvedAnimation(
+    // Phase 2: Fluid wave flows from screen edges into the logo area
+    _fluidFlowAnimation = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.0, 0.60, curve: Curves.easeInOutCubic),
+      curve: const Interval(0.0, 0.70, curve: Curves.easeInOutCubic),
     );
 
-    // Phase 3: Liquid color fills logo and text SIMULTANEOUSLY as fluid touches them (0.05 -> 0.60)
+    // Phase 3: Liquid colors flow INTO and fill the logo SVG (0.15 -> 0.80)
     _logoFillAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.05, 0.60, curve: Curves.easeInOutCubic),
+        curve: const Interval(0.15, 0.80, curve: Curves.easeInOutCubic),
       ),
     );
 
@@ -63,7 +62,7 @@ class _SplashLoadingScreenState extends State<SplashLoadingScreen>
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        Future.delayed(const Duration(milliseconds: 800), () {
+        Future.delayed(const Duration(milliseconds: 600), () {
           if (mounted) {
             widget.onLoadingComplete?.call();
           }
@@ -81,31 +80,29 @@ class _SplashLoadingScreenState extends State<SplashLoadingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F8), // Warm soft white bg
+      backgroundColor: const Color(0xFFFAF9F8), // Warm soft background (no gradient behind logo)
       body: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
-          final shrinkProgress = _fluidShrinkAnimation.value;
+          final flowProgress = _fluidFlowAnimation.value;
           final fillProgress = _logoFillAnimation.value;
           final rawProgress = _controller.value;
 
           return Stack(
             children: [
-              // 1. Organic Fluid Water Sinking Background Painter
+              // 1. Organic Fluid Wave flowing INTO the logo (stops at logo bounds, no shrinking to a point)
               Positioned.fill(
                 child: CustomPaint(
-                  painter: _OrganicFluidWaterPainter(
-                    progress: shrinkProgress,
+                  painter: _OrganicFluidFlowPainter(
+                    flowProgress: flowProgress,
                     rawProgress: rawProgress,
-                    orangeColor: const Color(
-                      0xFFFF652F,
-                    ), // Vibrant Brand Orange
+                    brandColor: const Color(0xFFFF652F), // Vibrant Brand Orange
                     whiteColor: const Color(0xFFFAF9F8),
                   ),
                 ),
               ),
 
-              // 2. Main Content (Logo + Water Filled Text Container)
+              // 2. Main Content Container (Clean logo without background gradient or shadow)
               SafeArea(
                 child: Center(
                   child: SingleChildScrollView(
@@ -114,47 +111,33 @@ class _SplashLoadingScreenState extends State<SplashLoadingScreen>
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Doubled size logo container with original color liquid fill reveal
+                          // Logo Container (No gradient or shadow in background)
                           Transform.scale(
-                            scale: _logoScaleAnimation.value.clamp(0.0, 1.2),
+                            scale: _logoScaleAnimation.value.clamp(0.0, 1.1),
                             child: Opacity(
-                              opacity: _logoOpacityAnimation.value.clamp(
-                                0.0,
-                                1.0,
-                              ),
-                              child: Container(
-                                height: 320,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(
-                                        0xFFFF652F,
-                                      ).withValues(alpha: 0.20 * fillProgress),
-                                      blurRadius: 40,
-                                      offset: const Offset(0, 12),
-                                    ),
-                                  ],
-                                ),
+                              opacity: _logoOpacityAnimation.value.clamp(0.0, 1.0),
+                              child: SizedBox(
+                                height: 300,
+                                width: 300,
                                 child: Stack(
                                   alignment: Alignment.bottomCenter,
                                   children: [
-                                    // Faint translucent placeholder outline
+                                    // Faint outline placeholder
                                     Opacity(
-                                      opacity: 0.15,
+                                      opacity: 0.12,
                                       child: SvgPicture.asset(
                                         'assets/brand/U&ME.svg',
-                                        height: 320,
+                                        height: 300,
                                         fit: BoxFit.contain,
                                       ),
                                     ),
 
-                                    // Liquid fill reveal of the U & ME logo SVG
+                                    // Colors flow into and fill the U&ME logo SVG
                                     ClipRect(
                                       clipper: _LiquidFillClipper(fillProgress),
                                       child: SvgPicture.asset(
                                         'assets/brand/U&ME.svg',
-                                        height: 320,
+                                        height: 300,
                                         fit: BoxFit.contain,
                                       ),
                                     ),
@@ -164,14 +147,11 @@ class _SplashLoadingScreenState extends State<SplashLoadingScreen>
                             ),
                           ),
 
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 28),
 
                           // Subtitle Tagline ("WORKPLACE JOY REINVENTED")
                           Opacity(
-                            opacity: _logoOpacityAnimation.value.clamp(
-                              0.0,
-                              1.0,
-                            ),
+                            opacity: _logoOpacityAnimation.value.clamp(0.0, 1.0),
                             child: Text(
                               'WORKPLACE JOY REINVENTED',
                               textAlign: TextAlign.center,
@@ -198,7 +178,7 @@ class _SplashLoadingScreenState extends State<SplashLoadingScreen>
 }
 
 // ---------------------------------------------------------------------------
-//  Custom Clipper for Liquid Fill Level (Revealing original colored image & text fill)
+//  Custom Clipper for Liquid Fill Level (Revealing logo colors as fluid enters)
 // ---------------------------------------------------------------------------
 class _LiquidFillClipper extends CustomClipper<Rect> {
   final double progress; // 0.0 (empty) -> 1.0 (fully filled)
@@ -208,7 +188,6 @@ class _LiquidFillClipper extends CustomClipper<Rect> {
   @override
   Rect getClip(Size size) {
     final fillHeight = size.height * progress.clamp(0.0, 1.0);
-    // Reveal from bottom to top
     return Rect.fromLTRB(0, size.height - fillHeight, size.width, size.height);
   }
 
@@ -219,84 +198,71 @@ class _LiquidFillClipper extends CustomClipper<Rect> {
 }
 
 // ---------------------------------------------------------------------------
-//  Custom Painter for Ultra-Smooth Organic Fluid Water Sinking Effect
+//  Custom Painter for Fluid Waves Flowing INTO the Logo (Stops at logo, does NOT shrink to a point)
 // ---------------------------------------------------------------------------
-class _OrganicFluidWaterPainter extends CustomPainter {
-  final double progress; // 0.0 (full orange) -> 1.0 (sunk into center point)
-  final double rawProgress; // Drives continuous smooth wave fluid phase
-  final Color orangeColor;
+class _OrganicFluidFlowPainter extends CustomPainter {
+  final double flowProgress; // 0.0 (full screen) -> 1.0 (flows into logo bounds)
+  final double rawProgress;
+  final Color brandColor;
   final Color whiteColor;
 
-  _OrganicFluidWaterPainter({
-    required this.progress,
+  _OrganicFluidFlowPainter({
+    required this.flowProgress,
     required this.rawProgress,
-    required this.orangeColor,
+    required this.brandColor,
     required this.whiteColor,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height * 0.42);
+    final center = Offset(size.width / 2, size.height * 0.44);
     final maxRadius =
-        math.sqrt(size.width * size.width + size.height * size.height) / 2 +
-        120;
+        math.sqrt(size.width * size.width + size.height * size.height) / 2 + 100;
+    // Target radius matches the logo container size so fluid flows INTO logo without shrinking to a point!
+    const targetLogoRadius = 150.0;
 
     final whitePaint = Paint()
       ..color = whiteColor
       ..isAntiAlias = true;
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), whitePaint);
 
-    if (progress >= 1.0) return;
+    // Liquid flows down from max screen radius to target logo radius (never 0)
+    final currentRadius =
+        maxRadius - (maxRadius - targetLogoRadius) * flowProgress;
 
-    final baseRadius = maxRadius * (1.0 - progress);
+    final phase = rawProgress * math.pi * 5;
 
-    if (baseRadius > 0.5) {
-      final phase = rawProgress * math.pi * 6;
+    final fluidPath = _createOrganicFluidPath(
+      center,
+      currentRadius,
+      maxRadius,
+      phase,
+    );
 
-      final fluidPath = _createOrganicFluidPath(
+    final orangePaint = Paint()
+      ..color = brandColor.withValues(alpha: (1.0 - flowProgress * 0.85).clamp(0.0, 1.0))
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true
+      ..filterQuality = FilterQuality.high;
+
+    canvas.drawPath(fluidPath, orangePaint);
+
+    if (flowProgress < 0.95) {
+      final innerPath = _createOrganicFluidPath(
         center,
-        baseRadius,
+        currentRadius * 0.85,
         maxRadius,
-        phase,
+        phase * 1.3,
       );
 
-      final orangePaint = Paint()
-        ..color = orangeColor
-        ..style = PaintingStyle.fill
-        ..isAntiAlias = true
-        ..filterQuality = FilterQuality.high;
+      final strokePaint = Paint()
+        ..color = const Color(0xFFFFB299)
+            .withValues(alpha: (0.45 * (1.0 - flowProgress)).clamp(0.0, 1.0))
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..isAntiAlias = true;
 
-      canvas.drawPath(fluidPath, orangePaint);
-
-      if (progress > 0.04 && progress < 0.94) {
-        final innerPath1 = _createOrganicFluidPath(
-          center,
-          baseRadius * 0.84,
-          maxRadius,
-          phase * 1.2,
-        );
-        final innerPath2 = _createOrganicFluidPath(
-          center,
-          baseRadius * 0.64,
-          maxRadius,
-          -phase * 1.05,
-        );
-
-        final strokePaint1 = Paint()
-          ..color = const Color(0xFFFFB299).withValues(alpha: 0.55)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3.2
-          ..isAntiAlias = true;
-
-        final strokePaint2 = Paint()
-          ..color = const Color(0xFFFFD6C7).withValues(alpha: 0.40)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.0
-          ..isAntiAlias = true;
-
-        canvas.drawPath(innerPath1, strokePaint1);
-        canvas.drawPath(innerPath2, strokePaint2);
-      }
+      canvas.drawPath(innerPath, strokePaint);
     }
   }
 
@@ -307,23 +273,16 @@ class _OrganicFluidWaterPainter extends CustomPainter {
     double phase,
   ) {
     final path = Path();
-    const int sampleCount = 90;
+    const int sampleCount = 80;
     final List<Offset> points = [];
 
     for (int i = 0; i < sampleCount; i++) {
       final double angle = (i / sampleCount) * 2 * math.pi;
 
-      final double wave1 =
-          math.sin(angle * 3 + phase * 1.8) * (baseRadius * 0.14);
-      final double wave2 =
-          math.cos(angle * 4 - phase * 2.4) * (baseRadius * 0.08);
-      final double wave3 =
-          math.sin(angle * 2 + phase * 1.2) * (baseRadius * 0.06);
+      final double wave1 = math.sin(angle * 3 + phase * 1.6) * (baseRadius * 0.10);
+      final double wave2 = math.cos(angle * 4 - phase * 2.0) * (baseRadius * 0.06);
 
-      final double r = (baseRadius + wave1 + wave2 + wave3).clamp(
-        0.0,
-        maxRadius * 1.6,
-      );
+      final double r = (baseRadius + wave1 + wave2).clamp(0.0, maxRadius * 1.5);
       final double x = center.dx + r * math.cos(angle);
       final double y = center.dy + r * math.sin(angle);
 
@@ -347,8 +306,8 @@ class _OrganicFluidWaterPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _OrganicFluidWaterPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
+  bool shouldRepaint(covariant _OrganicFluidFlowPainter oldDelegate) {
+    return oldDelegate.flowProgress != flowProgress ||
         oldDelegate.rawProgress != rawProgress;
   }
 }
