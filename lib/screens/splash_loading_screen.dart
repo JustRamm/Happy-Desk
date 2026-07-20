@@ -44,17 +44,17 @@ class _SplashLoadingScreenState extends State<SplashLoadingScreen>
       ),
     );
 
-    // Phase 2: Fluid wave flows from screen edges into the logo area
+    // Phase 2: Fluid wave flows from screen edges into the logo area (0.0 -> 0.70)
     _fluidFlowAnimation = CurvedAnimation(
       parent: _controller,
       curve: const Interval(0.0, 0.70, curve: Curves.easeInOutCubic),
     );
 
-    // Phase 3: Liquid colors flow INTO and fill the logo SVG (0.15 -> 0.80)
+    // Phase 3: Liquid colors flow INTO and fill the logo SVG (0.10 -> 0.70)
     _logoFillAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.15, 0.80, curve: Curves.easeInOutCubic),
+        curve: const Interval(0.10, 0.70, curve: Curves.easeInOutCubic),
       ),
     );
 
@@ -226,7 +226,12 @@ class _OrganicFluidFlowPainter extends CustomPainter {
       ..isAntiAlias = true;
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), whitePaint);
 
-    // Liquid flows down from max screen radius to target logo radius (never 0)
+    if (flowProgress >= 1.0) return; // Completely stops rendering once fluid flow into logo is complete!
+
+    final fluidAlpha = (1.0 - flowProgress).clamp(0.0, 1.0);
+    if (fluidAlpha <= 0.001) return;
+
+    // Liquid flows down from max screen radius to target logo radius
     final currentRadius =
         maxRadius - (maxRadius - targetLogoRadius) * flowProgress;
 
@@ -240,14 +245,14 @@ class _OrganicFluidFlowPainter extends CustomPainter {
     );
 
     final orangePaint = Paint()
-      ..color = brandColor.withValues(alpha: (1.0 - flowProgress * 0.85).clamp(0.0, 1.0))
+      ..color = brandColor.withValues(alpha: fluidAlpha)
       ..style = PaintingStyle.fill
       ..isAntiAlias = true
       ..filterQuality = FilterQuality.high;
 
     canvas.drawPath(fluidPath, orangePaint);
 
-    if (flowProgress < 0.95) {
+    if (flowProgress < 0.90) {
       final innerPath = _createOrganicFluidPath(
         center,
         currentRadius * 0.85,
