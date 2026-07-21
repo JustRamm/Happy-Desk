@@ -8,10 +8,19 @@ class UserPreferencesStore {
   static const String _keyUserName = 'user_name';
   static const String _keyUserRole = 'user_role';
   static const String _keyUserTeam = 'user_team';
+  static const String _keyUserBio = 'user_bio';
+  static const String _keyUserCompany = 'user_company';
   static const String _keyMasterNotifications = 'master_notifications';
   static const String _keyNglJarAlerts = 'ngl_jar_alerts';
   static const String _keyCoffeeInvites = 'coffee_invites';
   static const String _keyHeroNominations = 'hero_nominations';
+
+  // In-memory sync fallback cache
+  static String _nameCache = 'Rownok Ahmed';
+  static String _roleCache = 'Senior Product Architect';
+  static String _teamCache = 'U & ME Engineering';
+  static String _bioCache = 'Building delightful, human-centric workplace software.';
+  static String _companyCache = 'U & ME HQ';
 
   // Clock-in preferences
   static Future<bool> isClockedIn() async {
@@ -55,30 +64,64 @@ class UserPreferencesStore {
   }
 
   // User profile preferences
-  static Future<String> getUserName() async {
+  static String getUserName() => _nameCache;
+  static String getUserRole() => _roleCache;
+  static String getUserTeam() => _teamCache;
+  static String getUserBio() => _bioCache;
+  static String getCompany() => _companyCache;
+
+  static Future<void> loadProfileData() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyUserName) ?? 'Rownok Ahmed';
+    _nameCache = prefs.getString(_keyUserName) ?? _nameCache;
+    _roleCache = prefs.getString(_keyUserRole) ?? _roleCache;
+    _teamCache = prefs.getString(_keyUserTeam) ?? _teamCache;
+    _bioCache = prefs.getString(_keyUserBio) ?? _bioCache;
+    _companyCache = prefs.getString(_keyUserCompany) ?? _companyCache;
   }
 
-  static Future<String> getUserRole() async {
+  static Future<void> setUserName(String val) async {
+    _nameCache = val;
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyUserRole) ?? 'Senior Product Architect';
+    await prefs.setString(_keyUserName, val);
   }
 
-  static Future<String> getUserTeam() async {
+  static Future<void> setUserRole(String val) async {
+    _roleCache = val;
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyUserTeam) ?? 'U & ME Engineering';
+    await prefs.setString(_keyUserRole, val);
+  }
+
+  static Future<void> setUserBio(String val) async {
+    _bioCache = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUserBio, val);
+  }
+
+  static Future<void> setCompany(String val) async {
+    _companyCache = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUserCompany, val);
   }
 
   static Future<void> setUserProfile({
     required String name,
     required String role,
     required String team,
+    String? bio,
+    String? company,
   }) async {
+    _nameCache = name;
+    _roleCache = role;
+    _teamCache = team;
+    if (bio != null) _bioCache = bio;
+    if (company != null) _companyCache = company;
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyUserName, name);
     await prefs.setString(_keyUserRole, role);
     await prefs.setString(_keyUserTeam, team);
+    if (bio != null) await prefs.setString(_keyUserBio, bio);
+    if (company != null) await prefs.setString(_keyUserCompany, company);
   }
 
   // Notification preferences
