@@ -169,87 +169,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-
-                    const SizedBox(height: 24),
-
-                    // Or continue with Divider
-                    Center(
-                      child: Text(
-                        'Or continue with',
-                        style: GoogleFonts.beVietnamPro(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Social Login Buttons (Google & Slack)
-                    Row(
-                      children: [
-                        // Google Button
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: widget.onLoginSuccess,
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: BorderSide(color: Colors.grey.shade300, width: 1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                _buildGoogleIcon(),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Google',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppTheme.onSurface,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(width: 12),
-
-                        // Slack Button
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: widget.onLoginSuccess,
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: BorderSide(color: Colors.grey.shade300, width: 1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                _buildSlackIcon(),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Slack',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppTheme.onSurface,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
@@ -351,24 +270,6 @@ class _LoginScreenState extends State<LoginScreen> {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
-    );
-  }
-
-  Widget _buildGoogleIcon() {
-    return SizedBox(
-      width: 16,
-      height: 16,
-      child: CustomPaint(
-        painter: _GoogleIconPainter(),
-      ),
-    );
-  }
-
-  Widget _buildSlackIcon() {
-    return const Icon(
-      Icons.tag_rounded,
-      color: Color(0xFFE01E5A),
-      size: 18,
     );
   }
 }
@@ -569,21 +470,6 @@ class _SmileArcPainter extends CustomPainter {
 
     final rect = Rect.fromLTWH(0, -size.height, size.width, size.height * 2);
     canvas.drawArc(rect, 0.2, 2.7, false, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _GoogleIconPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..style = PaintingStyle.fill;
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-
-    paint.color = const Color(0xFF4285F4); // Blue
-    canvas.drawCircle(center, radius, paint);
   }
 
   @override

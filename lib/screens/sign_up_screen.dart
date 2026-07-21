@@ -99,14 +99,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  void _previousStep() {
-    if (_currentStep > 0) {
-      setState(() {
-        _currentStep--;
-      });
-    }
-  }
-
   int get _totalSteps => 4;
 
   double get _profileProgress {
@@ -148,21 +140,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (_currentStep > 0)
-                                  IconButton(
-                                    icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                                        color: AppTheme.titleDark, size: 18),
-                                    onPressed: _previousStep,
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                  ),
-                                if (_currentStep > 0) const SizedBox(width: 8),
-                                const BrandLogoWidget(height: 38),
-                              ],
-                            ),
+                            const BrandLogoWidget(height: 38),
 
                             // Step Indicator Pill
                             Container(
