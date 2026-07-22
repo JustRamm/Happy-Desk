@@ -18,11 +18,19 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   late int _currentIndex;
+  late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   final List<Widget> _screens = const [
@@ -35,29 +43,25 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF9F8),
-      body: Stack(
-        children: List.generate(_screens.length, (index) {
-          final isSelected = index == _currentIndex;
-          return AnimatedOpacity(
-            duration: const Duration(milliseconds: 320),
-            curve: Curves.easeInOutCubic,
-            opacity: isSelected ? 1.0 : 0.0,
-            child: IgnorePointer(
-              ignoring: !isSelected,
-              child: AnimatedScale(
-                duration: const Duration(milliseconds: 320),
-                curve: Curves.easeOutCubic,
-                scale: isSelected ? 1.0 : 0.97,
-                child: _screens[index],
-              ),
-            ),
-          );
-        }),
+      body: PageView(
+        controller: _pageController,
+        physics: const BouncingScrollPhysics(),
+        onPageChanged: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        children: _screens,
       ),
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: _currentIndex,
         onItemTapped: (index) {
           if (_currentIndex != index) {
+            _pageController.animateToPage(
+              index,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+            );
             setState(() {
               _currentIndex = index;
             });
