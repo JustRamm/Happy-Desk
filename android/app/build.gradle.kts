@@ -37,6 +37,20 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    applicationVariants.all {
+        outputs.all {
+            val apkOutput = this as? com.android.build.gradle.internal.api.ApkVariantOutputImpl
+            if (apkOutput != null) {
+                val abi = getFilter(com.android.build.OutputFile.ABI)
+                if (abi != null) {
+                    apkOutput.outputFileName = "U_and_ME_${abi}.apk"
+                } else {
+                    apkOutput.outputFileName = "U_and_ME.apk"
+                }
+            }
+        }
+    }
 }
 
 flutter {
