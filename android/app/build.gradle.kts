@@ -42,12 +42,11 @@ android {
         outputs.all {
             val apkOutput = this as? com.android.build.gradle.internal.api.ApkVariantOutputImpl
             if (apkOutput != null) {
-                val abi = getFilter(com.android.build.OutputFile.ABI)
-                if (abi != null) {
-                    apkOutput.outputFileName = "U_and_ME_${abi}.apk"
-                } else {
-                    apkOutput.outputFileName = "U_and_ME.apk"
-                }
+                val originalName = apkOutput.outputFileName
+                val newName = originalName
+                    .replace("app-", "U_and_ME_")
+                    .replace("-release.apk", ".apk")
+                apkOutput.outputFileName = newName
             }
         }
     }
