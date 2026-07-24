@@ -8,6 +8,7 @@ import '../widgets/jar_icon_widget.dart';
 import '../widgets/shredder_icon_widget.dart';
 import '../widgets/brand_logo_widget.dart';
 import '../widgets/dissolve_stress_modal.dart';
+import '../services/sound_service.dart';
 
 class JarScreen extends StatefulWidget {
   final bool showBackButton;
@@ -60,6 +61,7 @@ class _JarScreenState extends State<JarScreen> {
   ];
 
   void _unsealTodayNote() {
+    SoundService.playJarOpenSound();
     showDialog(
       context: context,
       barrierDismissible: true,

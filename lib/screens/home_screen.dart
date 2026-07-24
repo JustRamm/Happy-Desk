@@ -13,7 +13,10 @@ import '../widgets/desk_stretches_modal.dart';
 import '../widgets/daily_stress_buster_card.dart';
 import '../widgets/teammate_profile_modal.dart';
 import '../services/user_preferences_store.dart';
+import '../services/sound_service.dart';
 import 'stress_vent_sounding_board_screen.dart';
+import 'notifications_screen.dart';
+import '../widgets/multi_coffee_reset_modal.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -109,6 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _isClockedIn = !_isClockedIn;
       if (_isClockedIn) {
+        SoundService.playClockInSound();
         final now = DateTime.now();
         final hour = now.hour > 12
             ? now.hour - 12
@@ -129,6 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _lastClockInLocation = randomLoc;
         _isOnBreak = false;
       } else {
+        SoundService.playClockOutSound();
         _isOnBreak = false;
       }
     });
@@ -340,46 +345,51 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Brand Logo SVG
                   const BrandLogoWidget(height: 54),
 
-                  // Jar + Notification icons
+                  // Notification & Coffee icons
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Weekly Hero / Trophy Icon (Outlined when on Home Screen)
+                      // Notifications Bell Icon
                       IconButton(
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  const HeroScreen(showBackButton: true),
+                              builder: (context) => const NotificationsScreen(),
                             ),
                           );
                         },
-                        icon: const Icon(
-                          Icons.emoji_events_outlined,
-                          color: Color(0xFF8B2600),
-                          size: 28,
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFFFF0EB),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.notifications_rounded,
+                            color: Color(0xFFAB3500),
+                            size: 22,
+                          ),
                         ),
-                        tooltip: 'Weekly Hero',
+                        tooltip: 'Notifications',
                       ),
 
-                      // Jar Icon
+                      // Coffee Break Icon
                       IconButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const JarScreen(showBackButton: true),
-                            ),
-                          );
-                        },
-                        icon: const JarIconWidget(
-                          size: 28,
-                          mainColor: Color(0xFF8B2600),
-                          lidColor: Color(0xFFC84B1A),
+                        onPressed: () => MultiCoffeeResetModal.show(context),
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF3F2FF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.local_cafe_rounded,
+                            color: Color(0xFF95416C),
+                            size: 22,
+                          ),
                         ),
-                        tooltip: 'NGL Jar',
+                        tooltip: 'Coffee Break',
                       ),
                     ],
                   ),

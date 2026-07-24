@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/sound_service.dart';
 
 class BoxBreathingModal extends StatefulWidget {
   const BoxBreathingModal({super.key});
@@ -81,6 +82,11 @@ class _BoxBreathingModalState extends State<BoxBreathingModal>
     }
 
     if (newLabel != _phaseLabel && _secondsRemaining > 0) {
+      if (newLabel == 'Inhale') {
+        SoundService.playInhaleSound();
+      } else if (newLabel == 'Exhale') {
+        SoundService.playExhaleSound();
+      }
       setState(() {
         _phaseLabel = newLabel;
         _phaseSubtext = newSubtext;

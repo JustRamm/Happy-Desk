@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/sound_service.dart';
 
 class StressVentSoundingBoardScreen extends StatefulWidget {
   const StressVentSoundingBoardScreen({super.key});
@@ -62,6 +63,7 @@ class _StressVentSoundingBoardScreenState
       return;
     }
 
+    SoundService.playShredSound();
     _ventController.clear();
 
     ScaffoldMessenger.of(context).showSnackBar(
