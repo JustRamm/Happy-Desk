@@ -101,23 +101,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   int get _totalSteps => 4;
 
-  double get _profileProgress {
-    switch (_currentStep) {
-      case 0:
-        return 0.15;
-      case 1:
-        return 0.40;
-      case 2:
-        return 0.70;
-      case 3:
-        return 1.00;
-      default:
-        return 0.15;
-    }
-  }
-
-  int get _progressPercent => (_profileProgress * 100).toInt();
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
