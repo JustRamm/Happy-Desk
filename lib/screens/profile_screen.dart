@@ -22,39 +22,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
     'WFH Coffee Break',
   ];
 
-  final List<Map<String, dynamic>> _kudos = [
+  final List<Map<String, dynamic>> _projects = [
     {
-      'title': 'Supportive Teammate',
-      'category': 'Community Badge',
-      'count': 14,
-      'color': const Color(0xFF006C53),
-      'bgColor': const Color(0xFFEBF7F5),
-      'icon': Icons.favorite_rounded,
-    },
-    {
-      'title': 'Problem Solver',
-      'category': 'Peer Kudos',
-      'count': 9,
+      'title': 'Design System & UI Architecture',
+      'role': 'Lead Architect',
+      'progress': 0.85,
+      'status': 'In Active Sprints',
       'color': const Color(0xFFAB3500),
       'bgColor': const Color(0xFFFFF0EB),
-      'icon': Icons.lightbulb_rounded,
     },
     {
-      'title': 'Joy Booster',
-      'category': 'Weekly Hero Tag',
-      'count': 22,
+      'title': 'Q3 Employee Joy & Well-being Sync',
+      'role': 'Product Owner',
+      'progress': 0.60,
+      'status': 'Review Phase',
       'color': const Color(0xFF95416C),
       'bgColor': const Color(0xFFF3F2FF),
-      'icon': Icons.auto_awesome_rounded,
+    },
+    {
+      'title': 'Google Workspace Integration',
+      'role': 'Tech Contributor',
+      'progress': 0.40,
+      'status': 'Planning',
+      'color': const Color(0xFF047857),
+      'bgColor': const Color(0xFFE6F7F0),
     },
   ];
 
-  final List<String> _superpowers = [
-    '#ProblemSolver',
-    '#LifeSaver',
-    '#Supportive',
-    '#CreativeSpark',
-    '#ClutchPlayer',
+  final List<Map<String, dynamic>> _wellbeingMilestones = [
+    {
+      'title': 'Daily Stress-Buster Lessons',
+      'count': '18 Lessons Completed',
+      'subtitle': 'Mastering Workplace Mindfulness',
+      'icon': Icons.menu_book_rounded,
+      'color': const Color(0xFF7C3AED),
+      'bgColor': const Color(0xFFF0EBFE),
+    },
+    {
+      'title': '60s Box Breathing Sessions',
+      'count': '24 Sessions Logged',
+      'subtitle': 'Consistent Anxiety Relief Routine',
+      'icon': Icons.air_rounded,
+      'color': const Color(0xFF0284C7),
+      'bgColor': const Color(0xFFE0F2FE),
+    },
+    {
+      'title': 'Desk Stretch Micro-Habit',
+      'count': '12 Day Streak',
+      'subtitle': 'Postural Health & Energy Boost',
+      'icon': Icons.fitness_center_rounded,
+      'color': const Color(0xFFD97706),
+      'bgColor': const Color(0xFFFFF7ED),
+    },
   ];
 
   @override
@@ -301,95 +320,176 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
-              // Weekly Impact & Joy Dashboard Summary
+              // SECTION 1: Workplace Schedule & Shift Hours Card
               Text(
-                'Weekly Joy Impact',
+                'Workplace Schedule & Shift Overview',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 18,
+                  fontSize: 17,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF171B2B),
                 ),
               ),
               const SizedBox(height: 12),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatTile('14 Notes', 'NGL Received', Icons.all_inbox_rounded, const Color(0xFFFF652F), const Color(0xFFFFEBE6)),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatTile('9 Badges', 'Hero Awards', Icons.workspace_premium_rounded, const Color(0xFF10B981), const Color(0xFFE6F7F0)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatTile('12 Days', 'Joy Streak', Icons.local_fire_department_rounded, const Color(0xFF7C3AED), const Color(0xFFF0EBFE)),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatTile('38 Hours', 'Focus Clocked', Icons.timer_rounded, const Color(0xFFD97706), const Color(0xFFFFF7ED)),
-                  ),
-                ],
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: const Color(0xFFE4E7FE)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    _buildScheduleRow(
+                      icon: Icons.access_time_filled_rounded,
+                      iconColor: const Color(0xFFAB3500),
+                      bgColor: const Color(0xFFFFF0EB),
+                      title: 'Core Shift Hours',
+                      value: '9:00 AM - 5:30 PM (EST)',
+                    ),
+                    const Divider(height: 24, color: Color(0xFFF0EFF8)),
+                    _buildScheduleRow(
+                      icon: Icons.chat_bubble_rounded,
+                      iconColor: const Color(0xFF047857),
+                      bgColor: const Color(0xFFE6F7F0),
+                      title: 'Preferred Contact Window',
+                      value: '10:00 AM - 4:00 PM EST',
+                    ),
+                    const Divider(height: 24, color: Color(0xFFF0EFF8)),
+                    _buildScheduleRow(
+                      icon: Icons.event_available_rounded,
+                      iconColor: const Color(0xFF7C3AED),
+                      bgColor: const Color(0xFFF0EBFE),
+                      title: 'Upcoming Approved Leave',
+                      value: 'Aug 14 - Aug 18 (Summer Break)',
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 24),
 
-              // Superpowers & Peer Endorsements
+              // SECTION 2: Current Focus Projects & Key Objectives
               Text(
-                'Teammate Superpower Endorsements',
+                'Current Focus Projects & Objectives',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 18,
+                  fontSize: 17,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF171B2B),
                 ),
               ),
               const SizedBox(height: 12),
 
-              Wrap(
-                spacing: 8,
-                runSpacing: 10,
-                children: _superpowers.map((tag) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE6F7F0),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFA7F3D0)),
-                    ),
-                    child: Text(
-                      tag,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF047857),
+              ..._projects.map((project) {
+                final Color color = project['color'];
+                final Color bgColor = project['bgColor'];
+                final double progress = project['progress'];
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE4E7FE)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              project['title'],
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF171B2B),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: bgColor,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              project['status'],
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: color,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  );
-                }).toList(),
-              ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Role: ${project['role']}',
+                        style: GoogleFonts.beVietnamPro(
+                          fontSize: 12.5,
+                          color: const Color(0xFF594139),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: LinearProgressIndicator(
+                                value: progress,
+                                minHeight: 7,
+                                backgroundColor: const Color(0xFFF0EFF8),
+                                valueColor: AlwaysStoppedAnimation<Color>(color),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            '${(progress * 100).toInt()}%',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: color,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }),
 
               const SizedBox(height: 24),
 
-              // Peer Kudos & Appreciation Badges
+              // SECTION 3: Personal Micro-Learning & Wellbeing Milestones
               Text(
-                'Peer Appreciation Badges',
+                'Wellbeing & Learning Milestones',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 18,
+                  fontSize: 17,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF171B2B),
                 ),
               ),
               const SizedBox(height: 12),
 
-              ..._kudos.map((kudo) {
-                final Color color = kudo['color'];
-                final Color bgColor = kudo['bgColor'];
+              ..._wellbeingMilestones.map((item) {
+                final Color color = item['color'];
+                final Color bgColor = item['bgColor'];
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -407,7 +507,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: bgColor,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(kudo['icon'], color: color, size: 22),
+                        child: Icon(item['icon'], color: color, size: 22),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -415,15 +515,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              kudo['title'],
+                              item['title'],
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 15,
+                                fontSize: 14.5,
                                 fontWeight: FontWeight.w700,
                                 color: const Color(0xFF171B2B),
                               ),
                             ),
                             Text(
-                              kudo['category'],
+                              item['subtitle'],
                               style: GoogleFonts.beVietnamPro(
                                 fontSize: 12,
                                 color: const Color(0xFF594139),
@@ -433,15 +533,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
                           color: bgColor,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Text(
-                          '${kudo['count']} Nominations',
+                          item['count'],
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
+                            fontSize: 11.5,
                             fontWeight: FontWeight.w800,
                             color: color,
                           ),
@@ -460,49 +560,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatTile(String value, String label, IconData icon, Color color, Color bg) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE4E7FE)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: bg,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 18),
+  Widget _buildScheduleRow({
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
+    required String title,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: bgColor,
+            shape: BoxShape.circle,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF171B2B),
-                  ),
+          child: Icon(icon, color: iconColor, size: 18),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF594139),
                 ),
-                Text(
-                  label,
-                  style: GoogleFonts.beVietnamPro(
-                    fontSize: 11.5,
-                    color: const Color(0xFF594139),
-                  ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF171B2B),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
