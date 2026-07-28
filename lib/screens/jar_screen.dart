@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
-import 'hero_screen.dart';
 import 'compose_ngl_note_screen.dart';
 import 'ngl_note_detail_screen.dart';
 import '../widgets/jar_icon_widget.dart';
 import '../widgets/shredder_icon_widget.dart';
 import '../widgets/brand_logo_widget.dart';
 import '../widgets/dissolve_stress_modal.dart';
+import '../widgets/multi_coffee_reset_modal.dart';
+import 'notifications_screen.dart';
 import '../services/sound_service.dart';
 
 class JarScreen extends StatefulWidget {
@@ -121,69 +122,48 @@ class _JarScreenState extends State<JarScreen> {
                         )
                       : const BrandLogoWidget(height: 54),
 
-                  // Right Header Action Bar (Filled Active NGL Jar Icon + Weekly Hero Trophy)
+                  // Right Header Action Bar (Notification & Coffee icons matching Home & Messages)
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Active Color-Filled NGL Jar Pill Indicator
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFF0EB),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFFFD6C7)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFC84B1A)
-                                  .withValues(alpha: 0.12),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            const JarIconWidget(
-                              size: 20,
-                              mainColor: Color(0xFFC84B1A),
-                              lidColor: Color(0xFFC84B1A),
-                              liquidColor: Color(0xFFFF652F),
-                              isFilled: true, // Color filled to indicate ACTIVE Jar Screen!
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'NGL Jar',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFFC84B1A),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(width: 8),
-
-                      // Weekly Hero Trophy Icon Action Button
                       IconButton(
-                        tooltip: 'Weekly Hero',
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  const HeroScreen(showBackButton: true),
+                              builder: (context) => const NotificationsScreen(),
                             ),
                           );
                         },
-                        icon: const Icon(
-                          Icons.emoji_events_outlined,
-                          color: Color(0xFF8B2600),
-                          size: 28,
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFFFF0EB),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.notifications_rounded,
+                            color: Color(0xFFAB3500),
+                            size: 22,
+                          ),
                         ),
+                        tooltip: 'Notifications',
+                      ),
+                      IconButton(
+                        onPressed: () => MultiCoffeeResetModal.show(context),
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF3F2FF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.local_cafe_rounded,
+                            color: Color(0xFF95416C),
+                            size: 22,
+                          ),
+                        ),
+                        tooltip: 'Coffee Break',
                       ),
                     ],
                   ),

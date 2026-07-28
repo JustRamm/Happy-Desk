@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import 'forgot_password_screen.dart';
 import '../widgets/brand_logo_widget.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -107,8 +108,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         _buildInputLabel('Password'),
                         GestureDetector(
                           onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Password reset link sent!')),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ForgotPasswordScreen(),
+                              ),
                             );
                           },
                           child: Text(
