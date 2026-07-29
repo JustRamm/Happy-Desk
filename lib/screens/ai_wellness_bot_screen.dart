@@ -5,14 +5,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/user_preferences_store.dart';
 import '../widgets/brand_logo_widget.dart';
 import '../widgets/multi_coffee_reset_modal.dart';
 import '../widgets/box_breathing_modal.dart';
 import '../widgets/desk_stretches_modal.dart';
 import 'notifications_screen.dart';
-
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AiWellnessBotScreen extends StatefulWidget {
   const AiWellnessBotScreen({super.key});
@@ -37,16 +36,26 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       ['AQ.Ab8RN6JqYApi2S_', 'KG2DS0-cLBDdHMiSA9pct2qT66ykUGWJkVg'].join('');
 
   static const String _baseSystemInstruction = '''
-You are Mochi, a warm, highly empathetic, and comforting AI Workplace Stress Companion inside the "U & ME" app.
-Your target users are real in-office, corporate desk workers, on-site personnel, and shift workers dealing with heavy workload, office pressure, burnout, and emotional fatigue.
+You are Mochi, a warm, deeply caring, and authentic human-like Workplace Stress Companion inside the "U & ME" app.
+Your users are real in-office corporate desk workers, on-site personnel, and shift workers dealing with workload stress, fear of layoffs, manager tension, burnout, and emotional fatigue.
 
-STRICT CONVERSATIONAL PROTOCOL:
-1. LISTEN & UNDERSTAND FIRST: When a user shares a stress issue or feeling, start by validating their emotion with genuine warmth. Ask 1 gentle, caring follow-up question to understand how they are feeling or what triggered it.
-2. CONCISE & CALMING RESPONSES: Keep your responses short (2 to 4 sentences maximum). Never send long paragraphs, markdown code blocks, or giant bullet lists. Deliver what the user needs to hear to feel heard, safe, and calm right now.
-3. INTERACTIVE RESET RECOMMENDATIONS: If the user mentions physical tension, anxiety, heavy breathing, or feeling overwhelmed, suggest trying a 60s breathing reset or desk stretches.
-4. OFFICE BOUNDARY SCRIPTS: If the user asks for help drafting a message to a boss, manager, or teammate about workload/deadlines, provide a polite, professional, zero-conflict 2-sentence script they can copy.
-5. DOMAIN BOUNDARIES: You are strictly an emotional wellness and stress companion for office workers. IF the user asks coding questions (Python, Flutter, Dart, Java, etc.), technical bugs, math, or trivia, gently decline: "I am Mochi, your dedicated workplace emotional & stress companion. I don't write code or answer general trivia, but I'm here to support your peace of mind and well-being. How can I help you feel calmer right now?"
+HUMAN CONVERSATIONAL RULES:
+1. TALK LIKE A REAL HUMAN FRIEND: Speak with natural warmth, empathy, and genuine emotional intelligence. Never sound like a robotic AI or customer support bot.
+2. NO CANNED OR REPETITIVE OPENERS: NEVER start messages with repetitive template phrases like "I hear how overwhelming that must feel. Take a gentle breath." Vary your language naturally based on what the user actually said!
+3. RESPOND DIRECTLY TO SPECIFIC DETAILS: If the user says "I feel like I might be fired soon", speak directly to job insecurity, anxiety about the future, and offer real comfort. If they say "not having a job obv", acknowledge their frustration directly with warm, relatable empathy!
+4. SHORT & CALMING: Keep responses concise (2 to 4 sentences). Give the user what they need to feel supported, heard, and at ease without sending giant text walls.
+5. DOMAIN BOUNDARIES: You are strictly an emotional wellness and stress companion for office workers. IF the user asks coding questions (Python, Flutter, Dart, Java, etc.), technical bugs, math, or trivia, gently decline in a friendly way: "I'm Mochi, your workplace emotional & stress companion! I don't handle code or general trivia, but I'm right here if you need to talk through work stress or take a breath."
 ''';
+
+  final List<String> _fallbackResponses = [
+    "I'm really sorry you're going through this right now. Worrying about your job security is such a heavy weight to carry around all day at your desk.",
+    "That sounds genuinely tough. It's completely valid to feel stressed when things at work feel uncertain or out of your control.",
+    "Take a moment to exhale. Whatever happens, your worth isn't defined by office stress or job security. I'm right here with you.",
+    "I completely understand why that's getting to you. Office pressure can feel overwhelming when deadlines and expectations pile up.",
+    "Let me support you through this. Drop your shoulders down for a second. What feels like the biggest stressor right now?",
+  ];
+
+  int _fallbackIndex = 0;
 
   @override
   void initState() {
@@ -96,7 +105,7 @@ STRICT CONVERSATIONAL PROTOCOL:
       _messages.add(
         _ChatMessage(
           text:
-              "Hello, I'm Mochi — your personal workplace stress companion. I'm here to listen without judgment. What's weighing on your mind at work today?",
+              "Hey there! I'm Mochi — your workplace stress companion. I'm right here to listen without any judgment. What's been on your mind at work today?",
           isUser: false,
           time: _formatCurrentTime(),
         ),
@@ -154,7 +163,7 @@ STRICT CONVERSATIONAL PROTOCOL:
     _scrollToBottom();
     _saveMessages();
 
-    // Local Domain Guardrail Check for instant off-topic filter
+    // Local Domain Guardrail Check
     final lowerText = text.toLowerCase();
     final bool isOffTopic = lowerText.contains('code') ||
         lowerText.contains('python') ||
@@ -172,7 +181,7 @@ STRICT CONVERSATIONAL PROTOCOL:
         _messages.add(
           _ChatMessage(
             text:
-                "I am Mochi, your dedicated workplace emotional & stress companion. I don't write code or answer general trivia, but I'm here to support your peace of mind. How can I help you feel calmer right now?",
+                "I'm Mochi, your workplace stress companion! I don't handle code or general trivia, but I'm right here if you need to talk through work stress or take a breath.",
             isUser: false,
             time: _formatCurrentTime(),
           ),
@@ -183,7 +192,7 @@ STRICT CONVERSATIONAL PROTOCOL:
       return;
     }
 
-    // Detect feature triggers
+    // Detect feature triggers for action buttons
     final bool asksBoundary = lowerText.contains('boundary') ||
         lowerText.contains('script') ||
         lowerText.contains('manager') ||
@@ -231,13 +240,15 @@ STRICT CONVERSATIONAL PROTOCOL:
       _saveMessages();
     } catch (e) {
       if (!mounted) return;
-      // Fallback empathetic response if network fails
+      final fallbackText =
+          _fallbackResponses[_fallbackIndex % _fallbackResponses.length];
+      _fallbackIndex++;
+
       setState(() {
         _isTyping = false;
         _messages.add(
           _ChatMessage(
-            text:
-                "I hear you, and I can tell you're carrying a lot right now. Take a slow, deep exhale and drop your shoulders. What is the hardest part of what you're dealing with today?",
+            text: fallbackText,
             isUser: false,
             time: _formatCurrentTime(),
             actionType: determinedAction ?? (suggestsBreathing ? 'breathing' : null),
@@ -254,39 +265,53 @@ STRICT CONVERSATIONAL PROTOCOL:
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$_geminiApiKey',
     );
 
-    // Live Shift Context Injection
     final String liveShiftContext =
         "\nLIVE SHIFT CONTEXT: Clocked In = $_isClockedIn | On Break = $_isOnBreak | Shift Start = $_clockInTime.";
 
-    final List<Map<String, dynamic>> contents = [
-      {
+    final List<Map<String, dynamic>> contents = [];
+
+    // Clean multi-turn chat history ensuring user/model alternation
+    for (var msg in _messages.take(10)) {
+      final role = msg.isUser ? "user" : "model";
+      if (contents.isNotEmpty && contents.last["role"] == role) {
+        final existingText = (contents.last["parts"] as List)[0]["text"];
+        (contents.last["parts"] as List)[0]["text"] = "$existingText\n${msg.text}";
+      } else {
+        contents.add({
+          "role": role,
+          "parts": [
+            {"text": msg.text}
+          ]
+        });
+      }
+    }
+
+    if (contents.isEmpty || contents.last["role"] != "user") {
+      contents.add({
         "role": "user",
         "parts": [
-          {"text": "$_baseSystemInstruction$liveShiftContext"}
-        ]
-      },
-      {
-        "role": "model",
-        "parts": [
-          {"text": "Understood. I am Mochi, your warm and empathetic workplace stress companion. I am ready to listen."}
-        ]
-      }
-    ];
-
-    // Include recent message context
-    for (var msg in _messages.take(8)) {
-      contents.add({
-        "role": msg.isUser ? "user" : "model",
-        "parts": [
-          {"text": msg.text}
+          {"text": userPrompt}
         ]
       });
     }
 
+    final payload = {
+      "system_instruction": {
+        "parts": [
+          {"text": "$_baseSystemInstruction$liveShiftContext"}
+        ]
+      },
+      "contents": contents,
+      "generationConfig": {
+        "temperature": 0.7,
+        "maxOutputTokens": 250,
+      }
+    };
+
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({"contents": contents}),
+      body: jsonEncode(payload),
     );
 
     if (response.statusCode == 200) {
@@ -298,7 +323,11 @@ STRICT CONVERSATIONAL PROTOCOL:
       }
     }
 
-    return "I hear how overwhelming that must feel. Take a gentle breath. What feels like the heaviest part of this situation for you right now?";
+    // Return rotating dynamic fallback if response structure differs
+    final fallbackText =
+        _fallbackResponses[_fallbackIndex % _fallbackResponses.length];
+    _fallbackIndex++;
+    return fallbackText;
   }
 
   void _recordMoodSentiment(String label) async {
@@ -328,11 +357,11 @@ STRICT CONVERSATIONAL PROTOCOL:
           children: [
             // Top Header Bar (Matching Home Screen Header)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const BrandLogoWidget(height: 54),
+                  const BrandLogoWidget(height: 50),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -385,26 +414,26 @@ STRICT CONVERSATIONAL PROTOCOL:
 
             // AI Companion Status Banner with Redesigned Mochi Avatar
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: const Color(0xFFF3F2FF),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: const Color(0xFFE4E7FE)),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF95416C).withValues(alpha: 0.05),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+                    color: const Color(0xFF95416C).withValues(alpha: 0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
                   ),
                 ],
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
-                    padding: const EdgeInsets.all(3),
+                    width: 42,
+                    height: 42,
+                    padding: const EdgeInsets.all(2),
                     decoration: const BoxDecoration(
                       color: Color(0xFFFFF0EB),
                       shape: BoxShape.circle,
@@ -424,7 +453,7 @@ STRICT CONVERSATIONAL PROTOCOL:
                             Text(
                               'Mochi',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16,
+                                fontSize: 15.5,
                                 fontWeight: FontWeight.w800,
                                 color: const Color(0xFF171B2B),
                               ),
@@ -451,7 +480,7 @@ STRICT CONVERSATIONAL PROTOCOL:
                         Text(
                           'Workplace Stress & Emotional Wellness Companion',
                           style: GoogleFonts.beVietnamPro(
-                            fontSize: 11.5,
+                            fontSize: 11,
                             color: const Color(0xFF594139),
                           ),
                         ),
@@ -462,14 +491,14 @@ STRICT CONVERSATIONAL PROTOCOL:
               ),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
 
             // Main Conversational Chat ListView
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.only(left: 20, right: 20, top: 8, bottom: 16),
                 itemCount: _messages.length + (_isTyping ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (index < _messages.length) {
@@ -481,66 +510,71 @@ STRICT CONVERSATIONAL PROTOCOL:
               ),
             ),
 
-            // Quick Prompt Suggestion Pills
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Row(
-                children: [
-                  _buildSuggestionChip('📝 Draft Office Boundary Script'),
-                  const SizedBox(width: 8),
-                  _buildSuggestionChip('Heavy office workload today'),
-                  const SizedBox(width: 8),
-                  _buildSuggestionChip('Difficult meeting with manager'),
-                ],
+            // Quick Prompt Suggestion Pills Bar
+            Container(
+              color: const Color(0xFFFAF9F8),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                child: Row(
+                  children: [
+                    _buildSuggestionChip('📝 Draft Office Boundary Script'),
+                    const SizedBox(width: 8),
+                    _buildSuggestionChip('Heavy office workload today'),
+                    const SizedBox(width: 8),
+                    _buildSuggestionChip('Difficult meeting with manager'),
+                  ],
+                ),
               ),
             ),
 
-            // Bottom Conversational Input Bar
+            // Clean Floating Conversational Input Field (No awkward bottom white gap!)
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 80),
-              decoration: const BoxDecoration(
+              margin: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              decoration: BoxDecoration(
                 color: Colors.white,
-                border: Border(top: BorderSide(color: Color(0xFFEFEFF6))),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: const Color(0xFFE4E7FE), width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF95416C).withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
                   Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAF9F8),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: const Color(0xFFE4E7FE)),
+                    child: TextField(
+                      controller: _textController,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _handleSendMessage(),
+                      style: GoogleFonts.beVietnamPro(
+                        fontSize: 14,
+                        color: const Color(0xFF171B2B),
                       ),
-                      child: TextField(
-                        controller: _textController,
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: (_) => _handleSendMessage(),
-                        style: GoogleFonts.beVietnamPro(
-                          fontSize: 14,
-                          color: const Color(0xFF171B2B),
+                      decoration: InputDecoration(
+                        hintText: 'Talk to Mochi about your stress...',
+                        hintStyle: GoogleFonts.beVietnamPro(
+                          fontSize: 13.5,
+                          color: const Color(0xFF8D7168),
                         ),
-                        decoration: InputDecoration(
-                          hintText: 'Talk to Mochi about your stress...',
-                          hintStyle: GoogleFonts.beVietnamPro(
-                            fontSize: 13.5,
-                            color: const Color(0xFF8D7168),
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () => _handleSendMessage(),
                     child: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(10),
                       decoration: const BoxDecoration(
                         color: Color(0xFF95416C),
                         shape: BoxShape.circle,
@@ -606,7 +640,7 @@ STRICT CONVERSATIONAL PROTOCOL:
               ),
             ),
 
-            // Embedded Action Buttons (60s Breathing, Desk Stretches, Copy Script)
+            // Embedded Action Buttons
             if (!message.isUser && message.actionType != null) ...[
               const SizedBox(height: 12),
               if (message.actionType == 'breathing')
@@ -690,7 +724,7 @@ STRICT CONVERSATIONAL PROTOCOL:
                 ),
             ],
 
-            // Daily Mood Sentiment Check-in Row (Feature 4)
+            // Daily Mood Sentiment Check-in Row
             if (!message.isUser) ...[
               const SizedBox(height: 10),
               SingleChildScrollView(
