@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
 
 class CustomBottomNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -21,8 +22,8 @@ class CustomBottomNavBar extends StatelessWidget {
         label: 'Home',
       ),
       _NavBarItem(
-        icon: Icons.workspace_premium_outlined,
-        activeIcon: Icons.workspace_premium_rounded,
+        icon: Icons.auto_awesome_outlined,
+        activeIcon: Icons.auto_awesome_rounded,
         label: 'Kudos',
       ),
       _NavBarItem(
@@ -38,99 +39,115 @@ class CustomBottomNavBar extends StatelessWidget {
     ];
 
     return Container(
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: const Border(
-          top: BorderSide(color: Color(0xFFEFEFF6), width: 1.2),
-        ),
+        borderRadius: BorderRadius.circular(36),
+        border: Border.all(color: const Color(0xFFFAF0EB), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
+            blurRadius: 28,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: AppTheme.primaryRust.withValues(alpha: 0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: SafeArea(
-        top: false,
-        child: Container(
-          height: 64,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(items.length, (index) {
-              final isSelected = selectedIndex == index;
-              final item = items[index];
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: List.generate(items.length, (index) {
+          final isSelected = selectedIndex == index;
+          final item = items[index];
 
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    onItemTapped(index);
-                  },
-                  behavior: HitTestBehavior.opaque,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
-                    alignment: Alignment.center,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Active Pill Container
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeOutCubic,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? const Color(0xFFFFF0EB)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(20),
-                            border: isSelected
-                                ? Border.all(color: const Color(0xFFFFD6C7), width: 1)
-                                : null,
-                          ),
-                          child: AnimatedScale(
-                            scale: isSelected ? 1.14 : 1.0,
-                            duration: const Duration(milliseconds: 250),
-                            curve: Curves.easeOutBack,
-                            child: Icon(
-                              isSelected ? item.activeIcon : item.icon,
-                              size: 21,
-                              color: isSelected
-                                  ? const Color(0xFFAB3500)
-                                  : const Color(0xFF8D7168),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        // Label Text
-                        AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 200),
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            fontWeight:
-                                isSelected ? FontWeight.w800 : FontWeight.w600,
-                            color: isSelected
-                                ? const Color(0xFFAB3500)
-                                : const Color(0xFF8D7168),
-                            letterSpacing: 0.1,
-                          ),
-                          child: Text(item.label),
+          return GestureDetector(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onItemTapped(index);
+            },
+            behavior: HitTestBehavior.opaque,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Glow shadow under selected pill
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 250),
+                  opacity: isSelected ? 1.0 : 0.0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(26),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x59FF6B35),
+                          blurRadius: 12.0,
+                          offset: Offset(0, 4),
                         ),
                       ],
                     ),
+                    child: const SizedBox(height: 20, width: 50),
                   ),
                 ),
-              );
-            }),
-          ),
-        ),
+
+                // Main Button Pill
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOutCubic,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSelected ? 14 : 10,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: isSelected
+                        ? const LinearGradient(
+                            colors: [Color(0xFFFF6B35), Color(0xFFFF8552)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    color: isSelected ? null : Colors.transparent,
+                    borderRadius: BorderRadius.circular(26),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isSelected ? item.activeIcon : item.icon,
+                        key: ValueKey('${item.label}_$isSelected'),
+                        size: 20,
+                        color:
+                            isSelected ? Colors.white : AppTheme.textSecondary,
+                      ),
+                      if (isSelected) ...[
+                        const SizedBox(width: 5),
+                        Flexible(
+                          child: Text(
+                            item.label,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 0.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
       ),
     );
   }
