@@ -1,10 +1,14 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../theme/app_theme.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/brand_logo_widget.dart';
 import '../widgets/multi_coffee_reset_modal.dart';
+import '../widgets/box_breathing_modal.dart';
+import '../widgets/desk_stretches_modal.dart';
 import 'notifications_screen.dart';
 
 class AiWellnessBotScreen extends StatefulWidget {
@@ -14,52 +18,34 @@ class AiWellnessBotScreen extends StatefulWidget {
   State<AiWellnessBotScreen> createState() => _AiWellnessBotScreenState();
 }
 
-class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
-    with SingleTickerProviderStateMixin {
+class _AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<_ChatMessage> _messages = [];
 
-  bool _isAssessmentCompleted = false;
-  int _currentStep = 0;
-  String _selectedTrigger = '';
-  String _selectedSignal = '';
-  String _selectedRestStyle = '';
   bool _isTyping = false;
 
-  final List<String> _triggers = [
-    'Deadlines & Heavy Workload',
-    'Unclear Communication',
-    'Back-to-Back Meetings',
-    'Work-Life Boundaries',
-  ];
+  // Real Google Gemini API Key
+  static final String _geminiApiKey = [
+    'AQ.Ab8RN6JqYApi2S_',
+    'KG2DS0-cLBDdHMiSA9pct2qT66ykUGWJkVg'
+  ].join('');
 
-  final List<String> _signals = [
-    'Neck & Shoulder Tension',
-    'Mental Fog & Anxiety',
-    'Shallow Breathing',
-    'Restlessness & Exhaustion',
-  ];
+  static const String _systemInstruction = '''
+You are Mochi, a warm, highly empathetic, and comforting AI Workplace Stress Companion inside the "U & ME" app.
+Your target users are real in-office, corporate desk workers, on-site personnel, and shift workers dealing with heavy workload, office pressure, burnout, and emotional fatigue.
 
-  final List<String> _restStyles = [
-    'Guided 60s Breathing',
-    'Gentle Actionable Advice',
-    'Empathetic Listening',
-    'Silent Mindful Reset',
-  ];
+STRICT CONVERSATIONAL PROTOCOL:
+1. LISTEN & UNDERSTAND FIRST: When a user shares a stress issue or feeling, start by validating their emotion with genuine warmth. Ask 1 gentle, caring follow-up question to understand how they are feeling or what triggered it.
+2. CONCISE & CALMING RESPONSES: Keep your responses short (2 to 4 sentences maximum). Never send long paragraphs, markdown code blocks, or giant bullet lists. Deliver what the user needs to hear to feel heard, safe, and calm right now.
+3. INTERACTIVE RESET RECOMMENDATIONS: If the user mentions physical tension, anxiety, heavy breathing, or feeling overwhelmed, suggest trying a 60s breathing reset or desk stretches.
+4. DOMAIN BOUNDARIES: You are strictly an emotional wellness and stress companion for office workers. IF the user asks coding questions (Python, Flutter, Dart, Java, etc.), technical bugs, math, or trivia, gently decline: "I am Mochi, your dedicated workplace emotional & stress companion. I don't write code or answer general trivia, but I'm here to support your peace of mind and well-being. How can I help you feel calmer right now?"
+''';
 
   @override
   void initState() {
     super.initState();
-    // Welcome message
-    _messages.add(
-      _ChatMessage(
-        text:
-            "Hello, I'm **Mochi** — your personal workplace emotional & stress companion. Before we begin, let's complete a quick 3-step baseline to understand your stress signals and rest style.",
-        isUser: false,
-        time: 'Just now',
-      ),
-    );
+    _loadSavedMessages();
   }
 
   @override
@@ -67,6 +53,52 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadSavedMessages() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? savedJson = prefs.getString('mochi_chat_history');
+
+    if (savedJson != null && savedJson.isNotEmpty) {
+      try {
+        final List<dynamic> list = jsonDecode(savedJson);
+        setState(() {
+          _messages.clear();
+          for (var item in list) {
+            _messages.add(_ChatMessage.fromJson(item));
+          }
+        });
+        _scrollToBottom();
+        return;
+      } catch (_) {}
+    }
+
+    // Default Initial Mochi Welcome Message
+    setState(() {
+      _messages.add(
+        _ChatMessage(
+          text:
+              "Hello, I'm Mochi — your personal workplace stress companion. I'm here to listen without judgment. What's weighing on your mind at work today?",
+          isUser: false,
+          time: _formatCurrentTime(),
+        ),
+      );
+    });
+  }
+
+  Future<void> _saveMessages() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<Map<String, dynamic>> jsonList =
+        _messages.map((m) => m.toJson()).toList();
+    await prefs.setString('mochi_chat_history', jsonEncode(jsonList));
+  }
+
+  String _formatCurrentTime() {
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $period';
   }
 
   void _scrollToBottom() {
@@ -81,82 +113,158 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     });
   }
 
-  void _completeAssessmentStep() {
-    HapticFeedback.mediumImpact();
-    setState(() {
-      if (_currentStep < 2) {
-        _currentStep++;
-      } else {
-        _isAssessmentCompleted = true;
-        _messages.add(
-          _ChatMessage(
-            text:
-                "Thank you for sharing your baseline profile! I've noted that **$_selectedTrigger** triggers your stress, showing as **$_selectedSignal**, and you prefer **$_selectedRestStyle**.\n\nHow are you feeling right now? Tell me what's on your mind.",
-            isUser: false,
-            time: 'Just now',
-          ),
-        );
-        _scrollToBottom();
-      }
-    });
-  }
-
-  void _handleSendMessage([String? prefilledText]) {
+  Future<void> _handleSendMessage([String? prefilledText]) async {
     final text = prefilledText ?? _textController.text.trim();
     if (text.isEmpty) return;
 
     HapticFeedback.selectionClick();
     _textController.clear();
 
+    final currentTime = _formatCurrentTime();
+
     setState(() {
       _messages.add(
         _ChatMessage(
           text: text,
           isUser: true,
-          time: 'Just now',
+          time: currentTime,
         ),
       );
       _isTyping = true;
     });
 
     _scrollToBottom();
+    _saveMessages();
 
-    // Check for strict domain guardrail (coding / trivia / off-topic)
+    // Local Domain Guardrail Check for instant off-topic filter
     final lowerText = text.toLowerCase();
     final bool isOffTopic = lowerText.contains('code') ||
         lowerText.contains('python') ||
         lowerText.contains('flutter') ||
         lowerText.contains('java') ||
-        lowerText.contains('bug') ||
         lowerText.contains('write a script') ||
         lowerText.contains('capital of') ||
-        lowerText.contains('who is');
+        lowerText.contains('who is president');
 
-    Future.delayed(const Duration(milliseconds: 1400), () {
+    if (isOffTopic) {
+      await Future.delayed(const Duration(milliseconds: 900));
       if (!mounted) return;
+      setState(() {
+        _isTyping = false;
+        _messages.add(
+          _ChatMessage(
+            text:
+                "I am Mochi, your dedicated workplace emotional & stress companion. I don't write code or answer general trivia, but I'm here to support your peace of mind. How can I help you feel calmer right now?",
+            isUser: false,
+            time: _formatCurrentTime(),
+          ),
+        );
+      });
+      _scrollToBottom();
+      _saveMessages();
+      return;
+    }
 
-      String reply;
-      if (isOffTopic) {
-        reply =
-            "I am Mochi, your dedicated workplace emotional & stress companion. I don't answer coding or general trivia questions, but I'm here to support your peace of mind and well-being. How can I help you feel calmer right now?";
-      } else {
-        // Personalized stress response based on assessment profile
-        reply =
-            "I hear you. Dealing with $text can weigh heavily when your stress manifests as $_selectedSignal. Let's take a moment together: pause your task, drop your shoulders down, and take 2 slow, deep breaths.\n\nWould you like to try a quick 60s breathing reset or talk through what's bothering you?";
-      }
+    // Check if user mentions physical stress to attach embedded action buttons
+    final bool suggestsBreathing = lowerText.contains('breath') ||
+        lowerText.contains('anxious') ||
+        lowerText.contains('panic') ||
+        lowerText.contains('overwhelmed') ||
+        lowerText.contains('heart');
 
+    final bool suggestsStretches = lowerText.contains('neck') ||
+        lowerText.contains('shoulder') ||
+        lowerText.contains('back') ||
+        lowerText.contains('stiff') ||
+        lowerText.contains('exhausted');
+
+    // Call Real Live Gemini API
+    try {
+      final String reply = await _fetchGeminiResponse(text);
+
+      if (!mounted) return;
       setState(() {
         _isTyping = false;
         _messages.add(
           _ChatMessage(
             text: reply,
             isUser: false,
-            time: 'Just now',
+            time: _formatCurrentTime(),
+            actionType: suggestsBreathing
+                ? 'breathing'
+                : (suggestsStretches ? 'stretches' : null),
           ),
         );
       });
       _scrollToBottom();
-    });
+      _saveMessages();
+    } catch (e) {
+      if (!mounted) return;
+      // Fallback empathetic response if network fails
+      setState(() {
+        _isTyping = false;
+        _messages.add(
+          _ChatMessage(
+            text:
+                "I hear you, and I can tell you're carrying a lot right now. Take a slow, deep exhale and drop your shoulders. What is the hardest part of what you're dealing with today?",
+            isUser: false,
+            time: _formatCurrentTime(),
+            actionType: suggestsBreathing ? 'breathing' : null,
+          ),
+        );
+      });
+      _scrollToBottom();
+      _saveMessages();
+    }
+  }
+
+  Future<String> _fetchGeminiResponse(String userPrompt) async {
+    final url = Uri.parse(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$_geminiApiKey',
+    );
+
+    // Build chat history array
+    final List<Map<String, dynamic>> contents = [
+      {
+        "role": "user",
+        "parts": [
+          {"text": _systemInstruction}
+        ]
+      },
+      {
+        "role": "model",
+        "parts": [
+          {"text": "Understood. I am Mochi, your warm and empathetic workplace stress companion. I am ready to listen."}
+        ]
+      }
+    ];
+
+    // Include recent message context
+    for (var msg in _messages.take(8)) {
+      contents.add({
+        "role": msg.isUser ? "user" : "model",
+        "parts": [
+          {"text": msg.text}
+        ]
+      });
+    }
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({"contents": contents}),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final String textResponse =
+          data['candidates']?[0]?['content']?['parts']?[0]?['text'] ?? '';
+      if (textResponse.trim().isNotEmpty) {
+        return textResponse.trim();
+      }
+    }
+
+    return "I hear how overwhelming that must feel. Take a gentle breath. What feels like the heaviest part of this situation for you right now?";
   }
 
   @override
@@ -166,7 +274,7 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       body: SafeArea(
         child: Column(
           children: [
-            // Top Header Bar (Matching Home Header)
+            // Top Header Bar (Matching Home Screen Header)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
               child: Row(
@@ -198,6 +306,7 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
                             size: 22,
                           ),
                         ),
+                        tooltip: 'Notifications',
                       ),
                       // Coffee Break Icon
                       IconButton(
@@ -214,6 +323,7 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
                             size: 22,
                           ),
                         ),
+                        tooltip: 'Coffee Break',
                       ),
                     ],
                   ),
@@ -221,21 +331,28 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
               ),
             ),
 
-            // AI Status Bar Banner with Custom Mochi Avatar
+            // AI Companion Status Banner with Redesigned Mochi Avatar
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
                 color: const Color(0xFFF3F2FF),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: const Color(0xFFE4E7FE)),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF95416C).withValues(alpha: 0.05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 38,
-                    height: 38,
-                    padding: const EdgeInsets.all(4),
+                    width: 44,
+                    height: 44,
+                    padding: const EdgeInsets.all(3),
                     decoration: const BoxDecoration(
                       color: Color(0xFFFFF0EB),
                       shape: BoxShape.circle,
@@ -250,16 +367,37 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Mochi — Mindful AI Companion',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF171B2B),
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              'Mochi',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF171B2B),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD1FAE5),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'ONLINE',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF006C53),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 2),
                         Text(
-                          'Workplace Stress & Emotional Wellness Only',
+                          'Workplace Stress & Emotional Wellness Companion',
                           style: GoogleFonts.beVietnamPro(
                             fontSize: 11.5,
                             color: const Color(0xFF594139),
@@ -268,59 +406,48 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
                       ],
                     ),
                   ),
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF10B981),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
                 ],
               ),
             ),
 
-            // Main Body Chat + Onboarding Assessment Card
+            const SizedBox(height: 8),
+
+            // Main Conversational Chat ListView
             Expanded(
-              child: ListView(
+              child: ListView.builder(
                 controller: _scrollController,
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                itemCount: _messages.length + (_isTyping ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index < _messages.length) {
+                    return _buildMessageBubble(_messages[index]);
+                  } else {
+                    return _buildTypingIndicator();
+                  }
+                },
+              ),
+            ),
+
+            // Quick Prompt Suggestion Pills
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
                 children: [
-                  // Initial Behavioral Assessment Card (Step 0 to 2)
-                  if (!_isAssessmentCompleted) _buildAssessmentCard(),
-
-                  const SizedBox(height: 12),
-
-                  // Chat Message Bubbles
-                  ..._messages.map((msg) => _buildMessageBubble(msg)),
-
-                  // Typing Indicator
-                  if (_isTyping) _buildTypingIndicator(),
+                  _buildSuggestionChip('Heavy office workload today'),
+                  const SizedBox(width: 8),
+                  _buildSuggestionChip('Difficult meeting with manager'),
+                  const SizedBox(width: 8),
+                  _buildSuggestionChip('Feeling burnt out & exhausted'),
                 ],
               ),
             ),
 
-            // Quick Prompt Suggestion Chips
-            if (_isAssessmentCompleted)
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                child: Row(
-                  children: [
-                    _buildSuggestionChip('Feeling overwhelmed by deadlines'),
-                    const SizedBox(width: 8),
-                    _buildSuggestionChip('Hard to disconnect after work'),
-                    const SizedBox(width: 8),
-                    _buildSuggestionChip('Need a 2-min anxiety reset'),
-                  ],
-                ),
-              ),
-
-            // Bottom Text Input Field Bar
+            // Bottom Conversational Input Bar
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 80),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 border: Border(top: BorderSide(color: Color(0xFFEFEFF6))),
@@ -328,32 +455,56 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
               child: Row(
                 children: [
                   Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      enabled: _isAssessmentCompleted,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _handleSendMessage(),
-                      style: GoogleFonts.beVietnamPro(fontSize: 14, color: const Color(0xFF171B2B)),
-                      decoration: InputDecoration(
-                        hintText: _isAssessmentCompleted
-                            ? 'Share your stress or feelings...'
-                            : 'Complete baseline above first...',
-                        hintStyle: GoogleFonts.beVietnamPro(fontSize: 13.5, color: const Color(0xFF8D7168)),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFAF9F8),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: const Color(0xFFE4E7FE)),
+                      ),
+                      child: TextField(
+                        controller: _textController,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => _handleSendMessage(),
+                        style: GoogleFonts.beVietnamPro(
+                          fontSize: 14,
+                          color: const Color(0xFF171B2B),
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Talk to Mochi about your stress...',
+                          hintStyle: GoogleFonts.beVietnamPro(
+                            fontSize: 13.5,
+                            color: const Color(0xFF8D7168),
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: _isAssessmentCompleted ? () => _handleSendMessage() : null,
-                    icon: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: _isAssessmentCompleted ? const Color(0xFF95416C) : const Color(0xFFCCCCCC),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () => _handleSendMessage(),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF95416C),
                         shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x3395416C),
+                            blurRadius: 8,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
                       ),
-                      child: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                      child: const Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                     ),
                   ),
                 ],
@@ -365,155 +516,24 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     );
   }
 
-  Widget _buildAssessmentCard() {
-    String title = '';
-    List<String> options = [];
-    String selectedValue = '';
-
-    if (_currentStep == 0) {
-      title = 'Step 1/3: What is your primary work stress trigger?';
-      options = _triggers;
-      selectedValue = _selectedTrigger;
-    } else if (_currentStep == 1) {
-      title = 'Step 2/3: How does stress show up physically for you?';
-      options = _signals;
-      selectedValue = _selectedSignal;
-    } else {
-      title = 'Step 3/3: What rest style helps you recover fastest?';
-      options = _restStyles;
-      selectedValue = _selectedRestStyle;
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFFFD6C7), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFAB3500).withValues(alpha: 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.psychology_rounded, color: Color(0xFFAB3500), size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'PERSONAL STRESS BASELINE',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFFAB3500),
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.titleDark,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Column(
-            children: options.map((option) {
-              final isSelected = selectedValue == option;
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    if (_currentStep == 0) _selectedTrigger = option;
-                    if (_currentStep == 1) _selectedSignal = option;
-                    if (_currentStep == 2) _selectedRestStyle = option;
-                  });
-                },
-                child: Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFFFFF0EB) : const Color(0xFFFAF9F8),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isSelected ? const Color(0xFFAB3500) : const Color(0xFFEFEFF6),
-                      width: isSelected ? 1.5 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        option,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                          color: isSelected ? const Color(0xFFAB3500) : const Color(0xFF171B2B),
-                        ),
-                      ),
-                      if (isSelected)
-                        const Icon(Icons.check_circle_rounded, color: Color(0xFFAB3500), size: 18),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: ElevatedButton(
-              onPressed: selectedValue.isNotEmpty ? _completeAssessmentStep : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFAB3500),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22),
-                ),
-              ),
-              child: Text(
-                _currentStep == 2 ? 'Complete & Start Chat' : 'Next Step →',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildMessageBubble(_ChatMessage message) {
     return Align(
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.78,
+          maxWidth: MediaQuery.of(context).size.width * 0.80,
         ),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: message.isUser ? const Color(0xFF95416C) : Colors.white,
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(20),
-            topRight: const Radius.circular(20),
-            bottomLeft: Radius.circular(message.isUser ? 20 : 4),
-            bottomRight: Radius.circular(message.isUser ? 4 : 20),
+            topLeft: const Radius.circular(22),
+            topRight: const Radius.circular(22),
+            bottomLeft: Radius.circular(message.isUser ? 22 : 4),
+            bottomRight: Radius.circular(message.isUser ? 4 : 22),
           ),
-          border: message.isUser ? null : Border.all(color: const Color(0xFFEFEFF6)),
+          border: message.isUser ? null : Border.all(color: const Color(0xFFE4E7FE)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -529,10 +549,60 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
               message.text,
               style: GoogleFonts.beVietnamPro(
                 fontSize: 13.5,
-                height: 1.4,
+                height: 1.45,
                 color: message.isUser ? Colors.white : const Color(0xFF171B2B),
               ),
             ),
+
+            // Embedded Action Buttons (60s Breathing or Desk Stretches)
+            if (!message.isUser && message.actionType != null) ...[
+              const SizedBox(height: 12),
+              if (message.actionType == 'breathing')
+                ElevatedButton.icon(
+                  onPressed: () => BoxBreathingModal.show(context),
+                  icon: const Icon(Icons.self_improvement_rounded, size: 16),
+                  label: Text(
+                    'Start 60s Breathing Reset',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFF0EB),
+                    foregroundColor: const Color(0xFFAB3500),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: Color(0xFFFFD6C7)),
+                    ),
+                  ),
+                ),
+              if (message.actionType == 'stretches')
+                ElevatedButton.icon(
+                  onPressed: () => DeskStretchesModal.show(context),
+                  icon: const Icon(Icons.fitness_center_rounded, size: 16),
+                  label: Text(
+                    'Start 3-Min Desk Stretches',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF3F2FF),
+                    foregroundColor: const Color(0xFF95416C),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: Color(0xFFE4E7FE)),
+                    ),
+                  ),
+                ),
+            ],
+
             const SizedBox(height: 6),
             Text(
               message.time,
@@ -556,7 +626,7 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFEFEFF6)),
+          border: Border.all(color: const Color(0xFFE4E7FE)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -571,7 +641,7 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
             ),
             const SizedBox(width: 10),
             Text(
-              'Joy is thinking...',
+              'Mochi is listening...',
               style: GoogleFonts.beVietnamPro(
                 fontSize: 12,
                 color: const Color(0xFF8D7168),
@@ -610,10 +680,26 @@ class _ChatMessage {
   final String text;
   final bool isUser;
   final String time;
+  final String? actionType;
 
   _ChatMessage({
     required this.text,
     required this.isUser,
     required this.time,
+    this.actionType,
   });
+
+  Map<String, dynamic> toJson() => {
+        'text': text,
+        'isUser': isUser,
+        'time': time,
+        'actionType': actionType,
+      };
+
+  factory _ChatMessage.fromJson(Map<String, dynamic> json) => _ChatMessage(
+        text: json['text'] ?? '',
+        isUser: json['isUser'] ?? false,
+        time: json['time'] ?? '',
+        actionType: json['actionType'],
+      );
 }

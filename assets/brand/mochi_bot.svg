@@ -1,26 +1,56 @@
-<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Subtle Soft Glow Shadow -->
-  <ellipse cx="100" cy="165" rx="65" ry="14" fill="#AB3500" fill-opacity="0.12" />
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mochiBg" x1="0" y1="0" x2="240" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFF0EB" />
+      <stop offset="100%" stop-color="#FFE4DD" />
+    </linearGradient>
+    <linearGradient id="mochiBody" x1="50" y1="60" x2="190" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="85%" stop-color="#FFF3EF" />
+      <stop offset="100%" stop-color="#FFDBD0" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="120" y1="20" x2="120" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="mochiShadow" x="30" y="160" width="180" height="50" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="10" />
+    </filter>
+  </defs>
+
+  <!-- Outer Rounded Container Base -->
+  <rect width="240" height="240" rx="120" fill="url(#mochiBg)"/>
+
+  <!-- Soft Ambient Drop Shadow -->
+  <ellipse cx="120" cy="185" rx="60" ry="14" fill="#AB3500" fill-opacity="0.14" filter="url(#mochiShadow)" />
 
   <!-- Main Mochi Squishy Body -->
-  <path d="M45 125C38 90 60 45 100 45C140 45 162 90 155 125C150 150 130 162 100 162C70 162 50 150 45 125Z" fill="#FFF0EB" stroke="#AB3500" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M52 140C44 95 70 58 120 58C170 58 196 95 188 140C182 172 156 186 120 186C84 186 58 172 52 140Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- Rosy Cute Cheeks -->
-  <ellipse cx="68" cy="115" rx="10" ry="6" fill="#FF99C8" fill-opacity="0.75" />
-  <ellipse cx="132" cy="115" rx="10" ry="6" fill="#FF99C8" fill-opacity="0.75" />
+  <!-- Rosy Pastel Cheeks -->
+  <ellipse cx="80" cy="132" rx="12" ry="7" fill="#F472B6" fill-opacity="0.6" />
+  <ellipse cx="160" cy="132" rx="12" ry="7" fill="#F472B6" fill-opacity="0.6" />
 
-  <!-- Cute Happy Closed Eyes -->
-  <path d="M72 102C76 97 82 97 86 102" stroke="#7C3A68" stroke-width="3.5" stroke-linecap="round"/>
-  <path d="M114 102C118 97 124 97 128 102" stroke="#7C3A68" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- Sparkly Loving Eyes -->
+  <!-- Left Eye -->
+  <ellipse cx="88" cy="116" rx="9" ry="11" fill="#4C1D95" />
+  <circle cx="85" cy="112" r="3.5" fill="white" />
+  <circle cx="91" cy="120" r="1.8" fill="white" />
 
-  <!-- Cute Gentle Smile -->
-  <path d="M93 116C97 121 103 121 107 116" stroke="#7C3A68" stroke-width="3" stroke-linecap="round"/>
+  <!-- Right Eye -->
+  <ellipse cx="152" cy="116" rx="9" ry="11" fill="#4C1D95" />
+  <circle cx="149" cy="112" r="3.5" fill="white" />
+  <circle cx="155" cy="120" r="1.8" fill="white" />
 
-  <!-- Serene Sprout Leaf on Top of Head -->
-  <path d="M100 45C100 32 90 22 78 26C78 38 88 45 100 45Z" fill="#10B981" stroke="#006C53" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M100 45C100 32 110 22 122 26C122 38 112 45 100 45Z" fill="#34D399" stroke="#006C53" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M100 45V36" stroke="#006C53" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Adorable Sweet Smile -->
+  <path d="M112 130C116 136 124 136 128 130" stroke="#4C1D95" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- Sparkle of Joy -->
-  <path d="M148 40L150 46L156 48L150 50L148 56L146 50L140 48L146 46L148 40Z" fill="#FFB59D"/>
+  <!-- Serene Sprout Leaf -->
+  <path d="M120 58C120 40 106 26 90 32C90 48 104 58 120 58Z" fill="url(#leafGrad)" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 58C120 40 134 26 150 32C150 48 136 58 120 58Z" fill="#6EE7B7" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 58V45" stroke="#047857" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Floating Magic Sparkles -->
+  <path d="M185 45L187 52L194 54L187 56L185 63L183 56L176 54L183 52L185 45Z" fill="#F472B6"/>
+  <path d="M50 55L51 60L56 61L51 62L50 67L49 62L44 61L49 60L50 55Z" fill="#F59E0B"/>
 </svg>
