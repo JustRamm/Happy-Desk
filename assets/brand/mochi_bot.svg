@@ -1,0 +1,26 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Subtle Soft Glow Shadow -->
+  <ellipse cx="100" cy="165" rx="65" ry="14" fill="#AB3500" fill-opacity="0.12" />
+
+  <!-- Main Mochi Squishy Body -->
+  <path d="M45 125C38 90 60 45 100 45C140 45 162 90 155 125C150 150 130 162 100 162C70 162 50 150 45 125Z" fill="#FFF0EB" stroke="#AB3500" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Rosy Cute Cheeks -->
+  <ellipse cx="68" cy="115" rx="10" ry="6" fill="#FF99C8" fill-opacity="0.75" />
+  <ellipse cx="132" cy="115" rx="10" ry="6" fill="#FF99C8" fill-opacity="0.75" />
+
+  <!-- Cute Happy Closed Eyes -->
+  <path d="M72 102C76 97 82 97 86 102" stroke="#7C3A68" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M114 102C118 97 124 97 128 102" stroke="#7C3A68" stroke-width="3.5" stroke-linecap="round"/>
+
+  <!-- Cute Gentle Smile -->
+  <path d="M93 116C97 121 103 121 107 116" stroke="#7C3A68" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Serene Sprout Leaf on Top of Head -->
+  <path d="M100 45C100 32 90 22 78 26C78 38 88 45 100 45Z" fill="#10B981" stroke="#006C53" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M100 45C100 32 110 22 122 26C122 38 112 45 100 45Z" fill="#34D399" stroke="#006C53" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M100 45V36" stroke="#006C53" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Sparkle of Joy -->
+  <path d="M148 40L150 46L156 48L150 50L148 56L146 50L140 48L146 46L148 40Z" fill="#FFB59D"/>
+</svg>

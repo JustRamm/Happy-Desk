@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_logo_widget.dart';
 import '../widgets/multi_coffee_reset_modal.dart';
@@ -54,7 +55,7 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     _messages.add(
       _ChatMessage(
         text:
-            "Hello, I'm **Joy** — your personal workplace emotional & stress companion. Before we begin, let's complete a quick 3-step baseline to understand your stress signals and rest style.",
+            "Hello, I'm **Mochi** — your personal workplace emotional & stress companion. Before we begin, let's complete a quick 3-step baseline to understand your stress signals and rest style.",
         isUser: false,
         time: 'Just now',
       ),
@@ -137,7 +138,7 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       String reply;
       if (isOffTopic) {
         reply =
-            "I am your dedicated workplace emotional & stress companion. I don't answer coding or general trivia questions, but I'm here to support your peace of mind and well-being. How can I help you feel calmer right now?";
+            "I am Mochi, your dedicated workplace emotional & stress companion. I don't answer coding or general trivia questions, but I'm here to support your peace of mind and well-being. How can I help you feel calmer right now?";
       } else {
         // Personalized stress response based on assessment profile
         reply =
@@ -220,7 +221,7 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
               ),
             ),
 
-            // AI Status Bar Banner
+            // AI Status Bar Banner with Custom Mochi Avatar
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -232,15 +233,16 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    width: 38,
+                    height: 38,
+                    padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF95416C),
+                      color: Color(0xFFFFF0EB),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.self_improvement_rounded,
-                      color: Colors.white,
-                      size: 20,
+                    child: SvgPicture.asset(
+                      'assets/brand/mochi_bot.svg',
+                      fit: BoxFit.contain,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -249,7 +251,7 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Joy — Mindful AI Companion',
+                          'Mochi — Mindful AI Companion',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,

@@ -18,9 +18,6 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
 #.vscode/
 
 # Flutter/Dart/Pub related
@@ -44,7 +41,11 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# AI assistant context notes & design concepts (do not commit)
+# AI assistant context notes & documentation files (local only, do not commit)
 **/_ai_notes.md
 concept.md
-
+PRD.md
+Architecture.md
+Rules.md
+Phases.md
+Memory.md
