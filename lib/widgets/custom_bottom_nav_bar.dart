@@ -22,9 +22,9 @@ class CustomBottomNavBar extends StatelessWidget {
         label: 'Home',
       ),
       _NavBarItem(
-        icon: Icons.auto_awesome_outlined,
-        activeIcon: Icons.auto_awesome_rounded,
-        label: 'Kudos',
+        icon: Icons.self_improvement_outlined,
+        activeIcon: Icons.self_improvement_rounded,
+        label: 'Mind',
       ),
       _NavBarItem(
         icon: Icons.chat_bubble_outline_rounded,

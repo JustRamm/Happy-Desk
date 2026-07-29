@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
-import 'kudos_screen.dart';
+import 'ai_wellness_bot_screen.dart';
 import 'chat_notifications_screen.dart';
 import 'profile_screen.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
@@ -36,7 +36,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   final List<Widget> _screens = const [
     HomeScreen(),
-    KudosScreen(),
+    AiWellnessBotScreen(),
     ChatNotificationsScreen(),
     ProfileScreen(),
   ];
