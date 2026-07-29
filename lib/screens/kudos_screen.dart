@@ -354,7 +354,7 @@ class KudosScreen extends StatelessWidget {
               _buildKudosWallItem(
                 sender: 'Alex Miller',
                 receiver: 'Sarah Chen',
-                vibe: 'Design System Masterpiece! 🎨',
+                vibe: 'Design System Masterpiece!',
                 time: '2h ago',
                 color: const Color(0xFFFFF0EB),
                 borderColor: const Color(0xFFFFD6C7),
@@ -365,7 +365,7 @@ class KudosScreen extends StatelessWidget {
               _buildKudosWallItem(
                 sender: 'Anonymous Teammate',
                 receiver: 'David Kim',
-                vibe: 'Thanks for unblocking the backend API issue late last night! 🚀',
+                vibe: 'Thanks for unblocking the backend API issue late last night!',
                 time: 'Yesterday',
                 color: const Color(0xFFF3F2FF),
                 borderColor: const Color(0xFFE4E7FE),
