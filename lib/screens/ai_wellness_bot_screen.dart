@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/user_preferences_store.dart';
 import '../widgets/brand_logo_widget.dart';
 import '../widgets/multi_coffee_reset_modal.dart';
 import '../widgets/box_breathing_modal.dart';
@@ -24,6 +25,9 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
   final List<_ChatMessage> _messages = [];
 
   bool _isTyping = false;
+  bool _isClockedIn = false;
+  bool _isOnBreak = false;
+  String _clockInTime = 'None';
 
   // Real Google Gemini API Key
   static final String _geminiApiKey = [
@@ -31,7 +35,7 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     'KG2DS0-cLBDdHMiSA9pct2qT66ykUGWJkVg'
   ].join('');
 
-  static const String _systemInstruction = '''
+  static const String _baseSystemInstruction = '''
 You are Mochi, a warm, highly empathetic, and comforting AI Workplace Stress Companion inside the "U & ME" app.
 Your target users are real in-office, corporate desk workers, on-site personnel, and shift workers dealing with heavy workload, office pressure, burnout, and emotional fatigue.
 
@@ -39,12 +43,14 @@ STRICT CONVERSATIONAL PROTOCOL:
 1. LISTEN & UNDERSTAND FIRST: When a user shares a stress issue or feeling, start by validating their emotion with genuine warmth. Ask 1 gentle, caring follow-up question to understand how they are feeling or what triggered it.
 2. CONCISE & CALMING RESPONSES: Keep your responses short (2 to 4 sentences maximum). Never send long paragraphs, markdown code blocks, or giant bullet lists. Deliver what the user needs to hear to feel heard, safe, and calm right now.
 3. INTERACTIVE RESET RECOMMENDATIONS: If the user mentions physical tension, anxiety, heavy breathing, or feeling overwhelmed, suggest trying a 60s breathing reset or desk stretches.
-4. DOMAIN BOUNDARIES: You are strictly an emotional wellness and stress companion for office workers. IF the user asks coding questions (Python, Flutter, Dart, Java, etc.), technical bugs, math, or trivia, gently decline: "I am Mochi, your dedicated workplace emotional & stress companion. I don't write code or answer general trivia, but I'm here to support your peace of mind and well-being. How can I help you feel calmer right now?"
+4. OFFICE BOUNDARY SCRIPTS: If the user asks for help drafting a message to a boss, manager, or teammate about workload/deadlines, provide a polite, professional, zero-conflict 2-sentence script they can copy.
+5. DOMAIN BOUNDARIES: You are strictly an emotional wellness and stress companion for office workers. IF the user asks coding questions (Python, Flutter, Dart, Java, etc.), technical bugs, math, or trivia, gently decline: "I am Mochi, your dedicated workplace emotional & stress companion. I don't write code or answer general trivia, but I'm here to support your peace of mind and well-being. How can I help you feel calmer right now?"
 ''';
 
   @override
   void initState() {
     super.initState();
+    _loadShiftState();
     _loadSavedMessages();
   }
 
@@ -53,6 +59,17 @@ STRICT CONVERSATIONAL PROTOCOL:
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadShiftState() async {
+    final clockedIn = await UserPreferencesStore.isClockedIn();
+    final onBreak = await UserPreferencesStore.isOnBreak();
+    final lastTime = await UserPreferencesStore.getLastClockInTime();
+    setState(() {
+      _isClockedIn = clockedIn;
+      _isOnBreak = onBreak;
+      _clockInTime = lastTime ?? 'Not Shift Logged Today';
+    });
   }
 
   Future<void> _loadSavedMessages() async {
@@ -165,7 +182,13 @@ STRICT CONVERSATIONAL PROTOCOL:
       return;
     }
 
-    // Check if user mentions physical stress to attach embedded action buttons
+    // Detect feature triggers
+    final bool asksBoundary = lowerText.contains('boundary') ||
+        lowerText.contains('script') ||
+        lowerText.contains('manager') ||
+        lowerText.contains('boss') ||
+        lowerText.contains('say to my team');
+
     final bool suggestsBreathing = lowerText.contains('breath') ||
         lowerText.contains('anxious') ||
         lowerText.contains('panic') ||
@@ -177,6 +200,15 @@ STRICT CONVERSATIONAL PROTOCOL:
         lowerText.contains('back') ||
         lowerText.contains('stiff') ||
         lowerText.contains('exhausted');
+
+    String? determinedAction;
+    if (asksBoundary) {
+      determinedAction = 'boundary';
+    } else if (suggestsBreathing) {
+      determinedAction = 'breathing';
+    } else if (suggestsStretches) {
+      determinedAction = 'stretches';
+    }
 
     // Call Real Live Gemini API
     try {
@@ -190,9 +222,7 @@ STRICT CONVERSATIONAL PROTOCOL:
             text: reply,
             isUser: false,
             time: _formatCurrentTime(),
-            actionType: suggestsBreathing
-                ? 'breathing'
-                : (suggestsStretches ? 'stretches' : null),
+            actionType: determinedAction,
           ),
         );
       });
@@ -209,7 +239,7 @@ STRICT CONVERSATIONAL PROTOCOL:
                 "I hear you, and I can tell you're carrying a lot right now. Take a slow, deep exhale and drop your shoulders. What is the hardest part of what you're dealing with today?",
             isUser: false,
             time: _formatCurrentTime(),
-            actionType: suggestsBreathing ? 'breathing' : null,
+            actionType: determinedAction ?? (suggestsBreathing ? 'breathing' : null),
           ),
         );
       });
@@ -223,12 +253,15 @@ STRICT CONVERSATIONAL PROTOCOL:
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$_geminiApiKey',
     );
 
-    // Build chat history array
+    // Live Shift Context Injection
+    final String liveShiftContext =
+        "\nLIVE SHIFT CONTEXT: Clocked In = $_isClockedIn | On Break = $_isOnBreak | Shift Start = $_clockInTime.";
+
     final List<Map<String, dynamic>> contents = [
       {
         "role": "user",
         "parts": [
-          {"text": _systemInstruction}
+          {"text": "$_baseSystemInstruction$liveShiftContext"}
         ]
       },
       {
@@ -265,6 +298,24 @@ STRICT CONVERSATIONAL PROTOCOL:
     }
 
     return "I hear how overwhelming that must feel. Take a gentle breath. What feels like the heaviest part of this situation for you right now?";
+  }
+
+  void _recordMoodSentiment(String label) async {
+    HapticFeedback.mediumImpact();
+    await UserPreferencesStore.incrementMochiCheckIns();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Logged mood "$label" to your profile statistics!',
+          style: GoogleFonts.beVietnamPro(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: const Color(0xFF95416C),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
   }
 
   @override
@@ -385,7 +436,7 @@ STRICT CONVERSATIONAL PROTOCOL:
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                'ONLINE',
+                                _isClockedIn ? 'OFFICE SHIFT ACTIVE' : 'ONLINE',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w800,
@@ -436,11 +487,11 @@ STRICT CONVERSATIONAL PROTOCOL:
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
                 children: [
+                  _buildSuggestionChip('📝 Draft Office Boundary Script'),
+                  const SizedBox(width: 8),
                   _buildSuggestionChip('Heavy office workload today'),
                   const SizedBox(width: 8),
                   _buildSuggestionChip('Difficult meeting with manager'),
-                  const SizedBox(width: 8),
-                  _buildSuggestionChip('Feeling burnt out & exhausted'),
                 ],
               ),
             ),
@@ -522,7 +573,7 @@ STRICT CONVERSATIONAL PROTOCOL:
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.80,
+          maxWidth: MediaQuery.of(context).size.width * 0.82,
         ),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -554,7 +605,7 @@ STRICT CONVERSATIONAL PROTOCOL:
               ),
             ),
 
-            // Embedded Action Buttons (60s Breathing or Desk Stretches)
+            // Embedded Action Buttons (60s Breathing, Desk Stretches, Copy Script)
             if (!message.isUser && message.actionType != null) ...[
               const SizedBox(height: 12),
               if (message.actionType == 'breathing')
@@ -601,6 +652,58 @@ STRICT CONVERSATIONAL PROTOCOL:
                     ),
                   ),
                 ),
+              if (message.actionType == 'boundary')
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: message.text));
+                    HapticFeedback.selectionClick();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Boundary script copied to clipboard!',
+                          style: GoogleFonts.beVietnamPro(fontSize: 13),
+                        ),
+                        backgroundColor: const Color(0xFFAB3500),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.copy_rounded, size: 16),
+                  label: Text(
+                    'Copy Script to Clipboard',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE6F7F0),
+                    foregroundColor: const Color(0xFF047857),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: Color(0xFFA7F3D0)),
+                    ),
+                  ),
+                ),
+            ],
+
+            // Daily Mood Sentiment Check-in Row (Feature 4)
+            if (!message.isUser) ...[
+              const SizedBox(height: 10),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildMoodPill('🌿 Feel Calmer'),
+                    const SizedBox(width: 6),
+                    _buildMoodPill('💬 Feel Heard'),
+                    const SizedBox(width: 6),
+                    _buildMoodPill('☀️ Feel Relieved'),
+                  ],
+                ),
+              ),
             ],
 
             const SizedBox(height: 6),
@@ -612,6 +715,28 @@ STRICT CONVERSATIONAL PROTOCOL:
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMoodPill(String label) {
+    return GestureDetector(
+      onTap: () => _recordMoodSentiment(label),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAF9F8),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE4E7FE)),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF594139),
+          ),
         ),
       ),
     );

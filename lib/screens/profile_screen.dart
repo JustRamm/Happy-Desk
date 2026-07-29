@@ -51,6 +51,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   final List<Map<String, dynamic>> _wellbeingMilestones = [
     {
+      'title': 'Mochi AI Mindful Check-ins',
+      'count': '14 Stress Chats Completed',
+      'subtitle': 'Personalized Emotional Support Routine',
+      'icon': Icons.self_improvement_rounded,
+      'color': const Color(0xFF95416C),
+      'bgColor': const Color(0xFFF3F2FF),
+    },
+    {
       'title': 'Daily Stress-Buster Lessons',
       'count': '18 Lessons Completed',
       'subtitle': 'Mastering Workplace Mindfulness',

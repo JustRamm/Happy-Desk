@@ -164,4 +164,18 @@ class UserPreferencesStore {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyHeroNominations, value);
   }
+
+  // Mochi Mindful Check-ins & Streak
+  static const String _keyMochiCheckIns = 'mochi_checkins_count';
+
+  static Future<int> getMochiCheckIns() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_keyMochiCheckIns) ?? 3;
+  }
+
+  static Future<void> incrementMochiCheckIns() async {
+    final prefs = await SharedPreferences.getInstance();
+    final count = prefs.getInt(_keyMochiCheckIns) ?? 3;
+    await prefs.setInt(_keyMochiCheckIns, count + 1);
+  }
 }
