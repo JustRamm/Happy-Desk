@@ -160,51 +160,120 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               padding: const EdgeInsets.only(top: 10.0),
                               child: Row(
                                 children: [
-                                  ElevatedButton.icon(
-                                    onPressed: item.isAccepted
-                                        ? null
-                                        : () {
-                                            CoffeeNotificationStore.acceptInvite(
-                                                item.id);
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  'Accepted! Coffee break scheduled with ${item.senderName}.',
-                                                  style:
-                                                      GoogleFonts.beVietnamPro(),
-                                                ),
-                                                backgroundColor:
-                                                    const Color(0xFFFF6B35),
-                                              ),
-                                            );
-                                          },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFFF6B35),
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(
+                                  if (item.isAccepted)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE6F7F0),
                                         borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: const Color(0xFFA7F3D0)),
                                       ),
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 14, vertical: 6),
-                                    ),
-                                    icon: Icon(
-                                      item.isAccepted
-                                          ? Icons.check_circle_rounded
-                                          : Icons.local_cafe_rounded,
-                                      size: 16,
-                                    ),
-                                    label: Text(
-                                      item.isAccepted
-                                          ? 'Accepted'
-                                          : 'Join Break',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.check_circle_rounded, color: Color(0xFF047857), size: 16),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            'Accepted',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                              color: const Color(0xFF047857),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  else if (item.isRejected)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFF0EB),
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: const Color(0xFFFFC4B0)),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.cancel_rounded, color: Color(0xFFC84B1A), size: 16),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            'Declined',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                              color: const Color(0xFFC84B1A),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  else ...[
+                                    ElevatedButton.icon(
+                                      onPressed: () {
+                                        CoffeeNotificationStore.acceptInvite(item.id);
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Accepted! Coffee break scheduled with ${item.senderName}.',
+                                              style: GoogleFonts.beVietnamPro(),
+                                            ),
+                                            backgroundColor: const Color(0xFF047857),
+                                          ),
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFFF6B35),
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 14, vertical: 6),
+                                      ),
+                                      icon: const Icon(Icons.local_cafe_rounded, size: 16),
+                                      label: Text(
+                                        'Join Break',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
                                       ),
                                     ),
-                                  ),
+                                    const SizedBox(width: 10),
+                                    OutlinedButton.icon(
+                                      onPressed: () {
+                                        CoffeeNotificationStore.rejectInvite(item.id);
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Declined coffee break invitation from ${item.senderName}.',
+                                              style: GoogleFonts.beVietnamPro(),
+                                            ),
+                                            backgroundColor: const Color(0xFFC84B1A),
+                                          ),
+                                        );
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 6),
+                                        side: const BorderSide(color: Color(0xFFC84B1A)),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                      ),
+                                      icon: const Icon(Icons.close_rounded, size: 16, color: Color(0xFFC84B1A)),
+                                      label: Text(
+                                        'Decline',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: const Color(0xFFC84B1A),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),

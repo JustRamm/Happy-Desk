@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 import '../services/user_preferences_store.dart';
 
@@ -20,11 +22,163 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _phoneController;
 
   int _selectedAvatarIndex = 0;
+  File? _customImageFile;
+  final ImagePicker _picker = ImagePicker();
 
   final List<String> _avatarOptions = [
     'assets/brand/app_icon.png',
     'assets/brand/1.png',
   ];
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      if (pickedFile != null) {
+        setState(() {
+          _customImageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Could not open image picker. You can select a preset avatar.',
+              style: GoogleFonts.beVietnamPro(fontSize: 13),
+            ),
+            backgroundColor: const Color(0xFFC84B1A),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showAvatarPickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Change Profile Photo',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.titleDark,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded, color: Color(0xFF8D7168)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFF0EB),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.photo_library_rounded, color: Color(0xFFAB3500)),
+                ),
+                title: Text(
+                  'Choose from Gallery',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF171B2B),
+                  ),
+                ),
+                subtitle: Text(
+                  'Upload a custom photo from your device',
+                  style: GoogleFonts.beVietnamPro(fontSize: 12, color: const Color(0xFF594139)),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              const Divider(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE6F7F0),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.camera_alt_rounded, color: Color(0xFF047857)),
+                ),
+                title: Text(
+                  'Take a Photo',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF171B2B),
+                  ),
+                ),
+                subtitle: Text(
+                  'Use camera to capture a new avatar',
+                  style: GoogleFonts.beVietnamPro(fontSize: 12, color: const Color(0xFF594139)),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              const Divider(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF3F2FF),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.face_rounded, color: Color(0xFF95416C)),
+                ),
+                title: Text(
+                  'Cycle Preset Brand Avatar',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF171B2B),
+                  ),
+                ),
+                subtitle: Text(
+                  'Switch between built-in U & ME avatars',
+                  style: GoogleFonts.beVietnamPro(fontSize: 12, color: const Color(0xFF594139)),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  setState(() {
+                    _customImageFile = null;
+                    _selectedAvatarIndex = (_selectedAvatarIndex + 1) % _avatarOptions.length;
+                  });
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   final List<String> _statusVibes = [
     'In Deep Focus',
@@ -126,11 +280,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               children: [
                 // Avatar Picker Section
                 GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedAvatarIndex = (_selectedAvatarIndex + 1) % _avatarOptions.length;
-                    });
-                  },
+                  onTap: _showAvatarPickerOptions,
                   child: Column(
                     children: [
                       Stack(
@@ -152,10 +302,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ],
                             ),
                             child: ClipOval(
-                              child: Image.asset(
-                                _avatarOptions[_selectedAvatarIndex],
-                                fit: BoxFit.cover,
-                              ),
+                              child: _customImageFile != null
+                                  ? Image.file(
+                                      _customImageFile!,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Image.asset(
+                                      _avatarOptions[_selectedAvatarIndex],
+                                      fit: BoxFit.cover,
+                                    ),
                             ),
                           ),
                           Container(

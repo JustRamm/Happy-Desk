@@ -38,6 +38,7 @@ dependencies:
   flutter_svg: ^2.0.17
   shared_preferences: ^2.5.2
   audioplayers: ^6.1.1
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:

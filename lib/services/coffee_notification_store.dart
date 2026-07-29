@@ -9,6 +9,7 @@ class CoffeeNotificationItem {
   final String senderAvatar;
   final bool isGroup;
   bool isAccepted;
+  bool isRejected;
 
   CoffeeNotificationItem({
     required this.id,
@@ -19,6 +20,7 @@ class CoffeeNotificationItem {
     required this.senderAvatar,
     this.isGroup = false,
     this.isAccepted = false,
+    this.isRejected = false,
   });
 }
 
@@ -72,6 +74,17 @@ class CoffeeNotificationStore {
     final index = currentList.indexWhere((item) => item.id == id);
     if (index != -1) {
       currentList[index].isAccepted = true;
+      currentList[index].isRejected = false;
+      notificationsNotifier.value = currentList;
+    }
+  }
+
+  static void rejectInvite(String id) {
+    final currentList = List<CoffeeNotificationItem>.from(notificationsNotifier.value);
+    final index = currentList.indexWhere((item) => item.id == id);
+    if (index != -1) {
+      currentList[index].isRejected = true;
+      currentList[index].isAccepted = false;
       notificationsNotifier.value = currentList;
     }
   }
