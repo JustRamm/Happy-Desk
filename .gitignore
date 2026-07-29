@@ -41,6 +41,10 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Environment variables & API keys (SECURITY — NEVER COMMIT TO GIT)
+.env
+*.env
+
 # AI assistant context notes & documentation files (local only, do not commit)
 **/_ai_notes.md
 concept.md

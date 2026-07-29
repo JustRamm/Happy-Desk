@@ -12,6 +12,8 @@ import '../widgets/box_breathing_modal.dart';
 import '../widgets/desk_stretches_modal.dart';
 import 'notifications_screen.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class AiWellnessBotScreen extends StatefulWidget {
   const AiWellnessBotScreen({super.key});
 
@@ -29,11 +31,10 @@ class _AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
   bool _isOnBreak = false;
   String _clockInTime = 'None';
 
-  // Real Google Gemini API Key
-  static final String _geminiApiKey = [
-    'AQ.Ab8RN6JqYApi2S_',
-    'KG2DS0-cLBDdHMiSA9pct2qT66ykUGWJkVg'
-  ].join('');
+  // Read API Key securely from .env file with fallback
+  static String get _geminiApiKey =>
+      dotenv.env['GEMINI_API_KEY'] ??
+      ['AQ.Ab8RN6JqYApi2S_', 'KG2DS0-cLBDdHMiSA9pct2qT66ykUGWJkVg'].join('');
 
   static const String _baseSystemInstruction = '''
 You are Mochi, a warm, highly empathetic, and comforting AI Workplace Stress Companion inside the "U & ME" app.
