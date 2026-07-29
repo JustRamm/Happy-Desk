@@ -126,24 +126,43 @@ The visual style is a mix of **Modern Minimalist structure** and **Tactile/Vibra
 
 ---
 
+## Navigation Architecture & Bottom Bar
+
+1. **Bottom Navigation Bar (`CustomBottomNavBar`):**
+   - **Style:** Modern floating pill navigation bar with active gradient pills (`[#FF6B35, #FF8552]`) and vibrant soft shadow glow.
+   - **4 Core Tabs:**
+     - **Tab 0 — Home (`HomeScreen`):** `Icons.home_outlined` / `Icons.home_rounded`
+     - **Tab 1 — Kudos (`KudosScreen`):** `Icons.auto_awesome_outlined` / `Icons.auto_awesome_rounded`
+     - **Tab 2 — Messages (`ChatNotificationsScreen`):** `Icons.chat_bubble_outline_rounded` / `Icons.chat_bubble_rounded`
+     - **Tab 3 — Profile (`ProfileScreen`):** `Icons.person_outline_rounded` / `Icons.person_rounded`
+
+---
+
 ## Screen Architecture & Layout Rules
 
 1. **Home Screen (`HomeScreen`):**
-   - **Top Header Bar:** Brand logo on left + **Chat Icon** (`Icons.forum_rounded`) on right.
+   - **Top Header Bar:** Brand logo on left + **Notifications Bell Icon** (`Icons.notifications_rounded`) and **Coffee Break Icon** (`Icons.local_cafe_rounded`) on right.
    - **Greeting Headline:** "Let's spread some joy today."
    - **First Card Position:** **Clock-In / Work Session Card** is ALWAYS first.
    - **De-Stress Quick Actions:** 60s Breathing & Desk Stretches.
-   - **Educational Cards:** Daily Stress-Buster Skill Card, Daily Joy Quest Card, NGL Jar & Weekly Hero cards.
+   - **Educational Cards:** Daily Stress-Buster Skill Card, Daily Joy Quest Card, NGL Jar Card (Soft Lavender `#EEF0FF`), & Weekly Hero Card.
 
-2. **NGL Jar Screen (`JarScreen`):**
+2. **Kudos & Recognition Hub (`KudosScreen`):**
+   - **Top Header Bar:** Brand logo on left + Notifications Bell Icon & Coffee Break Icon on right (matching Home Screen).
+   - **Header Title:** "Kudos & Teammate Recognition"
+   - **Hero Cards:** NGL Appreciation Jar Card (Soft Lavender `#EEF0FF`) & Weekly Hero Nominations Card (Soft Emerald `#D1FAE5`).
+
+3. **NGL Jar Screen (`JarScreen`):**
    - Contains the **Paper Shredder Stress Vent** widget with custom SVG vector shredder, text-to-paper-strips shredding animation, and sound effect.
 
-3. **Unified Chat Screen (`ChatNotificationsScreen`):**
-   - Opened via the top right Chat icon (`Icons.forum_rounded`).
-   - Title: **"Chat"** (no logo, no tab toggle).
-   - **Top-Right Action:** Coffee Icon (`Icons.local_cafe_rounded`) opens `MultiCoffeeResetModal` for multi-selecting teammates for group break invites.
-   - **Single Unified Stream:** Direct Messages section + Recent Workplace Alerts.
+4. **Messages Hub (`ChatNotificationsScreen`):**
+   - Dedicated messaging tab for direct & group teammate conversations.
+   - **Top-Right Header Action:** New Chat & Search selector to initiate 1-on-1 colleague conversations.
 
-4. **1-on-1 Direct Chat Screen (`DirectChatScreen`):**
+5. **Standalone Notifications Screen (`NotificationsScreen`):**
+   - Accessed via top-right Notifications Bell icon on Home & Kudos screens.
+   - Displays coffee break invites with working **Join Break** & **Decline** action buttons.
+
+6. **1-on-1 Direct Chat Screen (`DirectChatScreen`):**
    - Dedicated 1-on-1 direct messaging interface for each colleague.
    - **Top-Right Action:** Coffee Icon (`Icons.local_cafe_rounded`) immediately sends an individual 5-minute coffee break invite to that colleague.
