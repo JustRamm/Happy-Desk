@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/coffee_notification_store.dart';
+import '../widgets/multi_coffee_reset_modal.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -12,6 +13,12 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   String _selectedFilter = 'All';
+
+  @override
+  void initState() {
+    super.initState();
+    CoffeeNotificationStore.markAllAsRead();
+  }
 
   final List<String> _filters = const [
     'All',
@@ -34,26 +41,47 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             children: [
               // Top Header Row
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: AppTheme.titleDark,
-                      size: 20,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: AppTheme.titleDark,
+                          size: 20,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Team Notifications',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.titleDark,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Team Notifications',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.titleDark,
-                      letterSpacing: -0.4,
+                  IconButton(
+                    onPressed: () => MultiCoffeeResetModal.show(context),
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF3F2FF),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.local_cafe_rounded,
+                        color: Color(0xFF95416C),
+                        size: 20,
+                      ),
                     ),
+                    tooltip: 'Coffee Break Reset',
                   ),
                 ],
               ),

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'services/mochi_prompt_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/onboarding_wrapper_screen.dart';
 
@@ -10,6 +11,8 @@ void main() async {
   try {
     await dotenv.load(fileName: ".env");
   } catch (_) {}
+
+  await MochiPromptService.instance.ensureLoaded();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

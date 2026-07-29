@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'mochi_prompt_service.dart';
 
 class UserPreferencesStore {
   static const String _keyIsClockedIn = 'is_clocked_in';
@@ -10,15 +14,25 @@ class UserPreferencesStore {
   static const String _keyUserTeam = 'user_team';
   static const String _keyUserBio = 'user_bio';
   static const String _keyUserCompany = 'user_company';
+  static const String _keyUserStrengths = 'user_strengths';
+  static const String _keyUserFocusArea = 'user_focus_area';
+  static const String _keyUserCurrentChallenges = 'user_current_challenges';
+  static const String _keyUserCommunicationPreference = 'user_communication_preference';
   static const String _keyMasterNotifications = 'master_notifications';
   static const String _keyNglJarAlerts = 'ngl_jar_alerts';
   static const String _keyCoffeeInvites = 'coffee_invites';
   static const String _keyHeroNominations = 'hero_nominations';
+  static const String _keyMochiContextSummary = 'mochi_context_summary';
+  static const String _keyMochiFeedbackHistory = 'mochi_feedback_history';
 
   // In-memory sync fallback cache
   static String _nameCache = 'Rownok Ahmed';
   static String _roleCache = 'Senior Product Architect';
   static String _teamCache = 'U & ME Engineering';
+  static String _strengthsCache = 'Cross-functional product design, user empathy, and operational alignment.';
+  static String _focusAreaCache = 'Improving employee experience across hybrid teams.';
+  static String _currentChallengesCache = 'Balancing stakeholder feedback while keeping the team focused.';
+  static String _communicationPreferenceCache = 'Concise, practical guidance with clear next steps.';
   static String _bioCache = 'Building delightful, human-centric workplace software.';
   static String _companyCache = 'U & ME HQ';
 
@@ -67,6 +81,10 @@ class UserPreferencesStore {
   static String getUserName() => _nameCache;
   static String getUserRole() => _roleCache;
   static String getUserTeam() => _teamCache;
+  static String getUserStrengths() => _strengthsCache;
+  static String getUserFocusArea() => _focusAreaCache;
+  static String getUserCurrentChallenges() => _currentChallengesCache;
+  static String getUserCommunicationPreference() => _communicationPreferenceCache;
   static String getUserBio() => _bioCache;
   static String getCompany() => _companyCache;
 
@@ -75,6 +93,10 @@ class UserPreferencesStore {
     _nameCache = prefs.getString(_keyUserName) ?? _nameCache;
     _roleCache = prefs.getString(_keyUserRole) ?? _roleCache;
     _teamCache = prefs.getString(_keyUserTeam) ?? _teamCache;
+    _strengthsCache = prefs.getString(_keyUserStrengths) ?? _strengthsCache;
+    _focusAreaCache = prefs.getString(_keyUserFocusArea) ?? _focusAreaCache;
+    _currentChallengesCache = prefs.getString(_keyUserCurrentChallenges) ?? _currentChallengesCache;
+    _communicationPreferenceCache = prefs.getString(_keyUserCommunicationPreference) ?? _communicationPreferenceCache;
     _bioCache = prefs.getString(_keyUserBio) ?? _bioCache;
     _companyCache = prefs.getString(_keyUserCompany) ?? _companyCache;
   }
@@ -103,16 +125,56 @@ class UserPreferencesStore {
     await prefs.setString(_keyUserCompany, val);
   }
 
+  static Future<void> setUserTeam(String val) async {
+    _teamCache = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUserTeam, val);
+  }
+
+  static Future<void> setUserStrengths(String val) async {
+    _strengthsCache = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUserStrengths, val);
+  }
+
+  static Future<void> setUserFocusArea(String val) async {
+    _focusAreaCache = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUserFocusArea, val);
+  }
+
+  static Future<void> setUserCurrentChallenges(String val) async {
+    _currentChallengesCache = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUserCurrentChallenges, val);
+  }
+
+  static Future<void> setUserCommunicationPreference(String val) async {
+    _communicationPreferenceCache = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUserCommunicationPreference, val);
+  }
+
   static Future<void> setUserProfile({
     required String name,
     required String role,
     required String team,
+    String? strengths,
+    String? focusArea,
+    String? currentChallenges,
+    String? communicationPreference,
     String? bio,
     String? company,
   }) async {
     _nameCache = name;
     _roleCache = role;
     _teamCache = team;
+    if (strengths != null) _strengthsCache = strengths;
+    if (focusArea != null) _focusAreaCache = focusArea;
+    if (currentChallenges != null) _currentChallengesCache = currentChallenges;
+    if (communicationPreference != null) {
+      _communicationPreferenceCache = communicationPreference;
+    }
     if (bio != null) _bioCache = bio;
     if (company != null) _companyCache = company;
 
@@ -120,6 +182,17 @@ class UserPreferencesStore {
     await prefs.setString(_keyUserName, name);
     await prefs.setString(_keyUserRole, role);
     await prefs.setString(_keyUserTeam, team);
+    if (strengths != null) await prefs.setString(_keyUserStrengths, strengths);
+    if (focusArea != null) await prefs.setString(_keyUserFocusArea, focusArea);
+    if (currentChallenges != null) {
+      await prefs.setString(_keyUserCurrentChallenges, currentChallenges);
+    }
+    if (communicationPreference != null) {
+      await prefs.setString(
+        _keyUserCommunicationPreference,
+        communicationPreference,
+      );
+    }
     if (bio != null) await prefs.setString(_keyUserBio, bio);
     if (company != null) await prefs.setString(_keyUserCompany, company);
   }
@@ -177,5 +250,270 @@ class UserPreferencesStore {
     final prefs = await SharedPreferences.getInstance();
     final count = prefs.getInt(_keyMochiCheckIns) ?? 3;
     await prefs.setInt(_keyMochiCheckIns, count + 1);
+  }
+
+  // Mochi session memory, style prefs, and mood logs
+  static const String _keyMochiSessionSummary = 'mochi_session_summary';
+  static const String _keyMochiStylePreference = 'mochi_style_preference';
+  static const String _keyMochiMoodLogs = 'mochi_mood_logs';
+
+  static Future<String?> getMochiContextSummary() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyMochiContextSummary);
+  }
+
+  static Future<void> setMochiContextSummary(String summary) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyMochiContextSummary, summary);
+  }
+
+  static Future<List<MochiFeedbackLog>> getMochiFeedbackHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyMochiFeedbackHistory);
+    if (raw == null || raw.isEmpty) return [];
+
+    try {
+      final list = jsonDecode(raw) as List<dynamic>;
+      return list
+          .map((e) => MochiFeedbackLog.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> appendMochiFeedback(MochiFeedbackLog log) async {
+    final logs = await getMochiFeedbackHistory();
+    logs.add(log);
+    final trimmed = logs.length > 50 ? logs.sublist(logs.length - 50) : logs;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _keyMochiFeedbackHistory,
+      jsonEncode(trimmed.map((e) => e.toJson()).toList()),
+    );
+  }
+
+  static Future<String?> getMochiFeedbackSummary() async {
+    final logs = await getMochiFeedbackHistory();
+    if (logs.isEmpty) return null;
+
+    final helpfulCount = logs.where((entry) => entry.helpful).length;
+    final total = logs.length;
+    return 'Recent user feedback: $helpfulCount of $total responses were marked helpful.';
+  }
+
+  static Future<String?> getMochiSessionSummary() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyMochiSessionSummary);
+  }
+
+  static Future<void> setMochiSessionSummary(String summary) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyMochiSessionSummary, summary);
+  }
+
+  // Leave Requests & History Context
+  static const String _keyUserLeaveRequests = 'user_leave_requests';
+
+  static Future<List<String>> getLeaveRequests() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_keyUserLeaveRequests) ?? [
+      'Casual Leave (Jul 29 – Jul 30) - Approved',
+      'Sick Leave (Aug 02 – Aug 03) - Approved',
+    ];
+  }
+
+  static Future<void> addLeaveRequest(String leaveSummary) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = await getLeaveRequests();
+    final updated = List<String>.from(list);
+    updated.insert(0, leaveSummary);
+    await prefs.setStringList(_keyUserLeaveRequests, updated);
+  }
+
+  static Future<String> getLeaveSummary() async {
+    final requests = await getLeaveRequests();
+    return 'Casual Leave balance: 8 days remaining; Sick Leave balance: 5 days remaining. Recent leave requests: ${requests.take(2).join("; ")}.';
+  }
+
+  static String getFullUserProfileSummary() {
+    final parts = <String>[];
+    if (getUserName().isNotEmpty) parts.add('Name: ${getUserName()}');
+    if (getUserRole().isNotEmpty) parts.add('Role: ${getUserRole()}');
+    if (getUserTeam().isNotEmpty) parts.add('Team: ${getUserTeam()}');
+    if (getCompany().isNotEmpty) parts.add('Company: ${getCompany()}');
+    if (getUserBio().isNotEmpty) parts.add('Bio: ${getUserBio()}');
+    if (getUserStrengths().isNotEmpty) parts.add('Strengths: ${getUserStrengths()}');
+    if (getUserFocusArea().isNotEmpty) parts.add('Focus Area: ${getUserFocusArea()}');
+    if (getUserCurrentChallenges().isNotEmpty) parts.add('Past Issues / Current Challenges: ${getUserCurrentChallenges()}');
+    if (getUserCommunicationPreference().isNotEmpty) parts.add('Communication Pref: ${getUserCommunicationPreference()}');
+    return parts.join(' | ');
+  }
+
+  static Future<String?> getMochiStylePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyMochiStylePreference);
+  }
+
+  static Future<void> setMochiStylePreference(String preference) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyMochiStylePreference, preference);
+  }
+
+  static Future<List<MochiMoodLog>> getMochiMoodLogs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyMochiMoodLogs);
+    if (raw == null || raw.isEmpty) return [];
+
+    try {
+      final list = jsonDecode(raw) as List<dynamic>;
+      return list
+          .map((e) => MochiMoodLog.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> appendMochiMoodLog(MochiMoodLog log) async {
+    final logs = await getMochiMoodLogs();
+    logs.add(log);
+    final trimmed = logs.length > 50 ? logs.sublist(logs.length - 50) : logs;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _keyMochiMoodLogs,
+      jsonEncode(trimmed.map((e) => e.toJson()).toList()),
+    );
+  }
+
+  static Future<String?> getMochiMoodTrendSummary() async {
+    final logs = await getMochiMoodLogs();
+    if (logs.isEmpty) return null;
+
+    final recent = logs.length > 7 ? logs.sublist(logs.length - 7) : logs;
+    final avgScore =
+        recent.map((e) => e.score).reduce((a, b) => a + b) / recent.length;
+    final labels = recent.map((e) => e.label).toSet().take(3).join(', ');
+
+    return 'Last ${recent.length} check-ins avg ${avgScore.toStringAsFixed(1)}/10; recent moods: $labels.';
+  }
+
+  // Mochi CBT Thought Log Tracking
+  static const String _keyMochiCbtLogs = 'mochi_cbt_logs';
+
+  static Future<List<MochiCbtLog>> getMochiCbtLogs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyMochiCbtLogs);
+    if (raw == null || raw.isEmpty) return [];
+
+    try {
+      final list = jsonDecode(raw) as List<dynamic>;
+      return list
+          .map((e) => MochiCbtLog.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> appendMochiCbtLog(MochiCbtLog log) async {
+    final logs = await getMochiCbtLogs();
+    logs.add(log);
+    final trimmed = logs.length > 50 ? logs.sublist(logs.length - 50) : logs;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _keyMochiCbtLogs,
+      jsonEncode(trimmed.map((e) => e.toJson()).toList()),
+    );
+  }
+
+  static Future<String?> getMochiCbtTrendSummary() async {
+    final logs = await getMochiCbtLogs();
+    if (logs.isEmpty) return null;
+
+    final recent = logs.length > 5 ? logs.sublist(logs.length - 5) : logs;
+    final distortions = recent.map((e) => e.distortionTag).toSet().join(', ');
+    return 'Recent CBT Reframings (${recent.length}): Distortions addressed include $distortions.';
+  }
+
+  static Future<int?> getInt(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(key);
+  }
+
+  static Future<void> setInt(String key, int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(key, value);
+  }
+}
+
+class MochiFeedbackLog {
+  final bool helpful;
+  final String? note;
+  final DateTime loggedAt;
+
+  MochiFeedbackLog({
+    required this.helpful,
+    this.note,
+    DateTime? loggedAt,
+  }) : loggedAt = loggedAt ?? DateTime.now();
+
+  Map<String, dynamic> toJson() => {
+    'helpful': helpful,
+    'note': note,
+    'loggedAt': loggedAt.toIso8601String(),
+  };
+
+  factory MochiFeedbackLog.fromJson(Map<String, dynamic> json) {
+    return MochiFeedbackLog(
+      helpful: json['helpful'] as bool? ?? false,
+      note: json['note'] as String?,
+      loggedAt: json['loggedAt'] != null
+          ? DateTime.tryParse(json['loggedAt'] as String)
+          : null,
+    );
+  }
+}
+
+class MochiCbtLog {
+  final String trigger;
+  final String distortionTag;
+  final int preScore;
+  final int postScore;
+  final String reframeText;
+  final DateTime loggedAt;
+
+  MochiCbtLog({
+    required this.trigger,
+    required this.distortionTag,
+    required this.preScore,
+    required this.postScore,
+    required this.reframeText,
+    DateTime? loggedAt,
+  }) : loggedAt = loggedAt ?? DateTime.now();
+
+  Map<String, dynamic> toJson() => {
+    'trigger': trigger,
+    'distortionTag': distortionTag,
+    'preScore': preScore,
+    'postScore': postScore,
+    'reframeText': reframeText,
+    'loggedAt': loggedAt.toIso8601String(),
+  };
+
+  factory MochiCbtLog.fromJson(Map<String, dynamic> json) {
+    return MochiCbtLog(
+      trigger: json['trigger'] as String? ?? '',
+      distortionTag: json['distortionTag'] as String? ?? 'General Stress',
+      preScore: (json['preScore'] as num?)?.toInt() ?? 7,
+      postScore: (json['postScore'] as num?)?.toInt() ?? 4,
+      reframeText: json['reframeText'] as String? ?? '',
+      loggedAt: json['loggedAt'] != null
+          ? DateTime.tryParse(json['loggedAt'] as String)
+          : null,
+    );
   }
 }

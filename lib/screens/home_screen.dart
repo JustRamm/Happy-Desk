@@ -16,7 +16,6 @@ import '../services/user_preferences_store.dart';
 import '../services/sound_service.dart';
 import 'stress_vent_sounding_board_screen.dart';
 import 'notifications_screen.dart';
-import '../widgets/multi_coffee_reset_modal.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -345,7 +344,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Brand Logo SVG
                   const BrandLogoWidget(height: 54),
 
-                  // Notification & Coffee icons
+                  // Notification icon
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -372,24 +371,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         tooltip: 'Notifications',
-                      ),
-
-                      // Coffee Break Icon
-                      IconButton(
-                        onPressed: () => MultiCoffeeResetModal.show(context),
-                        icon: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFF3F2FF),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.local_cafe_rounded,
-                            color: Color(0xFF95416C),
-                            size: 22,
-                          ),
-                        ),
-                        tooltip: 'Coffee Break',
                       ),
                     ],
                   ),

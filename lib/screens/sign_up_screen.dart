@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_logo_widget.dart';
 
@@ -27,6 +29,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String _generatedLeaderCode = '';
   String _selectedAvatar = 'assets/avatars/user_avatar.png';
   String _selectedDepartment = 'Design';
+  final ImagePicker _imagePicker = ImagePicker();
 
   final List<String> _avatarPresets = [
     'assets/avatars/user_avatar.png',
@@ -54,6 +57,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
   // Step 2 Controllers (Profile Details)
   final _jobRoleController = TextEditingController();
   final _bioController = TextEditingController();
+
+  Future<void> _pickProfileImage() async {
+    try {
+      final XFile? picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+
+      setState(() {
+        _selectedAvatar = picked.path;
+      });
+    } on PlatformException catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open gallery. Please try again.'),
+        ),
+      );
+    }
+  }
 
   // Step 3 Controllers (Workplace Details)
   final _inviteCodeController = TextEditingController();
@@ -220,71 +245,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                             const SizedBox(width: 12),
 
-                            // Card 2: Community Avatars
-                            Expanded(
-                              child: Transform.rotate(
-                                angle: 0.02,
-                                child: Container(
-                                  height: 105,
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFF8EA9),
-                                    borderRadius: BorderRadius.circular(22),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFFFF8EA9).withValues(alpha: 0.25),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          _buildSmallAvatar('assets/avatars/user_avatar.png'),
-                                          Transform.translate(
-                                            offset: const Offset(-8, 0),
-                                            child:
-                                                _buildSmallAvatar('assets/avatars/avatar_1.png'),
-                                          ),
-                                          Transform.translate(
-                                            offset: const Offset(-16, 0),
-                                            child: Container(
-                                              padding: const EdgeInsets.all(4),
-                                              decoration: const BoxDecoration(
-                                                color: Color(0xFFFF652F),
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: const Text(
-                                                '+1k',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 9,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Text(
-                                        'Join a thriving\ncommunity',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w800,
-                                          color: const Color(0xFF4D1424),
-                                          height: 1.2,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                                      ],
                         ),
 
                         const Spacer(),
@@ -997,9 +958,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                         ],
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(43),
-                        child: Image.asset(_selectedAvatar, fit: BoxFit.cover),
+                      child: GestureDetector(
+                        onTap: _pickProfileImage,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(43),
+                          child: _selectedAvatar.startsWith('assets/')
+                              ? Image.asset(_selectedAvatar, fit: BoxFit.cover)
+                              : Image.file(File(_selectedAvatar), fit: BoxFit.cover),
+                        ),
                       ),
                     ),
                     Positioned(
@@ -1022,46 +988,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Choose Profile Avatar',
+                  'Tap the avatar to choose a photo from your gallery',
+                  textAlign: TextAlign.center,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.titleDark,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
-
-                // Preset Avatar Options
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: _avatarPresets.map((asset) {
-                    final isSelected = _selectedAvatar == asset;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedAvatar = asset;
-                        });
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected
-                                ? AppTheme.primaryRust
-                                : Colors.transparent,
-                            width: 2,
-                          ),
-                        ),
-                        child: CircleAvatar(
-                          radius: 16,
-                          backgroundImage: AssetImage(asset),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
               ],
             ),
           ),

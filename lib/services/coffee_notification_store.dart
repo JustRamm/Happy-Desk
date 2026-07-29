@@ -10,6 +10,7 @@ class CoffeeNotificationItem {
   final bool isGroup;
   bool isAccepted;
   bool isRejected;
+  bool isUnread;
 
   CoffeeNotificationItem({
     required this.id,
@@ -21,6 +22,7 @@ class CoffeeNotificationItem {
     this.isGroup = false,
     this.isAccepted = false,
     this.isRejected = false,
+    this.isUnread = true,
   });
 }
 
@@ -62,6 +64,7 @@ class CoffeeNotificationStore {
       senderName: senderName,
       senderAvatar: senderAvatar ?? 'assets/avatars/user_avatar.png',
       isGroup: isGroup,
+      isUnread: true,
     );
 
     final currentList = List<CoffeeNotificationItem>.from(notificationsNotifier.value);
@@ -87,5 +90,13 @@ class CoffeeNotificationStore {
       currentList[index].isAccepted = false;
       notificationsNotifier.value = currentList;
     }
+  }
+
+  static void markAllAsRead() {
+    final currentList = List<CoffeeNotificationItem>.from(notificationsNotifier.value);
+    for (final item in currentList) {
+      item.isUnread = false;
+    }
+    notificationsNotifier.value = currentList;
   }
 }

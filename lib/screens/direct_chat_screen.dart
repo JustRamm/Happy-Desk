@@ -372,22 +372,6 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               ),
             ),
           ),
-          IconButton(
-            tooltip: 'Send Coffee Break Invite',
-            onPressed: _triggerIndividualCoffeeReset,
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                color: Color(0xFFF3F2FF),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.local_cafe_rounded,
-                color: Color(0xFFFF6B35),
-                size: 20,
-              ),
-            ),
-          ),
           const SizedBox(width: 8),
         ],
       ),

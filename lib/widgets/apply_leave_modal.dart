@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/user_preferences_store.dart';
 
 class ApplyLeaveModal extends StatefulWidget {
   const ApplyLeaveModal({super.key});
@@ -246,6 +247,8 @@ class _ApplyLeaveModalState extends State<ApplyLeaveModal> {
               height: 50,
               child: ElevatedButton.icon(
                 onPressed: () {
+                  final dates = dateText;
+                  UserPreferencesStore.addLeaveRequest('$_selectedType ($dates) - Pending HR Approval');
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

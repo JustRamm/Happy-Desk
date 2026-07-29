@@ -19,51 +19,36 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   late int _currentIndex;
-  late PageController _pageController;
+  final GlobalKey<AiWellnessBotScreenState> _mochiScreenKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
-    _pageController = PageController(initialPage: widget.initialIndex);
   }
 
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    AiWellnessBotScreen(),
-    ChatNotificationsScreen(),
-    ProfileScreen(),
+  late final List<Widget> _screens = [
+    const HomeScreen(),
+    AiWellnessBotScreen(key: _mochiScreenKey),
+    const ChatNotificationsScreen(),
+    const ProfileScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF9F8),
-      body: PageView(
-        controller: _pageController,
-        physics: const BouncingScrollPhysics(),
-        onPageChanged: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+      body: IndexedStack(
+        index: _currentIndex,
         children: _screens,
       ),
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: _currentIndex,
         onItemTapped: (index) {
+          if (_currentIndex == 1 && index != 1) {
+            _mochiScreenKey.currentState?.summarizeSessionIfNeeded();
+          }
           if (_currentIndex != index) {
-            _pageController.animateToPage(
-              index,
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.easeOutCubic,
-            );
             setState(() {
               _currentIndex = index;
             });

@@ -1,0 +1,77 @@
+{
+  "version": "1.0",
+  "roles": [
+    {
+      "id": "software_engineer",
+      "keywords": ["engineer", "developer", "programmer", "coder", "fullstack", "frontend", "backend", "software"],
+      "title": "Software Engineer / Developer",
+      "domain_terms": ["PR review", "sprint velocity", "tech debt", "CI/CD pipeline", "merge conflicts", "code refactoring", "staging environment", "production outage", "bug backlog", "architecture decision"],
+      "common_stressors": ["context switching between tasks", "tight sprint deadlines", "flaky builds or failing pipelines", "unclear technical requirements", "on-call rotations and production bugs"],
+      "guidance_note": "Acknowledge the mental drain of deep focus and constant context-switching. Use engineering-literate terms naturally (e.g. tech debt, refactoring, context-switching) without trying to debug their code."
+    },
+    {
+      "id": "product_manager",
+      "keywords": ["product", "pm", "product manager", "product owner"],
+      "title": "Product Manager",
+      "domain_terms": ["roadmap prioritization", "stakeholder alignment", "PRDs", "user stories", "OKRs & KPIs", "scope creep", "feature tradeoffs", "user feedback loops"],
+      "common_stressors": ["balancing competing executive and team demands", "managing scope creep without demoralizing engineering", "making high-impact decisions with incomplete data"],
+      "guidance_note": "Focus on stakeholder tension, decision fatigue, and trade-off anxiety. Frame next steps around prioritization, clear communication boundaries, and micro-resets."
+    },
+    {
+      "id": "designer",
+      "keywords": ["designer", "ux", "ui", "product designer", "visual designer"],
+      "title": "UX / UI Designer",
+      "domain_terms": ["design system", "wireframes", "Figma components", "user research insights", "usability testing", "design handoff", "accessibility (a11y)", "iterative feedback"],
+      "common_stressors": ["subjective design critiques from non-designers", "rushed handoffs with missing component states", "balancing aesthetics with technical constraints"],
+      "guidance_note": "Validate creative exhaustion and subjective critique frustration. Use design-aware terms (wireframes, handoff, component library) with focus on boundary-setting."
+    },
+    {
+      "id": "data_professional",
+      "keywords": ["data", "analyst", "data scientist", "bi", "analytics"],
+      "title": "Data Analyst / Scientist",
+      "domain_terms": ["data pipelines", "ETL processes", "dashboard accuracy", "statistical confidence", "SQL queries", "metric definition", "ad-hoc executive requests"],
+      "common_stressors": ["unrealistic expectations for instant insights", "messy or missing raw data sources", "ad-hoc requests derailing scheduled analytical projects"],
+      "guidance_note": "Understand the tension between rigorous analytical depth and rushed business demands. Keep guidance grounded and step-focused."
+    },
+    {
+      "id": "qa_tester",
+      "keywords": ["qa", "tester", "quality assurance", "test engineer"],
+      "title": "QA & Test Engineer",
+      "domain_terms": ["regression suite", "edge cases", "test coverage", "bug severity", "reproduction steps", "release gatekeeping", "automation scripts"],
+      "common_stressors": ["feeling like a bottleneck when catching late bugs", "rushed pre-release test cycles", "retesting flaky bugs across environments"],
+      "guidance_note": "Acknowledge the pressure of release quality responsibility. Validate their role as the advocate for reliability."
+    },
+    {
+      "id": "marketing_growth",
+      "keywords": ["marketing", "growth", "copywriter", "content", "seo", "campaign"],
+      "title": "Marketing & Content Specialist",
+      "domain_terms": ["campaign launch", "conversion funnel", "brand voice", "asset deadlines", "CAC & LTV metrics", "content calendar", "A/B testing"],
+      "common_stressors": ["last-minute campaign pivots", "measuring ROI under uncertain market conditions", "creative burnout under tight content cadence"],
+      "guidance_note": "Empathize with creative output pressures and metrics accountability. Offer grounding exercises for fast-paced shifts."
+    },
+    {
+      "id": "hr_operations",
+      "keywords": ["hr", "people", "operations", "recruiter", "talent", "admin"],
+      "title": "People & Operations Specialist",
+      "domain_terms": ["onboarding flow", "team culture", "headcount planning", "policy compliance", "employee engagement", "interpersonal mediation", "vendor management"],
+      "common_stressors": ["absorbing emotional stress from other employees", "enforcing policy while maintaining empathy", "juggling multi-department operational logistics"],
+      "guidance_note": "Recognize emotional labor and compassion fatigue. Encourage personal boundaries and self-care reset breaks."
+    },
+    {
+      "id": "manager_lead",
+      "keywords": ["manager", "lead", "director", "head", "vp", "chief", "executive"],
+      "title": "Engineering / Team Manager",
+      "domain_terms": ["1-on-1 check-ins", "team bandwidth", "performance reviews", "cross-functional sync", "headcount budget", "retention strategy", "conflict resolution"],
+      "common_stressors": ["shielding team from upper management pressure", "managing low-performing or burnt-out reportees", "feeling isolated between leadership and execution"],
+      "guidance_note": "Respect leadership isolation and high-responsibility weight. Offer clear communication templates and stress relief strategies."
+    },
+    {
+      "id": "general_office",
+      "keywords": [],
+      "title": "Workplace Professional",
+      "domain_terms": ["cross-team alignment", "project deadlines", "inbox management", "weekly status sync", "action items"],
+      "common_stressors": ["inbox overload", "meeting fatigue", "unclear task prioritization"],
+      "guidance_note": "Provide empathetic, practical support for workplace stress, communication boundaries, and workload balancing."
+    }
+  ]
+}

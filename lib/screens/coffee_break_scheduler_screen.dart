@@ -20,8 +20,10 @@ class _CoffeeBreakSchedulerScreenState
   int _selectedDurationMinutes = 15;
   String _selectedLocation = 'Office Kitchen & Pantry';
   bool _syncWithCalendar = true;
+  String _searchQuery = '';
 
   final TextEditingController _noteController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   final List<int> _durations = [5, 15, 30];
 
@@ -93,6 +95,7 @@ class _CoffeeBreakSchedulerScreenState
   @override
   void dispose() {
     _noteController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -384,13 +387,40 @@ class _CoffeeBreakSchedulerScreenState
 
             const SizedBox(height: 24),
 
-            // Section 3: Select Teammates
+            // Section 3: Search & Select Teammates
             Text(
-              'Select Teammates',
+              'Search Teammates',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
                 color: const Color(0xFF171B2B),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.trim().toLowerCase();
+                });
+              },
+              decoration: InputDecoration(
+                hintText: 'Search by name or role...',
+                hintStyle: GoogleFonts.beVietnamPro(
+                  fontSize: 12.5,
+                  color: const Color(0xFF8D7168),
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: Color(0xFFE4E7FE)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: Color(0xFFE4E7FE)),
+                ),
+                prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFFAB3500)),
               ),
             ),
             const SizedBox(height: 12),
@@ -401,36 +431,45 @@ class _CoffeeBreakSchedulerScreenState
                 border: Border.all(color: const Color(0xFFE4E7FE)),
               ),
               child: Column(
-                children: _teammates.map((tm) {
-                  return CheckboxListTile(
-                    value: tm['selected'],
-                    activeColor: const Color(0xFFAB3500),
-                    onChanged: (val) {
-                      setState(() {
-                        tm['selected'] = val ?? false;
-                      });
-                    },
-                    secondary: CircleAvatar(
-                      radius: 18,
-                      backgroundImage: AssetImage(tm['avatar']),
-                    ),
-                    title: Text(
-                      tm['name'],
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF171B2B),
-                      ),
-                    ),
-                    subtitle: Text(
-                      tm['role'],
-                      style: GoogleFonts.beVietnamPro(
-                        fontSize: 11.5,
-                        color: const Color(0xFF594139),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                children: _teammates
+                    .where((tm) {
+                      final query = _searchQuery;
+                      if (query.isEmpty) return true;
+                      final name = (tm['name'] as String).toLowerCase();
+                      final role = (tm['role'] as String).toLowerCase();
+                      return name.contains(query) || role.contains(query);
+                    })
+                    .map((tm) {
+                      return CheckboxListTile(
+                        value: tm['selected'],
+                        activeColor: const Color(0xFFAB3500),
+                        onChanged: (val) {
+                          setState(() {
+                            tm['selected'] = val ?? false;
+                          });
+                        },
+                        secondary: CircleAvatar(
+                          radius: 18,
+                          backgroundImage: AssetImage(tm['avatar']),
+                        ),
+                        title: Text(
+                          tm['name'],
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF171B2B),
+                          ),
+                        ),
+                        subtitle: Text(
+                          tm['role'],
+                          style: GoogleFonts.beVietnamPro(
+                            fontSize: 11.5,
+                            color: const Color(0xFF594139),
+                          ),
+                        ),
+                      );
+                    })
+                    .toList(),
               ),
             ),
 

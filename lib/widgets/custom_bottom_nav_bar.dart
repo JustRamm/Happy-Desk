@@ -70,81 +70,59 @@ class CustomBottomNavBar extends StatelessWidget {
               onItemTapped(index);
             },
             behavior: HitTestBehavior.opaque,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Glow shadow under selected pill
-                AnimatedOpacity(
-                  duration: const Duration(milliseconds: 250),
-                  opacity: isSelected ? 1.0 : 0.0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(26),
-                      boxShadow: const [
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.symmetric(
+                horizontal: isSelected ? 14 : 10,
+                vertical: 9,
+              ),
+              decoration: BoxDecoration(
+                gradient: isSelected
+                    ? const LinearGradient(
+                        colors: [Color(0xFFFF6B35), Color(0xFFFF8552)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: isSelected ? null : Colors.transparent,
+                borderRadius: BorderRadius.circular(26),
+                boxShadow: isSelected
+                    ? const [
                         BoxShadow(
                           color: Color(0x59FF6B35),
                           blurRadius: 12.0,
                           offset: Offset(0, 4),
                         ),
-                      ],
-                    ),
-                    child: const SizedBox(height: 20, width: 50),
+                      ]
+                    : null,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isSelected ? item.activeIcon : item.icon,
+                    size: 20,
+                    color: isSelected ? Colors.white : AppTheme.textSecondary,
                   ),
-                ),
-
-                // Main Button Pill
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOutCubic,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isSelected ? 14 : 10,
-                    vertical: 9,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: isSelected
-                        ? const LinearGradient(
-                            colors: [Color(0xFFFF6B35), Color(0xFFFF8552)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : null,
-                    color: isSelected ? null : Colors.transparent,
-                    borderRadius: BorderRadius.circular(26),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isSelected ? item.activeIcon : item.icon,
-                        key: ValueKey('${item.label}_$isSelected'),
-                        size: 20,
-                        color:
-                            isSelected ? Colors.white : AppTheme.textSecondary,
-                      ),
-                      if (isSelected) ...[
-                        const SizedBox(width: 5),
-                        Flexible(
-                          child: Text(
-                            item.label,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: 0.2,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                  if (isSelected) ...[
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        item.label,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: 0.2,
                         ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           );
         }),

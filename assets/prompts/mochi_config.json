@@ -1,0 +1,34 @@
+{
+  "version": "1.0",
+  "model": "gemini-1.5-flash",
+  "generation": {
+    "temperature": 0.45,
+    "maxOutputTokens": 250
+  },
+  "moodTags": [
+    "work",
+    "sleep",
+    "relationships",
+    "health",
+    "finances",
+    "family",
+    "social",
+    "other"
+  ],
+  "exercises": [
+    "box_breathing",
+    "54321_grounding",
+    "body_scan"
+  ],
+  "offTopicKeywords": [
+    "code",
+    "python",
+    "flutter",
+    "dart",
+    "java",
+    "write a script",
+    "capital of",
+    "who is president"
+  ],
+  "moodLogPrefix": "MOOD_LOG:"
+}
