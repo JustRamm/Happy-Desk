@@ -1300,270 +1300,145 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // Card 3: NGL Jar Card
-  // Card 3: NGL Jar Card (Redesigned into a High-Impact Hero Section)
+  // Card 3: NGL Jar Card (Soft Lavender Brand Design Palette)
   Widget _buildNglJarCard() {
-    final double progress = (_nglEntries / _targetEntries).clamp(0.0, 1.0);
-
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF6D28D9), // Rich Deep Violet
-            Color(0xFF8B5CF6), // Royal Lavender
-            Color(0xFF9D174D), // Deep Rose Magenta
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        color: const Color(0xFFEEF0FF), // Soft Lavender/Purple
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.8),
+          width: 1.5,
         ),
-        borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6D28D9).withValues(alpha: 0.35),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
+            color: const Color(0xFF7C3A68).withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Column(
         children: [
-          // Top Header Row: Status Tag Pill
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.auto_awesome_rounded,
-                      size: 14,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'ANONYMOUS APPRECIATION',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                  ],
-                ),
+          // Title: "Your NGL Jar"
+          RichText(
+            text: TextSpan(
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF7C3A68),
               ),
-
-              // Unseal Chime Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF6EE7B7).withValues(alpha: 0.5)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.lock_open_rounded,
-                      size: 13,
-                      color: Color(0xFFA7F3D0),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '1 Note Ready',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFFA7F3D0),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Main Headline & Description
-          Text(
-            'Your NGL Appreciation Jar',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              letterSpacing: -0.4,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Drop secret kind words & unseal daily teammate kudos',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.beVietnamPro(
-              fontSize: 13,
-              color: Colors.white.withValues(alpha: 0.85),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Prominent Jar Graphic Illustration with Glow Backdrop
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFEC4899).withValues(alpha: 0.4),
-                      blurRadius: 32,
-                      spreadRadius: 4,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(
-                height: 145,
-                child: Center(
-                  child: JarIconWidget(
-                    size: 135,
-                    mainColor: Colors.white,
-                    lidColor: Color(0xFFF472B6),
-                    liquidColor: Color(0xFFEC4899),
-                    isFilled: true,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 20),
-
-          // Visual Progress Bar & Counter Card
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.22),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-            ),
-            child: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Jar Capacity Progress',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white.withValues(alpha: 0.9),
-                      ),
-                    ),
-                    Text(
-                      '$_nglEntries/$_targetEntries Notes (${(progress * 100).toInt()}%)',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFFF472B6),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 10,
-                    backgroundColor: Colors.white.withValues(alpha: 0.2),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFF472B6)),
+                const TextSpan(text: 'Your '),
+                TextSpan(
+                  text: 'NGL Jar',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
-          // Action Buttons: Send Anonymous Note (Primary Hero) + Open Jar Notes (Glassmorphic)
+          // Jar Graphic Illustration
+          const SizedBox(
+            height: 130,
+            child: Center(
+              child: JarIconWidget(
+                size: 120,
+                mainColor: Color(0xFF7C3A68),
+                lidColor: Color(0xFF9D4B85),
+                liquidColor: Color(0xFFFF8EA9),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // Subtitle / Progress Counter
+          Text(
+            '$_nglEntries/$_targetEntries entries',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 15.5,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF2A2050),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Unlock the jar by Friday!',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF6B5B95),
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          // Action Buttons: Add Entry & Open Jar Notes
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Primary CTA: Send Anonymous Note
-              Expanded(
-                child: SizedBox(
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: _showAddEntryModal,
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: Text(
-                      'Add Entry',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF6D28D9),
-                      elevation: 4,
-                      shadowColor: Colors.black.withValues(alpha: 0.3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                    ),
+              ElevatedButton.icon(
+                onPressed: _showAddEntryModal,
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: Text(
+                  'Add Entry',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8C436E),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-
-              // Secondary CTA: Open Jar Notes
-              Expanded(
-                child: SizedBox(
-                  height: 50,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const JarScreen(showBackButton: true),
-                        ),
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.auto_awesome_rounded,
-                      size: 16,
-                      color: Colors.white,
+              const SizedBox(width: 10),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const JarScreen(showBackButton: true),
                     ),
-                    label: Text(
-                      'Open Jar Notes',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.15),
-                      side: BorderSide(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                    ),
+                  );
+                },
+                icon: const Icon(
+                  Icons.auto_awesome_rounded,
+                  size: 16,
+                  color: Color(0xFF8C436E),
+                ),
+                label: Text(
+                  'Open Jar Notes',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF8C436E),
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  side: const BorderSide(color: Color(0xFF8C436E), width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
                   ),
                 ),
               ),
