@@ -119,7 +119,7 @@ class SupabaseService {
         'job_title': finalTitle,
         'department': finalDepartment,
         'bio': bio,
-        if (avatarUrl != null) 'avatar_url': avatarUrl,
+        'avatar_url': ?avatarUrl,
       });
 
       // Save local preferences
@@ -214,7 +214,7 @@ class SupabaseService {
         'job_title': jobTitle,
         'department': department,
         'bio': bio,
-        if (avatarUrl != null) 'avatar_url': avatarUrl,
+        'avatar_url': ?avatarUrl,
       });
 
       String? companyName = companyMatch != null ? (companyMatch['name'] as String?) : null;

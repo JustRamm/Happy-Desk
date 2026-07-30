@@ -300,7 +300,7 @@ class _MultiCoffeeResetModalState extends State<MultiCoffeeResetModal> {
                           message: text,
                           isGroup: true,
                         );
-                        if (mounted) {
+                        if (context.mounted) {
                           Navigator.of(context).pop();
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(

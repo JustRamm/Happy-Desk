@@ -249,7 +249,7 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
                           Icon(
                             Icons.chat_bubble_outline_rounded,
                             size: 48,
-                            color: const Color(0xFFAB3500).withOpacity(0.4),
+                            color: const Color(0xFFAB3500).withValues(alpha: 0.4),
                           ),
                           const SizedBox(height: 12),
                           Text(

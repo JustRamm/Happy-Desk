@@ -102,6 +102,7 @@ class _WorkSessionDetailsScreenState extends State<WorkSessionDetailsScreen> {
     try {
       if (_isClockedIn) {
         await SupabaseService.instance.clockOutWorkSession();
+        if (!mounted) return;
         setState(() {
           _isClockedIn = false;
         });
@@ -118,6 +119,7 @@ class _WorkSessionDetailsScreenState extends State<WorkSessionDetailsScreen> {
         );
       } else {
         final session = await SupabaseService.instance.clockInWithLocation();
+        if (!mounted) return;
         setState(() {
           _isClockedIn = true;
         });
