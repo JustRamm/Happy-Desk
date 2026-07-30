@@ -138,37 +138,30 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
 
     final name = UserPreferencesStore.getUserName();
     final firstName = name.isNotEmpty ? name.split(' ').first : '';
+    final fn = firstName.isNotEmpty ? ' $firstName' : '';
 
-    final greetingsMsg1 = [
-      firstName.isNotEmpty ? "Hey $firstName, I'm Mochi!" : "Hey, I'm Mochi!",
-      firstName.isNotEmpty ? "Hi $firstName! Mochi here." : "Hi there! Mochi here.",
-      firstName.isNotEmpty ? "Hey $firstName!" : "Hey there!",
-    ];
-
-    final greetingsMsg2 = [
-      "wassup",
-      "how are you?",
-      "how's your day going?",
-      "feeling bored?",
-      "how are things at work today?",
-      "what's on your mind?",
-      "taking a quick break?",
+    final complementaryPairs = [
+      ("Hey$fn, I'm Mochi!", "How's your day treating you so far?"),
+      ("Hi$fn! Mochi here.", "wassup"),
+      ("Aah... hey$fn!", "Taking a quick break or feeling a bit overwhelmed?"),
+      ("Hey$fn, glad you stopped by!", "How are things at work today?"),
+      ("Hi$fn!", "What's on your mind right now?"),
+      ("Hey$fn, Mochi here!", "Feeling bored or just checking in?"),
     ];
 
     final random = math.Random();
-    final selectedMsg1 = greetingsMsg1[random.nextInt(greetingsMsg1.length)];
-    final selectedMsg2 = greetingsMsg2[random.nextInt(greetingsMsg2.length)];
+    final pair = complementaryPairs[random.nextInt(complementaryPairs.length)];
 
-    // Default Initial Mochi Welcome Messages (2 separate dynamic messages)
+    // Default Initial Mochi Welcome Messages (2 separate complementary messages)
     setState(() {
       _messages.addAll([
         _ChatMessage(
-          text: selectedMsg1,
+          text: pair.$1,
           isUser: false,
           time: _formatCurrentTime(),
         ),
         _ChatMessage(
-          text: selectedMsg2,
+          text: pair.$2,
           isUser: false,
           time: _formatCurrentTime(),
         ),
@@ -793,7 +786,13 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
                 itemCount: _messages.length + (_isTyping ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (index < _messages.length) {
-                    return _buildMessageBubble(_messages[index]);
+                    final msg = _messages[index];
+                    // Render Mochi avatar ONLY on the last (latest) message of a bot group
+                    final bool isNextAlsoBot =
+                        (index + 1 < _messages.length) && !_messages[index + 1].isUser;
+                    final bool showAvatar = !msg.isUser && !isNextAlsoBot;
+
+                    return _buildMessageBubble(msg, showAvatar: showAvatar);
                   } else {
                     return _buildTypingIndicator();
                   }
@@ -881,7 +880,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     );
   }
 
-  Widget _buildMessageBubble(_ChatMessage message) {
+  Widget _buildMessageBubble(_ChatMessage message, {bool showAvatar = true}) {
     final bubble = IntrinsicWidth(
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -1036,14 +1035,16 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: SvgPicture.asset(
-                'assets/brand/mochi_bot.svg',
-                width: 32,
-                height: 32,
-              ),
-            ),
+            showAvatar
+                ? Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: SvgPicture.asset(
+                      'assets/brand/mochi_bot.svg',
+                      width: 32,
+                      height: 32,
+                    ),
+                  )
+                : const SizedBox(width: 32),
             const SizedBox(width: 10),
             bubble,
           ],
