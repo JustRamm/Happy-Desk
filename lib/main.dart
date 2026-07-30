@@ -2,16 +2,25 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:camera/camera.dart';
 import 'services/mochi_prompt_service.dart';
 import 'services/supabase_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/onboarding_wrapper_screen.dart';
+
+List<CameraDescription> availableDeviceCameras = [];
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await dotenv.load(fileName: ".env");
   } catch (_) {}
+
+  try {
+    availableDeviceCameras = await availableCameras();
+  } catch (e) {
+    debugPrint('Camera initialization info: $e');
+  }
 
   await SupabaseService.instance.init();
   await MochiPromptService.instance.ensureLoaded();

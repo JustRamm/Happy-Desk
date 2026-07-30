@@ -315,7 +315,15 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         actions: [
           IconButton(
             tooltip: 'Audio Call',
-            onPressed: () {
+            onPressed: () async {
+              final receiverId = widget.teammate['id']?.toString() ?? '';
+              if (receiverId.isNotEmpty) {
+                await SupabaseService.instance.createCallInvite(
+                  receiverId: receiverId,
+                  isVideo: false,
+                );
+              }
+              if (!context.mounted) return;
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -341,7 +349,15 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           ),
           IconButton(
             tooltip: 'Video Call',
-            onPressed: () {
+            onPressed: () async {
+              final receiverId = widget.teammate['id']?.toString() ?? '';
+              if (receiverId.isNotEmpty) {
+                await SupabaseService.instance.createCallInvite(
+                  receiverId: receiverId,
+                  isVideo: true,
+                );
+              }
+              if (!context.mounted) return;
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -355,12 +371,12 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: const BoxDecoration(
-                color: Color(0xFFEBF7F5),
+                color: Color(0xFFF3F2FF),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.videocam_rounded,
-                color: Color(0xFF006C53),
+                color: Color(0xFF95416C),
                 size: 18,
               ),
             ),

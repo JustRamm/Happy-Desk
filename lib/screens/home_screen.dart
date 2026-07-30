@@ -14,6 +14,7 @@ import '../widgets/daily_stress_buster_card.dart';
 import '../widgets/teammate_profile_modal.dart';
 import '../services/user_preferences_store.dart';
 import '../services/sound_service.dart';
+import '../services/supabase_service.dart';
 import 'stress_vent_sounding_board_screen.dart';
 import 'notifications_screen.dart';
 
@@ -107,74 +108,75 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _toggleClockIn() {
-    setState(() {
-      _isClockedIn = !_isClockedIn;
-      if (_isClockedIn) {
-        SoundService.playClockInSound();
-        final now = DateTime.now();
-        final hour = now.hour > 12
-            ? now.hour - 12
-            : (now.hour == 0 ? 12 : now.hour);
-        final minute = now.minute.toString().padLeft(2, '0');
-        final period = now.hour >= 12 ? 'PM' : 'AM';
-        _lastClockInTime = '$hour:$minute $period';
+  Future<void> _toggleClockIn() async {
+    if (!_isClockedIn) {
+      // Clocking IN: Request Location & Save GPS to Supabase
+      SoundService.playClockInSound();
+      final session = await SupabaseService.instance.clockInWithLocation();
+      final locationName = session?['clock_in_location_name'] ?? 'Office HQ';
 
-        // Auto-detect workplace location on clock-in
-        final locations = const [
-          'HQ - Floor 3',
-          'Home Office (Remote)',
-          'Innovation Hub - Floor 2',
-          'Client Site (TechPark)',
-          'Branch Office - Floor 4',
-        ];
-        final randomLoc = locations[math.Random().nextInt(locations.length)];
-        _lastClockInLocation = randomLoc;
+      final now = DateTime.now();
+      final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+      final minute = now.minute.toString().padLeft(2, '0');
+      final period = now.hour >= 12 ? 'PM' : 'AM';
+      final formattedTime = '$hour:$minute $period';
+
+      setState(() {
+        _isClockedIn = true;
         _isOnBreak = false;
-      } else {
-        SoundService.playClockOutSound();
-        _isOnBreak = false;
-      }
-    });
+        _lastClockInTime = formattedTime;
+        _lastClockInLocation = locationName;
+      });
 
-    UserPreferencesStore.setClockedIn(_isClockedIn);
-    UserPreferencesStore.setOnBreak(_isOnBreak);
-    if (_lastClockInTime != null) {
-      UserPreferencesStore.setLastClockInTime(_lastClockInTime!);
-    }
-    if (_lastClockInLocation != null) {
-      UserPreferencesStore.setLastClockInLocation(_lastClockInLocation!);
-    }
+      await UserPreferencesStore.setClockedIn(true);
+      await UserPreferencesStore.setOnBreak(false);
+      await UserPreferencesStore.setLastClockInTime(formattedTime);
+      await UserPreferencesStore.setLastClockInLocation(locationName);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(
-              Icons.my_location_rounded,
-              color: Colors.white,
-              size: 20,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                _isClockedIn
-                    ? 'Auto-Detected Location: $_lastClockInLocation at $_lastClockInTime!'
-                    : 'Clocked out successfully!',
-                style: GoogleFonts.beVietnamPro(
-                  fontSize: 13,
-                  color: Colors.white,
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.my_location_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Clocked IN with live GPS location: $locationName',
+                  style: GoogleFonts.beVietnamPro(fontSize: 13.5),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
+          backgroundColor: const Color(0xFF047857),
+          behavior: SnackBarBehavior.floating,
         ),
-        backgroundColor:
-            _isClockedIn ? const Color(0xFF007A5A) : const Color(0xFF3D1200),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-    );
+      );
+    } else {
+      // Clocking OUT
+      SoundService.playClockOutSound();
+      await SupabaseService.instance.clockOutWorkSession();
+
+      setState(() {
+        _isClockedIn = false;
+        _isOnBreak = false;
+      });
+
+      await UserPreferencesStore.setClockedIn(false);
+      await UserPreferencesStore.setOnBreak(false);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Clocked OUT successfully. Great work today!',
+            style: GoogleFonts.beVietnamPro(fontSize: 13.5),
+          ),
+          backgroundColor: AppTheme.primaryRust,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _toggleBreak() {

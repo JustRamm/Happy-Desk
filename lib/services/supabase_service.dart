@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 import 'user_preferences_store.dart';
 
 class SupabaseService {
@@ -248,6 +250,126 @@ class SupabaseService {
     });
 
     return newCode;
+  }
+
+  // Location Permission & Current Position Helper
+  Future<Position?> getCurrentDeviceLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      debugPrint('Location services are disabled.');
+      return null;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        debugPrint('Location permissions are denied');
+        return null;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      debugPrint('Location permissions are permanently denied.');
+      return null;
+    }
+
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+    } catch (e) {
+      debugPrint('Error getting location position: $e');
+      return null;
+    }
+  }
+
+  // Clock In with Live Location
+  Future<Map<String, dynamic>?> clockInWithLocation() async {
+    await init();
+    final user = currentUser;
+    if (user == null) return null;
+
+    final position = await getCurrentDeviceLocation();
+    final double? lat = position?.latitude;
+    final double? lng = position?.longitude;
+    final String locationName = position != null
+        ? 'Lat: ${lat?.toStringAsFixed(4)}, Lng: ${lng?.toStringAsFixed(4)}'
+        : 'Office HQ';
+
+    // Insert work session
+    final sessionRes = await client.from('work_sessions').insert({
+      'user_id': user.id,
+      'clock_in_time': DateTime.now().toIso8601String(),
+      'clock_in_lat': lat,
+      'clock_in_lng': lng,
+      'clock_in_location_name': locationName,
+      'status': 'active',
+    }).select().single();
+
+    // Update profile clock-in status
+    await client.from('profiles').update({
+      'is_clocked_in': true,
+      'is_on_break': false,
+      'last_clock_in_time': DateTime.now().toIso8601String(),
+    }).eq('id', user.id);
+
+    // Broadcast clock-in event
+    final userName = UserPreferencesStore.getUserName();
+    await postTeamBroadcast(
+      eventType: 'clock_in',
+      title: '$userName Clocked In',
+      body: '$userName clocked in at $locationName.',
+    );
+
+    return sessionRes;
+  }
+
+  // Clock Out
+  Future<void> clockOutWorkSession() async {
+    await init();
+    final user = currentUser;
+    if (user == null) return;
+
+    final activeSessions = await client
+        .from('work_sessions')
+        .select()
+        .eq('user_id', user.id)
+        .eq('status', 'active');
+
+    if (activeSessions.isNotEmpty) {
+      final sessionId = activeSessions.first['id'];
+      await client.from('work_sessions').update({
+        'clock_out_time': DateTime.now().toIso8601String(),
+        'status': 'completed',
+      }).eq('id', sessionId);
+    }
+
+    await client.from('profiles').update({
+      'is_clocked_in': false,
+      'is_on_break': false,
+    }).eq('id', user.id);
+  }
+
+  // Fetch Work Sessions History
+  Future<List<Map<String, dynamic>>> getWorkSessionHistory() async {
+    await init();
+    final user = currentUser;
+    if (user == null) return [];
+    try {
+      final res = await client
+          .from('work_sessions')
+          .select()
+          .eq('user_id', user.id)
+          .order('clock_in_time', ascending: false);
+      return List<Map<String, dynamic>>.from(res);
+    } catch (e) {
+      debugPrint('Error fetching work sessions: $e');
+      return [];
+    }
   }
 
   // 5. Submit Leave Request
@@ -520,6 +642,126 @@ class SupabaseService {
       'title': title,
       'body': body,
     });
+  }
+
+  // 14. Upload Profile Avatar Image to Supabase 'avatars' Storage Bucket
+  Future<String?> uploadAvatarImage(File imageFile) async {
+    await init();
+    final user = currentUser;
+    if (user == null) return null;
+
+    final fileExt = imageFile.path.split('.').last;
+    final fileName = '${user.id}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+
+    try {
+      await client.storage.from('avatars').upload(
+        fileName,
+        imageFile,
+        fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+      );
+
+      final imageUrl = client.storage.from('avatars').getPublicUrl(fileName);
+
+      await client.from('profiles').update({
+        'avatar_url': imageUrl,
+      }).eq('id', user.id);
+
+      return imageUrl;
+    } catch (e) {
+      debugPrint('Error uploading avatar image: $e');
+      return null;
+    }
+  }
+
+  // 15. Upload Chat Attachment Image to Supabase 'chat_attachments' Storage Bucket
+  Future<String?> uploadChatAttachment(File mediaFile) async {
+    await init();
+    final user = currentUser;
+    if (user == null) return null;
+
+    final fileExt = mediaFile.path.split('.').last;
+    final fileName = 'chat_${user.id}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+
+    try {
+      await client.storage.from('chat_attachments').upload(
+        fileName,
+        mediaFile,
+        fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+      );
+
+      return client.storage.from('chat_attachments').getPublicUrl(fileName);
+    } catch (e) {
+      debugPrint('Error uploading chat attachment: $e');
+      return null;
+    }
+  }
+
+  // 16. Call Signaling & Realtime Calls
+  Future<Map<String, dynamic>?> createCallInvite({
+    required String receiverId,
+    required bool isVideo,
+  }) async {
+    await init();
+    final user = currentUser;
+    if (user == null) return null;
+
+    final callerName = UserPreferencesStore.getUserName();
+    try {
+      final res = await client.from('call_invites').insert({
+        'caller_id': user.id,
+        'receiver_id': receiverId,
+        'caller_name': callerName,
+        'is_video': isVideo,
+        'status': 'ringing',
+      }).select().single();
+      return res;
+    } catch (e) {
+      debugPrint('Error creating call invite: $e');
+      return null;
+    }
+  }
+
+  Future<void> updateCallStatus({
+    required String callId,
+    required String status,
+  }) async {
+    await init();
+    try {
+      await client.from('call_invites').update({
+        'status': status,
+      }).eq('id', callId);
+    } catch (e) {
+      debugPrint('Error updating call status: $e');
+    }
+  }
+
+  RealtimeChannel? subscribeToIncomingCalls({
+    required Function(Map<String, dynamic> callData) onIncomingCall,
+  }) {
+    final user = currentUser;
+    if (user == null) return null;
+
+    final channel = client
+        .channel('public:call_invites:${user.id}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'call_invites',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'receiver_id',
+            value: user.id,
+          ),
+          callback: (payload) {
+            final newRecord = payload.newRecord;
+            if (newRecord['status'] == 'ringing') {
+              onIncomingCall(newRecord);
+            }
+          },
+        )
+        .subscribe();
+
+    return channel;
   }
 
   // Sign out

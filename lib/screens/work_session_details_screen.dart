@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/my_leave_stats_modal.dart';
+import '../services/supabase_service.dart';
 
 class WorkSessionDetailsScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -14,6 +15,34 @@ class WorkSessionDetailsScreen extends StatefulWidget {
 class _WorkSessionDetailsScreenState extends State<WorkSessionDetailsScreen> {
   bool _isClockedIn = true;
   final String _selectedLocation = 'HQ - Floor 3';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWorkSessionHistory();
+  }
+
+  Future<void> _loadWorkSessionHistory() async {
+    final history = await SupabaseService.instance.getWorkSessionHistory();
+    if (history.isNotEmpty && mounted) {
+      setState(() {
+        _attendanceHistory.clear();
+        for (var sess in history) {
+          final inTime = sess['clock_in_time'] != null ? sess['clock_in_time'].toString().split('T').last.substring(0, 5) : '09:00 AM';
+          final outTime = sess['clock_out_time'] != null ? sess['clock_out_time'].toString().split('T').last.substring(0, 5) : (sess['status'] == 'active' ? 'In Progress' : '05:00 PM');
+          final loc = sess['clock_in_location_name'] ?? 'Office HQ';
+          _attendanceHistory.add({
+            'date': sess['clock_in_time'] != null ? sess['clock_in_time'].toString().split('T').first : 'Today',
+            'in': inTime,
+            'out': outTime,
+            'location': loc,
+            'hours': sess['status'] == 'active' ? 'Active' : '8h 00m',
+            'status': sess['status'] == 'active' ? 'Active Shift' : 'Completed',
+          });
+        }
+      });
+    }
+  }
 
   final List<Map<String, String>> _attendanceHistory = [
     {

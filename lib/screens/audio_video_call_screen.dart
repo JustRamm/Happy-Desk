@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:camera/camera.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../main.dart';
 
 class AudioVideoCallScreen extends StatefulWidget {
   final Map<String, dynamic> teammate;
@@ -18,6 +21,10 @@ class AudioVideoCallScreen extends StatefulWidget {
 
 class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
     with SingleTickerProviderStateMixin {
+  CameraController? _cameraController;
+  bool _isCameraInitialized = false;
+  int _selectedCameraIndex = 0;
+
   bool _isMuted = false;
   bool _isVideoEnabled = true;
   bool _isSpeakerOn = true;
@@ -48,12 +55,86 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
         });
       }
     });
+
+    if (_isVideoEnabled) {
+      _initCamera();
+    }
+  }
+
+  Future<void> _initCamera() async {
+    await Permission.camera.request();
+    await Permission.microphone.request();
+
+    if (availableDeviceCameras.isEmpty) {
+      try {
+        availableDeviceCameras = await availableCameras();
+      } catch (e) {
+        debugPrint('Camera fetch error: $e');
+      }
+    }
+
+    if (availableDeviceCameras.isNotEmpty) {
+      final frontIdx = availableDeviceCameras.indexWhere(
+        (c) => c.lensDirection == CameraLensDirection.front,
+      );
+      _selectedCameraIndex = frontIdx != -1 ? frontIdx : 0;
+
+      await _setupCameraController(availableDeviceCameras[_selectedCameraIndex]);
+    }
+  }
+
+  Future<void> _setupCameraController(CameraDescription cameraDescription) async {
+    if (_cameraController != null) {
+      await _cameraController!.dispose();
+    }
+
+    _cameraController = CameraController(
+      cameraDescription,
+      ResolutionPreset.medium,
+      enableAudio: true,
+    );
+
+    try {
+      await _cameraController!.initialize();
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('CameraController init error: $e');
+    }
+  }
+
+  Future<void> _switchCamera() async {
+    if (availableDeviceCameras.length < 2) return;
+    _selectedCameraIndex = (_selectedCameraIndex + 1) % availableDeviceCameras.length;
+    setState(() {
+      _isCameraInitialized = false;
+    });
+    await _setupCameraController(availableDeviceCameras[_selectedCameraIndex]);
+  }
+
+  void _toggleVideo() async {
+    setState(() {
+      _isVideoEnabled = !_isVideoEnabled;
+    });
+    if (_isVideoEnabled) {
+      await _initCamera();
+    } else {
+      await _cameraController?.dispose();
+      _cameraController = null;
+      setState(() {
+        _isCameraInitialized = false;
+      });
+    }
   }
 
   @override
   void dispose() {
     _callTimer?.cancel();
     _pulseController.dispose();
+    _cameraController?.dispose();
     super.dispose();
   }
 
@@ -65,19 +146,72 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
 
   @override
   Widget build(BuildContext context) {
-    final String name = widget.teammate['name'] ?? 'Sarah Chen';
-    final String role = widget.teammate['role'] ?? 'Lead Engineer';
+    final String name = widget.teammate['name'] ?? 'Teammate';
+    final String role = widget.teammate['role'] ?? 'Colleague';
     final String avatar =
         widget.teammate['avatar'] ?? 'assets/avatars/user_avatar.png';
 
     return Scaffold(
       backgroundColor: const Color(0xFF171B2B),
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
+            // Background Video Stream or Audio Pulse
+            if (_isVideoEnabled && _isCameraInitialized && _cameraController != null)
+              Positioned.fill(
+                child: AspectRatio(
+                  aspectRatio: _cameraController!.value.aspectRatio,
+                  child: CameraPreview(_cameraController!),
+                ),
+              )
+            else
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ScaleTransition(
+                      scale: _pulseAnimation,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF95416C).withValues(alpha: 0.5),
+                            width: 4,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: 64,
+                          backgroundImage: AssetImage(avatar),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      name,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      role,
+                      style: GoogleFonts.beVietnamPro(
+                        fontSize: 14,
+                        color: const Color(0xFF9CA3AF),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             // Top Header Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            Positioned(
+              top: 12,
+              left: 16,
+              right: 16,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -93,211 +227,24 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.12),
+                      color: Colors.black.withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
                       children: [
-                        const Icon(
-                          Icons.lock_outline_rounded,
-                          color: Color(0xFF00AE88),
-                          size: 14,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'End-to-End Encrypted',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 48), // Balance spacer
-                ],
-              ),
-            ),
-
-            const Spacer(),
-
-            // Main Call View Avatar Pulse Container
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedBuilder(
-                    animation: _pulseAnimation,
-                    builder: (context, child) {
-                      return Transform.scale(
-                        scale: _pulseAnimation.value,
-                        child: Container(
-                          width: 140,
-                          height: 140,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFFAB3500)
-                                  .withValues(alpha: 0.6),
-                              width: 3,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFFAB3500)
-                                    .withValues(alpha: 0.25),
-                                blurRadius: 30,
-                                spreadRadius: 10,
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(70),
-                            child: Image.asset(
-                              avatar,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  Text(
-                    name,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  Text(
-                    role,
-                    style: GoogleFonts.beVietnamPro(
-                      fontSize: 14,
-                      color: const Color(0xFFDEE1F8),
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Call Status Timer Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFAB3500).withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: const Color(0xFFAB3500).withValues(alpha: 0.5),
-                      ),
-                    ),
-                    child: Text(
-                      _formatDuration(_secondsElapsed),
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFFFFB59D),
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const Spacer(),
-
-            // Bottom Action Bar Controls
-            Container(
-              margin: const EdgeInsets.all(24),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2C3041),
-                borderRadius: BorderRadius.circular(32),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  // Mute Mic Button
-                  _buildCallControlButton(
-                    icon: _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
-                    label: _isMuted ? 'Unmute' : 'Mute',
-                    isActive: _isMuted,
-                    activeColor: Colors.red.shade400,
-                    onTap: () {
-                      setState(() {
-                        _isMuted = !_isMuted;
-                      });
-                    },
-                  ),
-
-                  // Camera Toggle Button
-                  _buildCallControlButton(
-                    icon: _isVideoEnabled
-                        ? Icons.videocam_rounded
-                        : Icons.videocam_off_rounded,
-                    label: _isVideoEnabled ? 'Video On' : 'Video Off',
-                    isActive: !_isVideoEnabled,
-                    activeColor: Colors.grey.shade600,
-                    onTap: () {
-                      setState(() {
-                        _isVideoEnabled = !_isVideoEnabled;
-                      });
-                    },
-                  ),
-
-                  // Speakerphone Button
-                  _buildCallControlButton(
-                    icon: _isSpeakerOn
-                        ? Icons.volume_up_rounded
-                        : Icons.volume_off_rounded,
-                    label: 'Speaker',
-                    isActive: _isSpeakerOn,
-                    activeColor: const Color(0xFF00AE88),
-                    onTap: () {
-                      setState(() {
-                        _isSpeakerOn = !_isSpeakerOn;
-                      });
-                    },
-                  ),
-
-                  // End Call Button
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
                         Container(
-                          width: 54,
-                          height: 54,
+                          width: 8,
+                          height: 8,
                           decoration: const BoxDecoration(
-                            color: Color(0xFFBA1A1A),
+                            color: Color(0xFF10B981),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
-                            Icons.call_end_rounded,
-                            color: Colors.white,
-                            size: 26,
-                          ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(width: 8),
                         Text(
-                          'End',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
+                          _formatDuration(_secondsElapsed),
+                          style: GoogleFonts.beVietnamPro(
+                            fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
@@ -305,50 +252,103 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
                       ],
                     ),
                   ),
+                  if (_isVideoEnabled && availableDeviceCameras.length > 1)
+                    IconButton(
+                      onPressed: _switchCamera,
+                      icon: const Icon(
+                        Icons.flip_camera_ios_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    )
+                  else
+                    const SizedBox(width: 48),
                 ],
+              ),
+            ),
+
+            // Bottom Call Control Bar
+            Positioned(
+              bottom: 24,
+              left: 20,
+              right: 20,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1F2438).withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(32),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black38,
+                      blurRadius: 16,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Mute / Unmute
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _isMuted = !_isMuted;
+                        });
+                      },
+                      icon: Icon(
+                        _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
+                        color: _isMuted ? Colors.redAccent : Colors.white,
+                        size: 26,
+                      ),
+                    ),
+                    // Video Toggle
+                    IconButton(
+                      onPressed: _toggleVideo,
+                      icon: Icon(
+                        _isVideoEnabled
+                            ? Icons.videocam_rounded
+                            : Icons.videocam_off_rounded,
+                        color: _isVideoEnabled ? const Color(0xFF10B981) : Colors.white,
+                        size: 26,
+                      ),
+                    ),
+                    // Speaker Toggle
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _isSpeakerOn = !_isSpeakerOn;
+                        });
+                      },
+                      icon: Icon(
+                        _isSpeakerOn
+                            ? Icons.volume_up_rounded
+                            : Icons.volume_off_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
+                    ),
+                    // End Call
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: const BoxDecoration(
+                          color: Colors.redAccent,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.call_end_rounded,
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildCallControlButton({
-    required IconData icon,
-    required String label,
-    required bool isActive,
-    required Color activeColor,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: isActive ? activeColor : Colors.white.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 22,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFFDEE1F8),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -67,6 +67,9 @@ CREATE TABLE IF NOT EXISTS public.work_sessions (
     clock_in_time TIMESTAMPTZ NOT NULL,
     clock_out_time TIMESTAMPTZ,
     total_break_minutes INT DEFAULT 0,
+    clock_in_lat DOUBLE PRECISION,
+    clock_in_lng DOUBLE PRECISION,
+    clock_in_location_name TEXT,
     status TEXT DEFAULT 'active' CHECK (status IN ('active', 'on_break', 'completed')),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -254,6 +257,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.direct_messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.team_broadcast_feed;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.coffee_break_invites;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.ngl_jar_messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.call_invites;
 
 -- 20. Seed Initial Prototype Data
 INSERT INTO public.companies (id, name, company_code) 

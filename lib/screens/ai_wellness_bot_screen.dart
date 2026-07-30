@@ -397,10 +397,6 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     await _promptService.ensureLoaded();
     final config = _promptService.config;
 
-    final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=$_geminiApiKey',
-    );
-
     final sessionMemory = await UserPreferencesStore.getMochiSessionSummary();
     final stylePreference = await UserPreferencesStore.getMochiStylePreference();
     final moodTrendSummary =
@@ -421,14 +417,20 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       detectedDistortions: detectedDistortions,
     );
 
+    // Build multi-turn chat history ensuring user/model alternation AND user start
     final List<Map<String, dynamic>> contents = [];
     final history = _messages.length > 10
         ? _messages.sublist(_messages.length - 10)
         : List<_ChatMessage>.from(_messages);
 
-    // Clean multi-turn chat history ensuring user/model alternation
     for (var msg in history) {
       final role = msg.isUser ? 'user' : 'model';
+
+      // Gemini API rule: contents must start with 'user'
+      if (contents.isEmpty && role == 'model') {
+        continue; // Skip initial bot greeting in payload history
+      }
+
       if (contents.isNotEmpty && contents.last['role'] == role) {
         final existingText = (contents.last['parts'] as List)[0]['text'];
         (contents.last['parts'] as List)[0]['text'] =
@@ -452,6 +454,10 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       });
     }
 
+    final primaryUrl = Uri.parse(
+      'https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=$_geminiApiKey',
+    );
+
     final payload = {
       "system_instruction": {
         "parts": [
@@ -465,37 +471,78 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       },
     };
 
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(payload),
-    );
+    try {
+      var response = await http.post(
+        primaryUrl,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      String? textResponse;
-
-      if (data['candidates'] != null) {
-        textResponse = data['candidates']?[0]?['content']?['parts']?[0]?['text'];
-      } else if (data['outputs'] != null) {
-        textResponse = data['outputs']?[0]?['content']?[0]?['text'];
-      } else if (data['outputText'] != null) {
-        textResponse = data['outputText'] as String?;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final String? textResponse =
+            data['candidates']?[0]?['content']?['parts']?[0]?['text'];
+        if (textResponse != null && textResponse.trim().isNotEmpty) {
+          return textResponse.trim();
+        }
       }
 
-      if (textResponse != null && textResponse.trim().isNotEmpty) {
-        return textResponse.trim();
+      debugPrint('Mochi primary API status ${response.statusCode}, trying single-turn prompt with embedded system instruction...');
+
+      // Fallback 1: Embedded System Instruction + Single User Turn
+      final singleTurnPayload = {
+        "contents": [
+          {
+            "role": "user",
+            "parts": [
+              {"text": "$systemInstruction\n\nUser Query: $userPrompt"},
+            ],
+          }
+        ],
+        "generationConfig": {
+          "temperature": config.temperature,
+          "maxOutputTokens": config.maxOutputTokens,
+        },
+      };
+
+      response = await http.post(
+        primaryUrl,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(singleTurnPayload),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final String? textResponse =
+            data['candidates']?[0]?['content']?['parts']?[0]?['text'];
+        if (textResponse != null && textResponse.trim().isNotEmpty) {
+          return textResponse.trim();
+        }
       }
+
+      // Fallback 2: Try gemini-1.5-pro endpoint
+      final altUrl = Uri.parse(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=$_geminiApiKey',
+      );
+      response = await http.post(
+        altUrl,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(singleTurnPayload),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final String? textResponse =
+            data['candidates']?[0]?['content']?['parts']?[0]?['text'];
+        if (textResponse != null && textResponse.trim().isNotEmpty) {
+          return textResponse.trim();
+        }
+      }
+    } catch (e) {
+      debugPrint('Mochi API exception: $e');
     }
 
-    debugPrint(
-      'Mochi Gemini API failed or returned no text. status=${response.statusCode} body=${response.body}',
-    );
-
-    final fallbackText =
-        _fallbackResponses[_fallbackIndex % _fallbackResponses.length];
-    _fallbackIndex++;
-    return fallbackText;
+    return _generateDomainFallbackResponse(userPrompt);
   }
 
   void _recordMoodSentiment(String label) async {
@@ -920,17 +967,23 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
 
     return Align(
       alignment: Alignment.centerLeft,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SvgPicture.asset(
-            'assets/brand/mochi_bot.svg',
-            width: 32,
-            height: 32,
-          ),
-          const SizedBox(width: 10),
-          bubble,
-        ],
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: SvgPicture.asset(
+                'assets/brand/mochi_bot.svg',
+                width: 32,
+                height: 32,
+              ),
+            ),
+            const SizedBox(width: 10),
+            bubble,
+          ],
+        ),
       ),
     );
   }
