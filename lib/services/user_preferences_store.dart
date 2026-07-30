@@ -119,6 +119,17 @@ class UserPreferencesStore {
     await prefs.setString(_keyUserBio, val);
   }
 
+  static String? _avatarUrlCache;
+  static const String _keyUserAvatarUrl = 'user_avatar_url';
+
+  static Future<void> setUserAvatarUrl(String val) async {
+    _avatarUrlCache = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUserAvatarUrl, val);
+  }
+
+  static String? getUserAvatarUrl() => _avatarUrlCache;
+
   static Future<void> setCompany(String val) async {
     _companyCache = val;
     final prefs = await SharedPreferences.getInstance();

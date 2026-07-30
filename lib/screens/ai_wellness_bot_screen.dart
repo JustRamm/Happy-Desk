@@ -36,6 +36,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
   String _leaveSummary = '';
   String _coffeeHistorySummary = '';
   String _cbtTrendSummary = '';
+  String _selectedMochiMode = 'care'; // 'care' or 'hardcore'
 
   // Read API Key securely from .env file with fallback
   static String get _geminiApiKey =>
@@ -415,6 +416,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       coffeeHistorySummary: _coffeeHistorySummary,
       cbtTrendSummary: _cbtTrendSummary,
       detectedDistortions: detectedDistortions,
+      mochiMode: _selectedMochiMode,
     );
 
     // Build multi-turn chat history ensuring user/model alternation AND user start
@@ -685,6 +687,102 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
                         ],
                       );
                     },
+                  ),
+                ],
+              ),
+            ),
+
+            // Mode Selector Bar
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F2FF),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedMochiMode = 'care';
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: _selectedMochiMode == 'care'
+                              ? const Color(0xFF95416C)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.favorite_rounded,
+                              size: 14,
+                              color: _selectedMochiMode == 'care'
+                                  ? Colors.white
+                                  : const Color(0xFF8D7168),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Emotional Care',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: _selectedMochiMode == 'care'
+                                    ? Colors.white
+                                    : const Color(0xFF8D7168),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedMochiMode = 'hardcore';
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: _selectedMochiMode == 'hardcore'
+                              ? const Color(0xFF047857)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.bolt_rounded,
+                              size: 14,
+                              color: _selectedMochiMode == 'hardcore'
+                                  ? Colors.white
+                                  : const Color(0xFF8D7168),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Hardcore Solutions',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: _selectedMochiMode == 'hardcore'
+                                    ? Colors.white
+                                    : const Color(0xFF8D7168),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),

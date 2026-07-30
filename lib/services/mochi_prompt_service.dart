@@ -134,6 +134,7 @@ class MochiPromptService {
     String? coffeeHistorySummary,
     String? cbtTrendSummary,
     List<String>? detectedDistortions,
+    String? mochiMode,
   }) {
     if (_basePrompt == null) {
       throw StateError('Call ensureLoaded() before building the prompt.');
@@ -148,6 +149,12 @@ class MochiPromptService {
     buffer.writeln(
       'Shift: Clocked In = $isClockedIn | On Break = $isOnBreak | Shift Start = $clockInTime.',
     );
+
+    if (mochiMode == 'hardcore') {
+      buffer.writeln('ACTIVE MODE: Hardcore Solution Mode. Deliver direct, structured, tactical solutions, word-for-word conversation scripts, 3-step action plans, and workplace boundary guidance immediately.');
+    } else {
+      buffer.writeln('ACTIVE MODE: Emotional Care Mode. Provide deep empathetic listening, validation, and emotional care.');
+    }
 
     if (userProfileSummary != null && userProfileSummary.trim().isNotEmpty) {
       buffer.writeln('User profile context: $userProfileSummary');

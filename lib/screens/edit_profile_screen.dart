@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 import '../services/user_preferences_store.dart';
+import '../services/supabase_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -216,6 +217,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await UserPreferencesStore.setUserRole(_roleController.text.trim());
       await UserPreferencesStore.setUserBio(_bioController.text.trim());
       await UserPreferencesStore.setCompany(_workplaceController.text.trim());
+
+      if (_customImageFile != null) {
+        final uploadedUrl = await SupabaseService.instance.uploadAvatarImage(_customImageFile!);
+        if (uploadedUrl != null) {
+          await UserPreferencesStore.setUserAvatarUrl(uploadedUrl);
+        }
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
