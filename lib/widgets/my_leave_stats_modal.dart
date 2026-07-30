@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/supabase_service.dart';
 import 'apply_leave_modal.dart';
 
-class MyLeaveStatsModal extends StatelessWidget {
+class MyLeaveStatsModal extends StatefulWidget {
   const MyLeaveStatsModal({super.key});
 
   static Future<void> show(BuildContext context) {
@@ -19,7 +20,88 @@ class MyLeaveStatsModal extends StatelessWidget {
   }
 
   @override
+  State<MyLeaveStatsModal> createState() => _MyLeaveStatsModalState();
+}
+
+class _MyLeaveStatsModalState extends State<MyLeaveStatsModal> {
+  List<Map<String, dynamic>> _leaveRequests = [];
+  bool _isLoading = true;
+
+  int _casualUsed = 0;
+  int _sickUsed = 0;
+  int _annualUsed = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLeaveData();
+  }
+
+  Future<void> _loadLeaveData() async {
+    try {
+      final list = await SupabaseService.instance.getMyLeaveRequests();
+      int casual = 0;
+      int sick = 0;
+      int annual = 0;
+
+      for (var req in list) {
+        final status = req['status'] as String? ?? 'pending';
+        if (status == 'approved' || status == 'completed') {
+          final type = req['leave_type'] as String? ?? '';
+          final days = _calculateLeaveDays(req['start_date']?.toString() ?? '', req['end_date']?.toString() ?? '');
+          if (type.toLowerCase().contains('casual')) {
+            casual += days;
+          } else if (type.toLowerCase().contains('sick')) {
+            sick += days;
+          } else {
+            annual += days;
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _leaveRequests = list;
+          _casualUsed = casual;
+          _sickUsed = sick;
+          _annualUsed = annual;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading leave data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  int _calculateLeaveDays(String startStr, String endStr) {
+    try {
+      final start = DateTime.parse(startStr);
+      final end = DateTime.parse(endStr);
+      return end.difference(start).inDays + 1;
+    } catch (_) {
+      return 1;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final casualTotal = 12;
+    final sickTotal = 7;
+    final annualTotal = 15;
+
+    final casualLeft = (casualTotal - _casualUsed).clamp(0, casualTotal);
+    final sickLeft = (sickTotal - _sickUsed).clamp(0, sickTotal);
+    final annualLeft = (annualTotal - _annualUsed).clamp(0, annualTotal);
+
+    final casualProgress = casualTotal > 0 ? (_casualUsed / casualTotal) : 0.0;
+    final sickProgress = sickTotal > 0 ? (_sickUsed / sickTotal) : 0.0;
+    final annualProgress = annualTotal > 0 ? (_annualUsed / annualTotal) : 0.0;
+
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFFFAF8FF),
@@ -120,9 +202,9 @@ class MyLeaveStatsModal extends StatelessWidget {
                   Expanded(
                     child: _buildQuotaCard(
                       label: 'Casual Leave',
-                      remaining: '3 Days Left',
-                      usedText: '9/12 Used',
-                      progress: 0.75,
+                      remaining: '$casualLeft Days Left',
+                      usedText: '$_casualUsed/$casualTotal Used',
+                      progress: casualProgress,
                       color: const Color(0xFFFF6B35),
                       bgColor: const Color(0xFFFFF0EB),
                       icon: Icons.beach_access_rounded,
@@ -132,9 +214,9 @@ class MyLeaveStatsModal extends StatelessWidget {
                   Expanded(
                     child: _buildQuotaCard(
                       label: 'Sick Leave',
-                      remaining: '5 Days Left',
-                      usedText: '2/7 Used',
-                      progress: 0.28,
+                      remaining: '$sickLeft Days Left',
+                      usedText: '$_sickUsed/$sickTotal Used',
+                      progress: sickProgress,
                       color: const Color(0xFF00C49A),
                       bgColor: const Color(0xFFEBF7F5),
                       icon: Icons.healing_rounded,
@@ -144,9 +226,9 @@ class MyLeaveStatsModal extends StatelessWidget {
                   Expanded(
                     child: _buildQuotaCard(
                       label: 'Annual Rest',
-                      remaining: '10 Days Left',
-                      usedText: '5/15 Used',
-                      progress: 0.33,
+                      remaining: '$annualLeft Days Left',
+                      usedText: '$_annualUsed/$annualTotal Used',
+                      progress: annualProgress,
                       color: const Color(0xFFFF99C8),
                       bgColor: const Color(0xFFFFF0F7),
                       icon: Icons.flight_takeoff_rounded,
@@ -178,7 +260,7 @@ class MyLeaveStatsModal extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      '3 Records',
+                      '${_leaveRequests.length} Records',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -190,35 +272,72 @@ class MyLeaveStatsModal extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              _buildHistoryCard(
-                type: 'Casual Leave (2 Days)',
-                dates: 'Jul 29 – Jul 30, 2026',
-                reason: 'Family gathering & personal errands',
-                status: 'Approved',
-                statusColor: const Color(0xFF00C49A),
-                statusBg: const Color(0xFFEBF7F5),
-                icon: Icons.beach_access_rounded,
-              ),
-              const SizedBox(height: 10),
-              _buildHistoryCard(
-                type: 'Sick Leave (1 Day)',
-                dates: 'Jun 14, 2026',
-                reason: 'Dental checkup & rest',
-                status: 'Approved',
-                statusColor: const Color(0xFF00C49A),
-                statusBg: const Color(0xFFEBF7F5),
-                icon: Icons.healing_rounded,
-              ),
-              const SizedBox(height: 10),
-              _buildHistoryCard(
-                type: 'Annual Rest (4 Days)',
-                dates: 'May 02 – May 05, 2026',
-                reason: 'Summer vacation trip',
-                status: 'Completed',
-                statusColor: const Color(0xFFFF6B35),
-                statusBg: const Color(0xFFFFF0EB),
-                icon: Icons.flight_takeoff_rounded,
-              ),
+              _isLoading
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFFF6B35),
+                        ),
+                      ),
+                    )
+                  : _leaveRequests.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20.0),
+                            child: Text(
+                              'No leave requests found.',
+                              style: GoogleFonts.beVietnamPro(
+                                fontSize: 13.5,
+                                color: const Color(0xFF8D7168),
+                              ),
+                            ),
+                          ),
+                        )
+                      : Column(
+                          children: _leaveRequests.map((req) {
+                            final type = req['leave_type'] ?? 'Leave';
+                            final start = req['start_date'] ?? '';
+                            final end = req['end_date'] ?? '';
+                            final reason = req['reason'] ?? 'No reason provided';
+                            final status = req['status'] ?? 'pending';
+
+                            IconData iconData = Icons.beach_access_rounded;
+                            Color statusColor = const Color(0xFF00C49A);
+                            Color statusBg = const Color(0xFFEBF7F5);
+
+                            if (type.toString().toLowerCase().contains('sick')) {
+                              iconData = Icons.healing_rounded;
+                              statusColor = const Color(0xFF00AE88);
+                            } else if (type.toString().toLowerCase().contains('annual')) {
+                              iconData = Icons.flight_takeoff_rounded;
+                              statusColor = const Color(0xFFFF99C8);
+                            }
+
+                            if (status == 'pending') {
+                              statusColor = const Color(0xFFFF9F1C);
+                              statusBg = const Color(0xFFFFF4E5);
+                            } else if (status == 'rejected') {
+                              statusColor = const Color(0xFFAB3500);
+                              statusBg = const Color(0xFFFFF0EB);
+                            }
+
+                            final days = _calculateLeaveDays(start, end);
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10.0),
+                              child: _buildHistoryCard(
+                                type: '$type ($days ${days == 1 ? "Day" : "Days"})',
+                                dates: '$start – $end',
+                                reason: reason,
+                                status: status[0].toUpperCase() + status.substring(1),
+                                statusColor: statusColor,
+                                statusBg: statusBg,
+                                icon: iconData,
+                              ),
+                            );
+                          }).toList(),
+                        ),
 
               const SizedBox(height: 24),
 
@@ -380,7 +499,7 @@ class MyLeaveStatsModal extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        '✓ $status',
+                        status,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,

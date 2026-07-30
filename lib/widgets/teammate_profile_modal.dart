@@ -5,8 +5,10 @@ import '../screens/direct_chat_screen.dart';
 import '../screens/audio_video_call_screen.dart';
 import '../services/sound_service.dart';
 import '../services/coffee_notification_store.dart';
+import '../services/supabase_service.dart';
+import '../services/user_preferences_store.dart';
 
-class TeammateProfileModal extends StatelessWidget {
+class TeammateProfileModal extends StatefulWidget {
   final Map<String, dynamic> teammate;
 
   const TeammateProfileModal({
@@ -27,11 +29,54 @@ class TeammateProfileModal extends StatelessWidget {
   }
 
   @override
+  State<TeammateProfileModal> createState() => _TeammateProfileModalState();
+}
+
+class _TeammateProfileModalState extends State<TeammateProfileModal> {
+  int _nglNotes = 18;
+  int _heroBadges = 6;
+  String _reliability = '98%';
+  bool _loadingStats = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    final name = widget.teammate['name'] ?? '';
+    final id = widget.teammate['id'] ?? '';
+    
+    final isCurrentUser = widget.teammate['isCurrentUser'] == true ||
+        name == 'You' ||
+        name == UserPreferencesStore.getUserName();
+        
+    final stats = await SupabaseService.instance.getTeammateStats(
+      isCurrentUser ? UserPreferencesStore.getUserName() : name,
+      isCurrentUser ? (SupabaseService.instance.currentUser?.id ?? '') : id,
+    );
+
+    if (mounted) {
+      setState(() {
+        _nglNotes = stats['nglNotes'] as int;
+        _heroBadges = stats['heroBadges'] as int;
+        _reliability = stats['reliability'] as String;
+        _loadingStats = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final String name = teammate['name'] ?? 'Alex Miller';
-    final String role = teammate['role'] ?? 'Product Designer';
-    final String avatar = teammate['avatar'] ?? '';
-    final bool isOnline = teammate['isOnline'] == true;
+    final String name = widget.teammate['name'] ?? 'Alex Miller';
+    final String role = widget.teammate['role'] ?? 'Product Designer';
+    final String avatar = widget.teammate['avatar'] ?? '';
+    final bool isOnline = widget.teammate['isOnline'] == true;
+    
+    final bool isCurrentUser = widget.teammate['isCurrentUser'] == true ||
+        name == 'You' ||
+        name == UserPreferencesStore.getUserName();
 
     return Padding(
       padding: EdgeInsets.only(
@@ -184,118 +229,147 @@ class TeammateProfileModal extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: const Color(0xFFE4E7FE)),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            child: _loadingStats
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFFAB3500),
+                        ),
+                      ),
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStatColumn(
+                        icon: Icons.favorite_rounded,
+                        color: const Color(0xFFAB3500),
+                        value: '$_nglNotes',
+                        label: 'NGL Notes',
+                      ),
+                      Container(width: 1, height: 36, color: const Color(0xFFE4E7FE)),
+                      _buildStatColumn(
+                        icon: Icons.emoji_events_rounded,
+                        color: const Color(0xFF95416C),
+                        value: '$_heroBadges',
+                        label: 'Hero Badges',
+                      ),
+                      Container(width: 1, height: 36, color: const Color(0xFFE4E7FE)),
+                      _buildStatColumn(
+                        icon: Icons.local_fire_department_rounded,
+                        color: const Color(0xFF006C53),
+                        value: _reliability,
+                        label: 'Reliability',
+                      ),
+                    ],
+                  ),
+          ),
+
+          // Action Buttons
+          if (!isCurrentUser) ...[
+            const SizedBox(height: 22),
+            Row(
               children: [
-                _buildStatColumn(
-                  icon: Icons.favorite_rounded,
-                  color: const Color(0xFFAB3500),
-                  value: '18',
-                  label: 'NGL Notes',
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DirectChatScreen(teammate: widget.teammate),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFAB3500),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      elevation: 0,
+                    ),
+                    icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                    label: Text(
+                      'Direct Message',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
                 ),
-                Container(width: 1, height: 36, color: const Color(0xFFE4E7FE)),
-                _buildStatColumn(
-                  icon: Icons.emoji_events_rounded,
-                  color: const Color(0xFF95416C),
-                  value: '6',
-                  label: 'Hero Badges',
-                ),
-                Container(width: 1, height: 36, color: const Color(0xFFE4E7FE)),
-                _buildStatColumn(
-                  icon: Icons.local_fire_department_rounded,
-                  color: const Color(0xFF006C53),
-                  value: '98%',
-                  label: 'Reliability',
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      final recipientId = widget.teammate['id'];
+                      if (recipientId != null) {
+                        try {
+                          await SupabaseService.instance.sendCoffeeInvite(
+                            message: '${UserPreferencesStore.getUserName()} invited you for a 1-on-1 coffee break!',
+                            receiverId: recipientId,
+                          );
+                        } catch (e) {
+                          debugPrint('Error sending coffee invite: $e');
+                        }
+                      }
+                      
+                      CoffeeNotificationStore.addCoffeeInvite(
+                        senderName: name,
+                        senderAvatar: avatar,
+                        message: '$name sent you a 1-on-1 coffee break invitation!',
+                      );
+                      
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(Icons.local_cafe_rounded, color: Colors.white, size: 18),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Coffee break invite sent to $name!',
+                                  style: GoogleFonts.beVietnamPro(fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          ),
+                          backgroundColor: const Color(0xFFAB3500),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: Color(0xFF95416C), width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                    ),
+                    icon: const Icon(Icons.local_cafe_rounded, size: 18, color: Color(0xFF95416C)),
+                    label: Text(
+                      'Coffee Break',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF95416C),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-
-          const SizedBox(height: 22),
-
-          // Action Buttons
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DirectChatScreen(teammate: teammate),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFAB3500),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                    elevation: 0,
-                  ),
-                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-                  label: Text(
-                    'Direct Message',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    CoffeeNotificationStore.addCoffeeInvite(
-                      senderName: name,
-                      senderAvatar: avatar,
-                      message: '$name sent you a 1-on-1 coffee break invitation!',
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Row(
-                          children: [
-                            const Icon(Icons.local_cafe_rounded, color: Colors.white, size: 18),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Coffee break invite sent to $name!',
-                                style: GoogleFonts.beVietnamPro(fontSize: 13),
-                              ),
-                            ),
-                          ],
-                        ),
-                        backgroundColor: const Color(0xFFAB3500),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      ),
-                    );
-                  },
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: const BorderSide(color: Color(0xFF95416C), width: 1.5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                  ),
-                  icon: const Icon(Icons.local_cafe_rounded, size: 18, color: Color(0xFF95416C)),
-                  label: Text(
-                    'Coffee Break',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF95416C),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          ],
         ],
       ),
     );

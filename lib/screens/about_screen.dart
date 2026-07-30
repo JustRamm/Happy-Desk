@@ -141,18 +141,53 @@ class AboutScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Mind Empowered Banner Image
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
+                    // Mind Empowered logo (ME.png) showcase
+                    Center(
                       child: Image.asset(
                         'assets/about/ME.png',
-                        width: double.infinity,
-                        height: 140,
+                        height: 54,
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) => const SizedBox(),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
+                    
+                    // Large Showcase Founder Image
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.asset(
+                          'assets/about/founders.png',
+                          width: double.infinity,
+                          height: 230, // Bigger size to showcase founders
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Center(
+                      child: Text(
+                        'Maya Menon & Srila Menon\nCo-Founders of Mind Empowered (ME)',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFFAB3500),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     Text(
                       'Mind Empowered (ME) is a charitable organization based in India, born from compassion, empathy, and deep understanding.',
                       style: GoogleFonts.beVietnamPro(
@@ -179,61 +214,6 @@ class AboutScreen extends StatelessWidget {
                         color: const Color(0xFF594139),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    _buildPillarHeader('OUR VISION', Icons.visibility_rounded, const Color(0xFF7C3AED)),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Empowering individuals to navigate life with emotional resilience.',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF171B2B),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildPillarHeader('OUR MISSION', Icons.flag_rounded, const Color(0xFF7C3AED)),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Championing the cause of mental health through awareness, education, advocacy, and creating an empathetic, supportive community.',
-                      style: GoogleFonts.beVietnamPro(
-                        fontSize: 13,
-                        height: 1.5,
-                        color: const Color(0xFF594139),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Our 3 Core Objectives:',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF00AE88),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildObjectiveTile(
-                      icon: Icons.psychology_rounded,
-                      color: const Color(0xFF00AE88),
-                      title: '1. Self-Awareness',
-                      description:
-                          'Fostered through comprehensive educational programs, interactive webinars, and mental health workshops.',
-                    ),
-                    const SizedBox(height: 10),
-                    _buildObjectiveTile(
-                      icon: Icons.palette_rounded,
-                      color: const Color(0xFF0284C7),
-                      title: '2. Self-Expression',
-                      description:
-                          'Encouraged through creative showcases, community volunteering, and peer support groups.',
-                    ),
-                    const SizedBox(height: 10),
-                    _buildObjectiveTile(
-                      icon: Icons.rocket_launch_rounded,
-                      color: const Color(0xFFAB3500),
-                      title: '3. Self-Sufficiency',
-                      description:
-                          'Achieved through technical and creative workshops, soft skills training, and workplace wellness tools.',
-                    ),
                   ],
                 ),
               ),
@@ -248,70 +228,6 @@ class AboutScreen extends StatelessWidget {
                 bgColor: const Color(0xFFF3F4F6),
                 child: Column(
                   children: [
-                    // Co-Founders Card
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF0EB),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFFFFD4C4)),
-                      ),
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.asset(
-                              'assets/about/founders.png',
-                              width: 72,
-                              height: 72,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                width: 72,
-                                height: 72,
-                                color: const Color(0xFFAB3500).withValues(alpha: 0.1),
-                                child: const Icon(Icons.people_rounded, color: Color(0xFFAB3500), size: 36),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Maya Menon & Srila Menon',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF171B2B),
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Co-Founders of Mind Empowered (ME)',
-                                  style: GoogleFonts.beVietnamPro(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: const Color(0xFFAB3500),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Visionaries behind workplace emotional safety and mental health resilience.',
-                                  style: GoogleFonts.beVietnamPro(
-                                    fontSize: 11.5,
-                                    color: AppTheme.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
                     // Lead Developer Card
                     Container(
                       padding: const EdgeInsets.all(14),
@@ -361,7 +277,7 @@ class AboutScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Lead Architect of U & ME Flutter & Supabase ecosystem.',
+                                  'Full stack developer.',
                                   style: GoogleFonts.beVietnamPro(
                                     fontSize: 11.5,
                                     color: AppTheme.textSecondary,

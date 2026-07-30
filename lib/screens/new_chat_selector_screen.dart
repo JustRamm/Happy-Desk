@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'direct_chat_screen.dart';
+import '../services/supabase_service.dart';
+import '../services/user_preferences_store.dart';
 
 class NewChatSelectorScreen extends StatefulWidget {
   const NewChatSelectorScreen({super.key});
@@ -13,51 +15,38 @@ class NewChatSelectorScreen extends StatefulWidget {
 class _NewChatSelectorScreenState extends State<NewChatSelectorScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _activeFilter = 'All';
+  List<Map<String, dynamic>> _allDirectory = [];
+  bool _isLoading = true;
 
-  final List<Map<String, dynamic>> _allDirectory = [
-    {
-      'name': 'Alex Miller',
-      'role': 'Product Designer',
-      'team': 'Design',
-      'isOnline': true,
-      'avatar': '',
-    },
-    {
-      'name': 'Sarah Chen',
-      'role': 'Lead Engineer',
-      'team': 'Engineering',
-      'isOnline': true,
-      'avatar': '',
-    },
-    {
-      'name': 'David Kim',
-      'role': 'Frontend Architect',
-      'team': 'Engineering',
-      'isOnline': false,
-      'avatar': '',
-    },
-    {
-      'name': 'Marcus Vance',
-      'role': 'Community Lead',
-      'team': 'Product',
-      'isOnline': false,
-      'avatar': '',
-    },
-    {
-      'name': 'Elena Rostova',
-      'role': 'Customer Success Lead',
-      'team': 'Product',
-      'isOnline': true,
-      'avatar': '',
-    },
-    {
-      'name': 'Mary Jane',
-      'role': 'Product Manager',
-      'team': 'Product',
-      'isOnline': true,
-      'avatar': '',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadDirectory();
+  }
+
+  Future<void> _loadDirectory() async {
+    final teammates = await SupabaseService.instance.getCompanyTeammates();
+    final myName = UserPreferencesStore.getUserName();
+
+    final filtered = teammates
+        .where((t) => t['name'] != myName)
+        .map((t) => {
+              'id': t['id'],
+              'name': t['name'] ?? 'Unknown Teammate',
+              'role': t['job_title'] ?? 'Teammate',
+              'team': t['department'] ?? 'General',
+              'isOnline': t['is_clocked_in'] == true,
+              'avatar': t['avatar_url'] ?? '',
+            })
+        .toList();
+
+    if (mounted) {
+      setState(() {
+        _allDirectory = filtered;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -197,7 +186,13 @@ class _NewChatSelectorScreenState extends State<NewChatSelectorScreen> {
 
           // Contact List
           Expanded(
-            child: filteredDirectory.isEmpty
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFFAB3500),
+                    ),
+                  )
+                : filteredDirectory.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,

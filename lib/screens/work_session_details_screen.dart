@@ -13,106 +13,131 @@ class WorkSessionDetailsScreen extends StatefulWidget {
 }
 
 class _WorkSessionDetailsScreenState extends State<WorkSessionDetailsScreen> {
-  bool _isClockedIn = true;
-  final String _selectedLocation = 'HQ - Floor 3';
+  bool _isClockedIn = false;
+  String _reliability = '100.0%';
+  String _avgWorkhour = '8h 00m';
+  final List<Map<String, String>> _attendanceHistory = [];
 
   @override
   void initState() {
     super.initState();
+    _checkClockInStatus();
     _loadWorkSessionHistory();
+  }
+
+  Future<void> _checkClockInStatus() async {
+    try {
+      final user = SupabaseService.instance.currentUser;
+      if (user != null) {
+        final profile = await SupabaseService.instance.client
+            .from('profiles')
+            .select('is_clocked_in')
+            .eq('id', user.id)
+            .maybeSingle();
+        if (profile != null && mounted) {
+          setState(() {
+            _isClockedIn = profile['is_clocked_in'] == true;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking clock-in status: $e');
+    }
   }
 
   Future<void> _loadWorkSessionHistory() async {
     final history = await SupabaseService.instance.getWorkSessionHistory();
-    if (history.isNotEmpty && mounted) {
+    if (mounted) {
       setState(() {
         _attendanceHistory.clear();
+        double totalHours = 0;
+        int completedCount = 0;
+        int totalCount = history.length;
+
         for (var sess in history) {
           final inTime = sess['clock_in_time'] != null ? sess['clock_in_time'].toString().split('T').last.substring(0, 5) : '09:00 AM';
           final outTime = sess['clock_out_time'] != null ? sess['clock_out_time'].toString().split('T').last.substring(0, 5) : (sess['status'] == 'active' ? 'In Progress' : '05:00 PM');
           final loc = sess['clock_in_location_name'] ?? 'Office HQ';
+          
+          String hoursText = '8h 00m';
+          if (sess['clock_in_time'] != null && sess['clock_out_time'] != null) {
+            final start = DateTime.parse(sess['clock_in_time'].toString());
+            final end = DateTime.parse(sess['clock_out_time'].toString());
+            final diff = end.difference(start);
+            final hours = diff.inMinutes / 60.0;
+            totalHours += hours;
+            completedCount++;
+            hoursText = '${diff.inHours}h ${diff.inMinutes % 60}m';
+          }
+
           _attendanceHistory.add({
             'date': sess['clock_in_time'] != null ? sess['clock_in_time'].toString().split('T').first : 'Today',
             'in': inTime,
             'out': outTime,
             'location': loc,
-            'hours': sess['status'] == 'active' ? 'Active' : '8h 00m',
+            'hours': sess['status'] == 'active' ? 'Active' : hoursText,
             'status': sess['status'] == 'active' ? 'Active Shift' : 'Completed',
           });
+        }
+
+        if (completedCount > 0) {
+          final avg = totalHours / completedCount;
+          final avgMinutes = (avg * 60).round();
+          _avgWorkhour = '${avgMinutes ~/ 60}h ${avgMinutes % 60}m';
+        } else {
+          _avgWorkhour = '8h 00m';
+        }
+
+        if (totalCount > 0) {
+          final rel = (completedCount.toDouble() / totalCount.toDouble()) * 100.0;
+          _reliability = '${rel.toStringAsFixed(1)}%';
+        } else {
+          _reliability = '100.0%';
         }
       });
     }
   }
 
-  final List<Map<String, String>> _attendanceHistory = [
-    {
-      'date': 'Today (Mon, Jul 27)',
-      'in': '09:00 AM',
-      'out': 'In Progress',
-      'location': 'HQ - Floor 3',
-      'hours': '4h 22m',
-      'status': 'Active Shift',
-    },
-    {
-      'date': 'Fri, Jul 24',
-      'in': '08:55 AM',
-      'out': '05:15 PM',
-      'location': 'Home Office (Remote)',
-      'hours': '8h 20m',
-      'status': 'Completed',
-    },
-    {
-      'date': 'Thu, Jul 23',
-      'in': '09:02 AM',
-      'out': '05:00 PM',
-      'location': 'HQ - Floor 3',
-      'hours': '7h 58m',
-      'status': 'Completed',
-    },
-    {
-      'date': 'Wed, Jul 22',
-      'in': '08:50 AM',
-      'out': '05:10 PM',
-      'location': 'Client Site',
-      'hours': '8h 20m',
-      'status': 'Completed',
-    },
-    {
-      'date': 'Tue, Jul 21',
-      'in': '09:00 AM',
-      'out': '05:05 PM',
-      'location': 'HQ - Floor 3',
-      'hours': '8h 05m',
-      'status': 'Completed',
-    },
-  ];
-
-  void _toggleShift() {
-    setState(() {
-      _isClockedIn = !_isClockedIn;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                _isClockedIn
-                    ? 'Clocked in from $_selectedLocation! Broadcast sent to team.'
-                    : 'Shift ended. Clocked out successfully!',
-                style: GoogleFonts.beVietnamPro(fontSize: 13, color: Colors.white),
-              ),
+  void _toggleShift() async {
+    try {
+      if (_isClockedIn) {
+        await SupabaseService.instance.clockOutWorkSession();
+        setState(() {
+          _isClockedIn = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Shift ended. Clocked out successfully!',
+              style: GoogleFonts.beVietnamPro(fontSize: 13, color: Colors.white),
             ),
-          ],
-        ),
-        backgroundColor:
-            _isClockedIn ? const Color(0xFFAB3500) : const Color(0xFF006C53),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-    );
+            backgroundColor: const Color(0xFF006C53),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+        );
+      } else {
+        final session = await SupabaseService.instance.clockInWithLocation();
+        setState(() {
+          _isClockedIn = true;
+        });
+        final loc = session?['clock_in_location_name'] ?? 'Office HQ';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Clocked in successfully from $loc! Broadcast sent to team.',
+              style: GoogleFonts.beVietnamPro(fontSize: 13, color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFFAB3500),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+        );
+      }
+      _loadWorkSessionHistory();
+    } catch (e) {
+      debugPrint('Error toggling shift: $e');
+    }
   }
 
   @override
@@ -228,7 +253,7 @@ class _WorkSessionDetailsScreenState extends State<WorkSessionDetailsScreen> {
                 const SizedBox(height: 16),
 
                 Text(
-                  _isClockedIn ? '4h 22m Elapsed' : 'Shift Not Started',
+                  _isClockedIn ? 'Shift Active' : 'Shift Not Started',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
@@ -238,7 +263,7 @@ class _WorkSessionDetailsScreenState extends State<WorkSessionDetailsScreen> {
                 const SizedBox(height: 4),
                 Text(
                   _isClockedIn
-                      ? 'Clocked in at 09:00 AM • $_selectedLocation'
+                      ? 'You are currently clocked in and active.'
                       : 'Tap below to log time & location',
                   style: GoogleFonts.beVietnamPro(
                     fontSize: 13,
@@ -294,7 +319,7 @@ class _WorkSessionDetailsScreenState extends State<WorkSessionDetailsScreen> {
                           color: Color(0xFF006C53), size: 22),
                       const SizedBox(height: 10),
                       Text(
-                        '98.4%',
+                        _reliability,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
@@ -330,7 +355,7 @@ class _WorkSessionDetailsScreenState extends State<WorkSessionDetailsScreen> {
                           color: Color(0xFFAB3500), size: 22),
                       const SizedBox(height: 10),
                       Text(
-                        '8h 12m',
+                        _avgWorkhour,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,

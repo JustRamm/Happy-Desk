@@ -308,6 +308,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       if (uploadedAvatarUrl != null) {
         await UserPreferencesStore.setUserAvatarUrl(uploadedAvatarUrl);
+        final user = SupabaseService.instance.currentUser;
+        if (user != null) {
+          await SupabaseService.instance.client.from('profiles').update({
+            'avatar_url': uploadedAvatarUrl,
+          }).eq('id', user.id);
+        }
       }
       await UserPreferencesStore.setIsLoggedIn(true);
     } catch (e) {

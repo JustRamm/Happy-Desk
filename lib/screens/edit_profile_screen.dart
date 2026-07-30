@@ -192,8 +192,58 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _workplaceController = TextEditingController(text: UserPreferencesStore.getCompany());
     _hqLocationController = TextEditingController(text: UserPreferencesStore.getCompanyHq());
     _industryController = TextEditingController(text: UserPreferencesStore.getCompanyIndustry());
-    _emailController = TextEditingController(text: 'alex.m@happy-desk.com');
-    _phoneController = TextEditingController(text: '+1 (555) 234-5678');
+    _emailController = TextEditingController(text: '');
+    _phoneController = TextEditingController(text: '');
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    try {
+      final user = SupabaseService.instance.currentUser;
+      if (user != null) {
+        final profile = await SupabaseService.instance.client
+            .from('profiles')
+            .select()
+            .eq('id', user.id)
+            .maybeSingle();
+
+        if (profile != null) {
+          setState(() {
+            _nameController.text = profile['name'] ?? _nameController.text;
+            _roleController.text = profile['job_title'] ?? _roleController.text;
+            _bioController.text = profile['bio'] ?? _bioController.text;
+            _emailController.text = profile['email'] ?? user.email ?? '';
+            _phoneController.text = profile['phone'] ?? '';
+            
+            final compId = profile['company_id'] as String?;
+            if (compId != null) {
+              _loadCompanyData(compId);
+            }
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading profile details: $e');
+    }
+  }
+
+  Future<void> _loadCompanyData(String companyId) async {
+    try {
+      final comp = await SupabaseService.instance.client
+          .from('companies')
+          .select()
+          .eq('id', companyId)
+          .maybeSingle();
+      if (comp != null && mounted) {
+        setState(() {
+          _workplaceController.text = comp['name'] ?? _workplaceController.text;
+          _hqLocationController.text = comp['hq_location'] ?? _hqLocationController.text;
+          _industryController.text = comp['industry'] ?? _industryController.text;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading company details: $e');
+    }
   }
 
   @override
@@ -217,6 +267,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final company = _workplaceController.text.trim();
       final hq = _hqLocationController.text.trim();
       final ind = _industryController.text.trim();
+      final email = _emailController.text.trim();
+      final phone = _phoneController.text.trim();
 
       await UserPreferencesStore.setUserName(name);
       await UserPreferencesStore.setUserRole(role);
@@ -228,8 +280,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         industry: ind,
       );
 
+      String? uploadedUrl;
       if (_customImageFile != null) {
-        final uploadedUrl = await SupabaseService.instance.uploadAvatarImage(_customImageFile!);
+        uploadedUrl = await SupabaseService.instance.uploadAvatarImage(_customImageFile!);
         if (uploadedUrl != null) {
           await UserPreferencesStore.setUserAvatarUrl(uploadedUrl);
         }
@@ -239,11 +292,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       try {
         final user = SupabaseService.instance.currentUser;
         if (user != null) {
-          await SupabaseService.instance.client.from('profiles').update({
+          final Map<String, dynamic> updateFields = {
             'name': name,
             'job_title': role,
             'bio': bio,
-          }).eq('id', user.id);
+            'email': email,
+            'phone': phone,
+          };
+          if (uploadedUrl != null) {
+            updateFields['avatar_url'] = uploadedUrl;
+          }
+          await SupabaseService.instance.client.from('profiles').update(updateFields).eq('id', user.id);
 
           final profileRes = await SupabaseService.instance.client
               .from('profiles')

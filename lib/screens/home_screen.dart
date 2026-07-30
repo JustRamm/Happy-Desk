@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../theme/app_theme.dart';
 import '../widgets/apply_leave_modal.dart';
 import 'jar_screen.dart';
@@ -39,6 +40,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   int _currentQuestIndex = 0;
   bool _isQuestCompleted = false;
+
+  List<Map<String, dynamic>> _realTeamMembers = [];
+  bool _isLoadingTeam = false;
 
   final List<Map<String, String>> _quests = const [
     {
@@ -92,6 +96,22 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadPreferences();
+    _loadTeamStatus();
+    _requestNeededPermissions();
+  }
+
+  Future<void> _requestNeededPermissions() async {
+    try {
+      await [
+        Permission.location,
+        Permission.camera,
+        Permission.microphone,
+      ].request();
+      _loadTeamStatus();
+      _loadPreferences();
+    } catch (e) {
+      debugPrint('Error requesting permissions: $e');
+    }
   }
 
   Future<void> _loadPreferences() async {
@@ -110,8 +130,82 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _loadTeamStatus() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingTeam = true;
+    });
+    try {
+      final teammates = await SupabaseService.instance.getCompanyTeammates();
+      final myName = UserPreferencesStore.getUserName();
+
+      final mapped = teammates.map((t) {
+        final isMe = t['name'] == myName;
+        final clocked = isMe ? _isClockedIn : (t['is_clocked_in'] == true);
+        return {
+          'id': t['id'],
+          'name': isMe ? 'You' : (t['name'] ?? 'Teammate'),
+          'avatar': t['avatar_url'] ?? '',
+          'isClockedIn': clocked,
+          'timeText': clocked ? 'Active Now' : 'Offline',
+          'isCurrentUser': isMe,
+        };
+      }).toList();
+
+      final hasMe = mapped.any((m) => m['isCurrentUser'] == true);
+      if (!hasMe) {
+        mapped.add({
+          'id': SupabaseService.instance.currentUser?.id ?? '',
+          'name': 'You',
+          'avatar': UserPreferencesStore.getUserAvatarUrl() ?? '',
+          'isClockedIn': _isClockedIn,
+          'timeText': _isClockedIn ? 'Active Now' : 'Offline',
+          'isCurrentUser': true,
+        });
+      }
+
+      mapped.sort((a, b) {
+        if (a['isCurrentUser'] == true) return 1;
+        if (b['isCurrentUser'] == true) return -1;
+        return (a['name'] as String).compareTo(b['name'] as String);
+      });
+
+      if (mounted) {
+        setState(() {
+          _realTeamMembers = mapped;
+          _isLoadingTeam = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading team status: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingTeam = false;
+        });
+      }
+    }
+  }
+
   Future<void> _toggleClockIn() async {
     if (!_isClockedIn) {
+      // Seek permission from the phone for location services
+      final status = await Permission.location.request();
+      if (status.isDenied || status.isPermanentlyDenied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Location permission is required to fetch your work location details.',
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+              ),
+              backgroundColor: AppTheme.primaryRust,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+
       // Clocking IN: Request Location & Save GPS to Supabase
       SoundService.playClockInSound();
       final session = await SupabaseService.instance.clockInWithLocation();
@@ -134,6 +228,8 @@ class _HomeScreenState extends State<HomeScreen> {
       await UserPreferencesStore.setOnBreak(false);
       await UserPreferencesStore.setLastClockInTime(formattedTime);
       await UserPreferencesStore.setLastClockInLocation(locationName);
+
+      await _loadTeamStatus();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -167,6 +263,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       await UserPreferencesStore.setClockedIn(false);
       await UserPreferencesStore.setOnBreak(false);
+
+      await _loadTeamStatus();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -921,15 +1019,13 @@ class _HomeScreenState extends State<HomeScreen> {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF007A5A,
-                              ), // Emerald Green Pill
+                              color: const Color(0xFF007A5A), // Emerald Green Pill
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              _isClockedIn
-                                  ? '4/5 Clocked In'
-                                  : '3/5 Clocked In',
+                              _realTeamMembers.isNotEmpty
+                                  ? '${_realTeamMembers.where((m) => m['isClockedIn'] == true).length}/${_realTeamMembers.length} Clocked In'
+                                  : (_isClockedIn ? '1/1 Clocked In' : '0/1 Clocked In'),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -943,58 +1039,50 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 14),
 
                       // Teammate Avatars Row with Live Active Status Dots
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        child: Row(
-                          children: [
-                            // Teammate 1 - Sarah (Clocked In)
-                            _buildTeammateStatusAvatar(
-                              name: 'Sarah M.',
-                              assetPath: '',
-                              isClockedIn: true,
-                              timeText: '9:15 AM',
+                      _isLoadingTeam
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 10),
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFF4A1500),
+                                  ),
+                                ),
+                              ),
+                            )
+                          : SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              child: Row(
+                                children: _realTeamMembers.isEmpty
+                                    ? [
+                                        _buildTeammateStatusAvatar(
+                                          name: 'You',
+                                          assetPath: UserPreferencesStore.getUserAvatarUrl() ?? '',
+                                          isClockedIn: _isClockedIn,
+                                          timeText: _isClockedIn ? 'Active Now' : 'Offline',
+                                          isCurrentUser: true,
+                                          teammateId: SupabaseService.instance.currentUser?.id ?? '',
+                                        ),
+                                      ]
+                                    : _realTeamMembers.map((member) {
+                                        return Padding(
+                                          padding: const EdgeInsets.only(right: 14.0),
+                                          child: _buildTeammateStatusAvatar(
+                                            name: member['name'],
+                                            assetPath: member['avatar'],
+                                            isClockedIn: member['isClockedIn'],
+                                            timeText: member['timeText'],
+                                            isCurrentUser: member['isCurrentUser'] == true,
+                                            teammateId: member['id'],
+                                          ),
+                                        );
+                                      }).toList(),
+                              ),
                             ),
-                            const SizedBox(width: 14),
-
-                            // Teammate 2 - Alex C. (Clocked In)
-                            _buildTeammateStatusAvatar(
-                              name: 'Alex C.',
-                              assetPath: '',
-                              isClockedIn: true,
-                              timeText: '9:30 AM',
-                            ),
-                            const SizedBox(width: 14),
-
-                            // Teammate 3 - David R. (Clocked In)
-                            _buildTeammateStatusAvatar(
-                              name: 'David R.',
-                              assetPath: '',
-                              isClockedIn: true,
-                              timeText: '9:45 AM',
-                            ),
-                            const SizedBox(width: 14),
-
-                            // Teammate 4 - Elena R. (Not Clocked In)
-                            _buildTeammateStatusAvatar(
-                              name: 'Elena R.',
-                              assetPath: '',
-                              isClockedIn: false,
-                              timeText: 'Offline',
-                            ),
-                            const SizedBox(width: 14),
-
-                            // User (Dynamic live status!)
-                            _buildTeammateStatusAvatar(
-                              name: 'You',
-                              assetPath: UserPreferencesStore.getUserAvatarUrl() ?? '',
-                              isClockedIn: _isClockedIn,
-                              timeText: _isClockedIn ? 'Active Now' : 'Not Yet',
-                              isCurrentUser: true,
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -1011,14 +1099,17 @@ class _HomeScreenState extends State<HomeScreen> {
     required bool isClockedIn,
     required String timeText,
     bool isCurrentUser = false,
+    String? teammateId,
   }) {
     return GestureDetector(
       onTap: () {
         TeammateProfileModal.show(context, {
+          'id': teammateId,
           'name': isCurrentUser ? UserPreferencesStore.getUserName() : name,
           'role': isCurrentUser ? UserPreferencesStore.getUserRole() : 'Team Member',
           'avatar': assetPath,
           'isOnline': isClockedIn,
+          'isCurrentUser': isCurrentUser,
         });
       },
       child: Column(

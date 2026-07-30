@@ -19,44 +19,7 @@ class ChatNotificationsScreen extends StatefulWidget {
 class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
   final TextEditingController _searchController = TextEditingController();
 
-  final List<Map<String, dynamic>> _chats = [
-    {
-      'name': 'Alex Miller',
-      'role': 'Product Designer',
-      'lastMessage': 'Great job on the design system updates today!',
-      'time': '10:14 AM',
-      'unread': true,
-      'isOnline': true,
-      'avatar': '',
-    },
-    {
-      'name': 'Sarah Chen',
-      'role': 'Lead Engineer',
-      'lastMessage': 'Let\'s catch up after the team sync call.',
-      'time': 'Yesterday',
-      'unread': false,
-      'isOnline': true,
-      'avatar': '',
-    },
-    {
-      'name': 'David Kim',
-      'role': 'Frontend Architect',
-      'lastMessage': 'Sent the pull request for review.',
-      'time': 'July 25',
-      'unread': false,
-      'isOnline': false,
-      'avatar': '',
-    },
-    {
-      'name': 'Marcus Vance',
-      'role': 'Community Lead',
-      'lastMessage': 'Weekly Hero nominations are looking awesome!',
-      'time': 'July 24',
-      'unread': false,
-      'isOnline': false,
-      'avatar': '',
-    },
-  ];
+  final List<Map<String, dynamic>> _chats = [];
 
   @override
   void initState() {
@@ -276,20 +239,40 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
 
                 const SizedBox(height: 16),
 
-                // Section Label
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Text(
-                    'Direct & Group Messages',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF171B2B),
+                if (_chats.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 40.0),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            size: 48,
+                            color: const Color(0xFFAB3500).withOpacity(0.4),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No active conversations yet',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF171B2B),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap the "New Chat" button to start chatting.',
+                            style: GoogleFonts.beVietnamPro(
+                              fontSize: 12.5,
+                              color: const Color(0xFF8D7168),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-
-                const SizedBox(height: 12),
 
                 // Teammate Conversations List
                 ..._chats.asMap().entries.map((entry) {

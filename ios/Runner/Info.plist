@@ -70,5 +70,9 @@
 			<string>UIInterfaceOrientationLandscapeLeft</string>
 			<string>UIInterfaceOrientationLandscapeRight</string>
 		</array>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>U and ME requires location access to geocode your clock-in location.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>U and ME requires location access to geocode your clock-in location.</string>
 	</dict>
 </plist>

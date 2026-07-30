@@ -177,16 +177,73 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
               const SizedBox(height: 14),
 
-              // Dynamic Coffee Break Invitations from Store
-              if (_selectedFilter == 'All' ||
-                  _selectedFilter == 'Coffee Breaks')
-                ValueListenableBuilder<List<CoffeeNotificationItem>>(
-                  valueListenable:
-                      CoffeeNotificationStore.notificationsNotifier,
-                  builder: (context, coffeeItems, child) {
-                    if (coffeeItems.isEmpty) return const SizedBox.shrink();
-                    return Column(
-                      children: coffeeItems.map((item) {
+              // Dynamic Live Notifications from Coffee Store and Supabase Broadcast Feed
+              ValueListenableBuilder<List<CoffeeNotificationItem>>(
+                valueListenable:
+                    CoffeeNotificationStore.notificationsNotifier,
+                builder: (context, coffeeItems, child) {
+                  final filteredCoffee = coffeeItems.where((item) {
+                    if (_selectedFilter == 'All') return true;
+                    if (_selectedFilter == 'Coffee Breaks') return true;
+                    return false;
+                  }).toList();
+
+                  final filteredBroadcasts = _broadcastFeedItems.where((feedItem) {
+                    final eventType = feedItem['event_type'] ?? 'general';
+                    if (_selectedFilter == 'All') return true;
+                    if (_selectedFilter == 'Clock-Ins' && eventType == 'clock_in') return true;
+                    if (_selectedFilter == 'Leaves' && eventType == 'leave_approved') return true;
+                    if (_selectedFilter == 'Kudos' && eventType == 'hero_win') return true;
+                    return false;
+                  }).toList();
+
+                  if (filteredCoffee.isEmpty && filteredBroadcasts.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 60.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF5F2),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: const Color(0xFFFFF0EB)),
+                              ),
+                              child: const Icon(
+                                Icons.notifications_none_rounded,
+                                size: 48,
+                                color: Color(0xFFFF6B35),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No Notifications Yet',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.titleDark,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Live broadcasts and coffee break invites will appear here.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.beVietnamPro(
+                                fontSize: 13,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    children: [
+                      ...filteredCoffee.map((item) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 14.0),
                           child: _buildNotificationCard(
@@ -319,286 +376,48 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             ),
                           ),
                         );
-                      }).toList(),
-                    );
-                  },
-                ),
-              // Live Supabase Broadcast Feed Items
-              if (_broadcastFeedItems.isNotEmpty) ...[
-                ..._broadcastFeedItems.map((feedItem) {
-                  final eventType = feedItem['event_type'] ?? 'general';
-                  final title = feedItem['title'] ?? feedItem['sender_name'] ?? 'Broadcast';
-                  final body = feedItem['body'] ?? '';
-                  final timeRaw = feedItem['created_at']?.toString() ?? '';
-                  final timeStr = timeRaw.isNotEmpty ? timeRaw.split('T').last.substring(0, 5) : 'Recently';
+                      }),
+                      ...filteredBroadcasts.map((feedItem) {
+                        final eventType = feedItem['event_type'] ?? 'general';
+                        final title = feedItem['title'] ?? feedItem['sender_name'] ?? 'Broadcast';
+                        final body = feedItem['body'] ?? '';
+                        final timeRaw = feedItem['created_at']?.toString() ?? '';
+                        final timeStr = timeRaw.isNotEmpty ? timeRaw.split('T').last.substring(0, 5) : 'Recently';
 
-                  IconData iconData = Icons.campaign_rounded;
-                  Color iconBg = const Color(0xFFEFF6FF);
-                  Color iconColor = const Color(0xFF2563EB);
+                        IconData iconData = Icons.campaign_rounded;
+                        Color iconBg = const Color(0xFFEFF6FF);
+                        Color iconColor = const Color(0xFF2563EB);
 
-                  if (eventType == 'clock_in') {
-                    iconData = Icons.location_on_rounded;
-                    iconBg = const Color(0xFFFFF0EB);
-                    iconColor = AppTheme.primaryRust;
-                  } else if (eventType == 'leave_approved') {
-                    iconData = Icons.event_available_rounded;
-                    iconBg = const Color(0xFFEDFDF5);
-                    iconColor = const Color(0xFF00AE88);
-                  } else if (eventType == 'hero_win') {
-                    iconData = Icons.emoji_events_rounded;
-                    iconBg = const Color(0xFFFFFBEB);
-                    iconColor = const Color(0xFFD97706);
-                  }
+                        if (eventType == 'clock_in') {
+                          iconData = Icons.location_on_rounded;
+                          iconBg = const Color(0xFFFFF0EB);
+                          iconColor = AppTheme.primaryRust;
+                        } else if (eventType == 'leave_approved') {
+                          iconData = Icons.event_available_rounded;
+                          iconBg = const Color(0xFFEDFDF5);
+                          iconColor = const Color(0xFF00AE88);
+                        } else if (eventType == 'hero_win') {
+                          iconData = Icons.emoji_events_rounded;
+                          iconBg = const Color(0xFFFFFBEB);
+                          iconColor = const Color(0xFFD97706);
+                        }
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 14.0),
-                    child: _buildNotificationCard(
-                      icon: iconData,
-                      iconBg: iconBg,
-                      iconColor: iconColor,
-                      title: title,
-                      time: timeStr,
-                      body: body,
-                    ),
-                  );
-                }),
-              ],
-
-              // Card 1: Clock-In Broadcast
-              if (_selectedFilter == 'All' || _selectedFilter == 'Clock-Ins') ...[
-                _buildNotificationCard(
-                  icon: Icons.location_on_rounded,
-                  iconBg: const Color(0xFFFFF0EB),
-                  iconColor: AppTheme.primaryRust,
-                  title: 'Sarah Jenkins clocked in from HQ - Floor 3',
-                  time: 'Just now',
-                  body:
-                      'Sarah started her shift at 09:15 AM from HQ Floor 3. Send her a quick greeting!',
-                  actionWidget: Padding(
-                    padding: const EdgeInsets.only(top: 12.0),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF0EB),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        'Location: HQ - Floor 3 • 09:15 AM',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.primaryRust,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-              ],
-
-              // Card 2: Approved Leave Broadcast (Teammates' Approved Leaves)
-              if (_selectedFilter == 'All' || _selectedFilter == 'Leaves') ...[
-                _buildNotificationCard(
-                  icon: Icons.beach_access_rounded,
-                  iconBg: const Color(0xFFEBF7F5),
-                  iconColor: const Color(0xFF006C53),
-                  title: 'Leave Approved: Alex Chen',
-                  time: '10m ago',
-                  body:
-                      'Alex Chen\'s Casual Leave application for Jul 29 – Jul 30 was approved by management. Wish them a restful break!',
-                  actionWidget: Padding(
-                    padding: const EdgeInsets.only(top: 12.0),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEBF7F5),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        'Casual Leave • Jul 29 – Jul 30 (Approved by HR)',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF006C53),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                _buildNotificationCard(
-                  icon: Icons.beach_access_rounded,
-                  iconBg: const Color(0xFFEBF7F5),
-                  iconColor: const Color(0xFF006C53),
-                  title: 'Leave Approved: Sarah Jenkins',
-                  time: '1 hour ago',
-                  body:
-                      'Sarah Jenkins\' Sick Leave application for Aug 02 – Aug 03 was approved by management.',
-                  actionWidget: Padding(
-                    padding: const EdgeInsets.only(top: 12.0),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEBF7F5),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        'Sick Leave • Aug 02 – Aug 03 (Approved by HR)',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF006C53),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                _buildNotificationCard(
-                  icon: Icons.beach_access_rounded,
-                  iconBg: const Color(0xFFEBF7F5),
-                  iconColor: const Color(0xFF006C53),
-                  title: 'Leave Approved: Marcus Vance',
-                  time: 'Yesterday',
-                  body:
-                      'Marcus Vance\'s Annual Rest & Reset application for Aug 10 – Aug 15 was approved.',
-                  actionWidget: Padding(
-                    padding: const EdgeInsets.only(top: 12.0),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEBF7F5),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        'Annual Leave • Aug 10 – Aug 15 (Approved by HR)',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF006C53),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-              ],
-
-              // Card 3: Jar Note Appreciation
-              if (_selectedFilter == 'All' || _selectedFilter == 'Kudos') ...[
-                _buildNotificationCard(
-                  icon: Icons.layers_rounded,
-                  iconBg: const Color(0xFFFFF0EB),
-                  iconColor: AppTheme.primaryRust,
-                  title: 'Someone just added a note to your Jar!',
-                  time: '30m ago',
-                  body:
-                      'Open it up to read some anonymous appreciation from the team. You\'re doing great!',
-                  actionWidget: Padding(
-                    padding: const EdgeInsets.only(top: 12.0),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Opening Jar...')),
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 14.0),
+                          child: _buildNotificationCard(
+                            icon: iconData,
+                            iconBg: iconBg,
+                            iconColor: iconColor,
+                            title: title,
+                            time: timeStr,
+                            body: body,
+                          ),
                         );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryRust,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Open Jar',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-              ],
-
-              // Card 4: Hero Update
-              if (_selectedFilter == 'All' || _selectedFilter == 'Kudos') ...[
-                _buildNotificationCard(
-                  icon: Icons.military_tech_rounded,
-                  iconBg: const Color(0xFFFCE7F3),
-                  iconColor: const Color(0xFFEC4899),
-                  title: 'Sarah Jenkins was named this week\'s Hero!',
-                  time: '1h ago',
-                  body:
-                      'She crushed the sprint goals and helped three teammates with their blockers. Show some love!',
-                  actionWidget: Padding(
-                    padding: const EdgeInsets.only(top: 12.0),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFD1FAE5),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Text(
-                            'Hero Update',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF047857),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-              ],
-
-              const SizedBox(height: 14),
-
-              // Section 2: EARLIER
-              Text(
-                'EARLIER',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.brandTitleOrange,
-                  letterSpacing: 1.2,
-                ),
+                      }),
+                    ],
+                  );
+                },
               ),
-
-              const SizedBox(height: 14),
-
-              _buildNotificationCard(
-                icon: Icons.access_time_rounded,
-                iconBg: const Color(0xFFFFF0EB),
-                iconColor: AppTheme.primaryRust,
-                title: 'Don\'t forget to clock in!',
-                time: '2h ago',
-                body:
-                    'Your shift started 10 minutes ago. Tap here to start your Happy Day.',
-                isLightCard: true,
-              ),
-
-              const SizedBox(height: 14),
-
-              _buildNotificationCard(
-                icon: Icons.local_fire_department_rounded,
-                iconBg: const Color(0xFFD1FAE5),
-                iconColor: const Color(0xFF10B981),
-                title: 'You have a new streak milestone: 8 Days!',
-                time: '5h ago',
-                body:
-                    'You\'re on fire! 8 consecutive days of positive desk vibes. Keep it up!',
-                isLightCard: true,
-              ),
-
               const SizedBox(height: 24),
             ],
           ),

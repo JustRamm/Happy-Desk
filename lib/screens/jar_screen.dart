@@ -33,14 +33,14 @@ class _JarScreenState extends State<JarScreen> {
 
   Future<void> _loadSupabaseNotes() async {
     final notes = await SupabaseService.instance.getNglJarMessages();
-    if (notes.isNotEmpty) {
+    if (mounted) {
       setState(() {
         _myOpenedNotes.clear();
         for (var note in notes) {
           _myOpenedNotes.add({
             'id': note['id'] ?? 'note_${_myOpenedNotes.length}',
             'sender': note['is_anonymous'] == true ? 'Anonymous Teammate' : 'Teammate',
-            'category': (note['tag'] ?? 'wellbeing').toString().toUpperCase(),
+            'category': (note['tag'] ?? 'Appreciation').toString().toUpperCase(),
             'message': note['message'] ?? '',
             'date': note['created_at'] != null ? note['created_at'].toString().split('T').first : 'Today',
             'bgColor': const Color(0xFFFFF0EB),
@@ -52,42 +52,8 @@ class _JarScreenState extends State<JarScreen> {
     }
   }
 
-  // Sample Opened Notes (Receiver POV: Only visible to logged in user)
-  final List<Map<String, dynamic>> _myOpenedNotes = [
-    {
-      'id': 'note_1',
-      'sender': 'Anonymous Teammate',
-      'category': 'Kindness',
-      'message':
-          'Thank you for staying late to help me debug the design system components before product release! Your support made all the difference.',
-      'date': 'Today at 10:45 AM',
-      'bgColor': const Color(0xFFFFF0EB),
-      'categoryColor': const Color(0xFFC84B1A),
-      'categoryBg': const Color(0xFFFFE6DD),
-    },
-    {
-      'id': 'note_2',
-      'sender': 'Anonymous Founder',
-      'category': 'Excellence',
-      'message':
-          'Your presentation at the all-hands meeting was super inspiring! Loved how you explained the new product workflow so clearly.',
-      'date': 'Yesterday at 4:20 PM',
-      'bgColor': const Color(0xFFE6F7F0),
-      'categoryColor': const Color(0xFF047857),
-      'categoryBg': const Color(0xFFD1FAE5),
-    },
-    {
-      'id': 'note_3',
-      'sender': 'Anonymous Teammate',
-      'category': 'Teamwork',
-      'message':
-          'Crushed the sprint goals this week! Thanks for stepping up during release week and supporting everyone on the team.',
-      'date': 'July 24 at 2:15 PM',
-      'bgColor': const Color(0xFFF0EBFE),
-      'categoryColor': const Color(0xFF6D28D9),
-      'categoryBg': const Color(0xFFEDE9FE),
-    },
-  ];
+  // Loaded Notes (Receiver POV: Only visible to logged in user)
+  final List<Map<String, dynamic>> _myOpenedNotes = [];
 
   void _unsealTodayNote() {
     SoundService.playJarOpenSound();

@@ -93,6 +93,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (uploadedUrl != null) {
         await UserPreferencesStore.setUserAvatarUrl(uploadedUrl);
+        final user = SupabaseService.instance.currentUser;
+        if (user != null) {
+          await SupabaseService.instance.client.from('profiles').update({
+            'avatar_url': uploadedUrl,
+          }).eq('id', user.id);
+        }
       } else {
         await UserPreferencesStore.setUserAvatarUrl(picked.path);
       }

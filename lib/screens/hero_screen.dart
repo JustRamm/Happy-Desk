@@ -5,6 +5,7 @@ import 'notifications_screen.dart';
 import '../widgets/multi_coffee_reset_modal.dart';
 import '../widgets/brand_logo_widget.dart';
 import '../services/supabase_service.dart';
+import '../services/user_preferences_store.dart';
 
 class HeroScreen extends StatefulWidget {
   final bool showBackButton;
@@ -20,35 +21,57 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
   String? _selectedCoworker;
   final TextEditingController _storyController = TextEditingController();
 
+  List<String> _coworkers = [];
+  bool _isLoadingCoworkers = true;
+  final List<Map<String, dynamic>> _receivedNominations = [];
+
   @override
   void initState() {
     super.initState();
     _loadSupabaseNominations();
+    _loadCoworkers();
+  }
+
+  Future<void> _loadCoworkers() async {
+    try {
+      final list = await SupabaseService.instance.getCompanyTeammates();
+      final myName = UserPreferencesStore.getUserName();
+      // Exclude logged in user
+      final names = list
+          .where((t) => t['name'] != myName)
+          .map((t) => '${t['name']} (${t['department'] ?? 'Team'})')
+          .toList();
+      if (mounted) {
+        setState(() {
+          _coworkers = names;
+          _isLoadingCoworkers = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading coworkers for nominations: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingCoworkers = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadSupabaseNominations() async {
     final nominations = await SupabaseService.instance.getWeeklyHeroNominations();
-    if (nominations.isNotEmpty) {
+    if (mounted) {
       setState(() {
         _receivedNominations.clear();
         for (var nom in nominations) {
           _receivedNominations.add({
             'time': nom['created_at'] != null ? nom['created_at'].toString().split('T').first : 'Recently',
             'tags': [nom['badge_type'] ?? '#CoffeeHero'],
-            'reason': '${nom['nominee_name']}: ${nom['reason']}',
+            'reason': nom['reason'] ?? '',
           });
         }
       });
     }
   }
-
-  final List<String> _coworkers = [
-    'Marcus Vance (Engineering)',
-    'Sarah Chen (Design)',
-    'Mary Jane (Product)',
-    'Alex Miller (Founder & CEO)',
-    'Elena Rostova (Customer Success)',
-  ];
 
   final Set<String> _selectedSuperpowers = {'#Supportive', '#ProblemSolver'};
 
@@ -60,28 +83,6 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
     '#TeamPlayer',
     '#Leader',
     '#Innovator',
-  ];
-
-  // Private received nominations for the current user
-  final List<Map<String, dynamic>> _receivedNominations = [
-    {
-      'time': '2 hours ago',
-      'tags': ['#ProblemSolver', '#LifeSaver'],
-      'reason':
-          'Stayed late on Tuesday to help me debug the production deployment pipeline when I was stuck!',
-    },
-    {
-      'time': 'Yesterday',
-      'tags': ['#Supportive', '#Clutch'],
-      'reason':
-          'Stepped in to cover my client demo presentation when I had a sudden family emergency call.',
-    },
-    {
-      'time': '3 days ago',
-      'tags': ['#TeamPlayer'],
-      'reason':
-          'Brought coffee and walked me through the design system guidelines so patiently!',
-    },
   ];
 
   TabController? _tabController;
@@ -465,7 +466,11 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            'Select a teammate or founder...',
+                            _isLoadingCoworkers
+                                ? 'Loading coworkers...'
+                                : _coworkers.isEmpty
+                                    ? 'No coworkers found...'
+                                    : 'Select a teammate or founder...',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 13.5,
                               color: Colors.grey.shade500,
@@ -483,6 +488,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                           value: name,
                           child: Text(
                             name,
+                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -491,7 +497,7 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                           ),
                         );
                       }).toList(),
-                      onChanged: _hasNominatedThisWeek
+                      onChanged: (_hasNominatedThisWeek || _coworkers.isEmpty)
                           ? null
                           : (val) {
                               setState(() {

@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/coffee_notification_store.dart';
+import '../services/supabase_service.dart';
+import '../services/user_preferences_store.dart';
 
 class MultiCoffeeResetModal extends StatefulWidget {
   const MultiCoffeeResetModal({super.key});
@@ -24,36 +26,47 @@ class MultiCoffeeResetModal extends StatefulWidget {
 }
 
 class _MultiCoffeeResetModalState extends State<MultiCoffeeResetModal> {
-  final List<Map<String, dynamic>> _teammates = [
-    {
-      'name': 'Alex Miller',
-      'role': 'Product Designer',
-      'avatar': '',
-      'selected': true,
-    },
-    {
-      'name': 'Sarah Chen',
-      'role': 'Lead Engineer',
-      'avatar': '',
-      'selected': true,
-    },
-    {
-      'name': 'David Kim',
-      'role': 'Frontend Architect',
-      'avatar': '',
-      'selected': false,
-    },
-    {
-      'name': 'Marcus Vance',
-      'role': 'Community Lead',
-      'avatar': '',
-      'selected': false,
-    },
-  ];
+  List<Map<String, dynamic>> _teammates = [];
+  bool _isLoading = true;
 
   final TextEditingController _noteController = TextEditingController(
     text: "Hey team! Let's take a quick 5-min coffee break reset together.",
   );
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTeammates();
+  }
+
+  Future<void> _loadTeammates() async {
+    try {
+      final list = await SupabaseService.instance.getCompanyTeammates();
+      final myName = UserPreferencesStore.getUserName();
+      // Exclude logged in user
+      final filtered = list.where((t) => t['name'] != myName).map((t) => {
+        'id': t['id'],
+        'name': t['name'] ?? 'Teammate',
+        'role': t['job_title'] ?? 'Employee',
+        'avatar': t['avatar_url'] ?? '',
+        'selected': false,
+      }).toList();
+      
+      if (mounted) {
+        setState(() {
+          _teammates = filtered;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading teammates for coffee break: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -131,79 +144,102 @@ class _MultiCoffeeResetModalState extends State<MultiCoffeeResetModal> {
             const SizedBox(height: 16),
 
             // Teammates Selection List
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 200),
-              child: ListView.builder(
-                shrinkWrap: true,
-                physics: const BouncingScrollPhysics(),
-                itemCount: _teammates.length,
-                itemBuilder: (context, index) {
-                  final t = _teammates[index];
-                  final isSelected = t['selected'] == true;
-
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isSelected
-                            ? const Color(0xFF95416C)
-                            : const Color(0xFFE4E7FE),
+            _isLoading
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF95416C),
                       ),
                     ),
-                    child: CheckboxListTile(
-                      value: isSelected,
-                      activeColor: const Color(0xFF95416C),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      onChanged: (val) {
-                        setState(() {
-                          t['selected'] = val;
-                        });
-                      },
-                      secondary: CircleAvatar(
-                        radius: 18,
-                        backgroundColor: const Color(0xFFFFF0EB),
-                        child: ((t['avatar'] as String? ?? '').startsWith('http') ||
-                                ((t['avatar'] as String? ?? '').isNotEmpty && File(t['avatar']).existsSync()))
-                            ? ClipOval(
-                                child: (t['avatar'] as String).startsWith('http')
-                                    ? Image.network(t['avatar'], fit: BoxFit.cover, width: 36, height: 36)
-                                    : Image.file(File(t['avatar']), fit: BoxFit.cover, width: 36, height: 36),
-                              )
-                            : Text(
-                                (t['name'] as String? ?? '?').isNotEmpty
-                                    ? (t['name'] as String)[0].toUpperCase()
-                                    : '?',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFFAB3500),
+                  )
+                : _teammates.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          child: Text(
+                            'No teammates found in your company.',
+                            style: GoogleFonts.beVietnamPro(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF8D7168),
+                            ),
+                          ),
+                        ),
+                      )
+                    : ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 200),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: _teammates.length,
+                          itemBuilder: (context, index) {
+                            final t = _teammates[index];
+                            final isSelected = t['selected'] == true;
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? const Color(0xFF95416C)
+                                      : const Color(0xFFE4E7FE),
                                 ),
                               ),
-                      ),
-                      title: Text(
-                        t['name'],
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF171B2B),
+                              child: CheckboxListTile(
+                                value: isSelected,
+                                activeColor: const Color(0xFF95416C),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                onChanged: (val) {
+                                  setState(() {
+                                    t['selected'] = val;
+                                  });
+                                },
+                                secondary: CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: const Color(0xFFFFF0EB),
+                                  child: ((t['avatar'] as String? ?? '').startsWith('http') ||
+                                          ((t['avatar'] as String? ?? '').isNotEmpty && File(t['avatar']).existsSync()))
+                                      ? ClipOval(
+                                          child: (t['avatar'] as String).startsWith('http')
+                                              ? Image.network(t['avatar'], fit: BoxFit.cover, width: 36, height: 36)
+                                              : Image.file(File(t['avatar']), fit: BoxFit.cover, width: 36, height: 36),
+                                        )
+                                      : Text(
+                                          (t['name'] as String? ?? '?').isNotEmpty
+                                              ? (t['name'] as String)[0].toUpperCase()
+                                              : '?',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w800,
+                                            color: const Color(0xFFAB3500),
+                                          ),
+                                        ),
+                                ),
+                                title: Text(
+                                  t['name'],
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF171B2B),
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  t['role'],
+                                  style: GoogleFonts.beVietnamPro(
+                                    fontSize: 12,
+                                    color: const Color(0xFF594139),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
-                      subtitle: Text(
-                        t['role'],
-                        style: GoogleFonts.beVietnamPro(
-                          fontSize: 12,
-                          color: const Color(0xFF594139),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
             const SizedBox(height: 16),
 
             // Note TextField
@@ -240,25 +276,43 @@ class _MultiCoffeeResetModalState extends State<MultiCoffeeResetModal> {
               child: ElevatedButton.icon(
                 onPressed: selectedCount == 0
                     ? null
-                    : () {
+                    : () async {
+                        final text = _noteController.text.trim().isEmpty
+                            ? 'Group 5-min coffee break reset started!'
+                            : _noteController.text.trim();
+                            
+                        for (var teammate in _teammates) {
+                          if (teammate['selected'] == true && teammate['id'] != null) {
+                            try {
+                              await SupabaseService.instance.sendCoffeeInvite(
+                                message: text,
+                                receiverId: teammate['id'],
+                                isGroup: true,
+                              );
+                            } catch (e) {
+                              debugPrint('Error sending coffee invite: $e');
+                            }
+                          }
+                        }
+
                         CoffeeNotificationStore.addCoffeeInvite(
                           senderName: 'Group Team',
-                          message: _noteController.text.trim().isEmpty
-                              ? 'Group 5-min coffee break reset started!'
-                              : _noteController.text.trim(),
+                          message: text,
                           isGroup: true,
                         );
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Group coffee break invite sent to $selectedCount teammates!',
-                              style: GoogleFonts.beVietnamPro(fontSize: 13.5),
+                        if (mounted) {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Group coffee break invite sent to $selectedCount teammates!',
+                                style: GoogleFonts.beVietnamPro(fontSize: 13.5),
+                              ),
+                              backgroundColor: const Color(0xFFFF6B35),
+                              duration: const Duration(seconds: 3),
                             ),
-                            backgroundColor: const Color(0xFFFF6B35),
-                            duration: const Duration(seconds: 3),
-                          ),
-                        );
+                          );
+                        }
                       },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF95416C),

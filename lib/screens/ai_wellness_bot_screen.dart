@@ -412,6 +412,21 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       return "Oh no... I am so sorry to hear that. Hearing that someone close to you is sick or in danger is terrifying and overwhelming. Please don't worry about work right now — take a deep breath and focus on being there for your family. I'm right here with you if you need a safe space to talk or vent.";
     }
 
+    // Leave, Vacation, Day Off & Off-Duty
+    if (lower.contains('leave') ||
+        lower.contains('vacation') ||
+        lower.contains('day off') ||
+        lower.contains('days off') ||
+        lower.contains('holiday') ||
+        lower.contains('no work') ||
+        lower.contains('not working') ||
+        lower.contains('off tomorrow') ||
+        lower.contains('off today') ||
+        lower.contains('off-duty')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "That sounds wonderful$namePart! Taking time off is so important to recharge and reset. Make sure to fully disconnect, mute your work notifications, and enjoy your time off. You've earned it!";
+    }
+
     // Casual Chit-Chat ("how are you", "how was your day", "what about you")
     if (lower.contains('how are you') ||
         lower.contains('how is it going') ||

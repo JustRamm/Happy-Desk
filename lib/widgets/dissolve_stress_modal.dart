@@ -2,12 +2,20 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/sound_service.dart';
 import 'shredder_icon_widget.dart';
 
 class DissolveStressModal extends StatefulWidget {
-  const DissolveStressModal({super.key});
+  final String? initialText;
+  final bool autoTrigger;
 
-  static Future<void> show(BuildContext context) {
+  const DissolveStressModal({
+    super.key,
+    this.initialText,
+    this.autoTrigger = false,
+  });
+
+  static Future<void> show(BuildContext context, {String? initialText, bool autoTrigger = false}) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -15,7 +23,7 @@ class DissolveStressModal extends StatefulWidget {
       builder: (context) => Padding(
         padding:
             EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: const DissolveStressModal(),
+        child: DissolveStressModal(initialText: initialText, autoTrigger: autoTrigger),
       ),
     );
   }
@@ -34,14 +42,15 @@ class _DissolveStressModalState extends State<DissolveStressModal>
   @override
   void initState() {
     super.initState();
+    _textController.text = widget.initialText ?? '';
     _shredController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2400),
+      duration: const Duration(milliseconds: 2800),
     )..addListener(() {
-        // Play rapid mechanical shredding sound clicks during shredding animation!
         if (_shredController.value > 0.1 && _shredController.value < 0.9) {
-          if ((_shredController.value * 20).floor() % 2 == 0) {
+          if ((_shredController.value * 25).floor() % 2 == 0) {
             SystemSound.play(SystemSoundType.click);
+            HapticFeedback.lightImpact();
           }
         }
       })..addStatusListener((status) {
@@ -52,6 +61,12 @@ class _DissolveStressModalState extends State<DissolveStressModal>
           });
         }
       });
+
+    if (widget.autoTrigger && _textController.text.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _triggerShred();
+      });
+    }
   }
 
   @override
@@ -66,6 +81,7 @@ class _DissolveStressModalState extends State<DissolveStressModal>
     setState(() {
       _isShredding = true;
     });
+    SoundService.playShredSound();
     _shredController.forward(from: 0.0);
   }
 

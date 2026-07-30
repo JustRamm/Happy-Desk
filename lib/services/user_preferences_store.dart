@@ -178,6 +178,11 @@ class UserPreferencesStore {
     _companyIndustryCache = prefs.getString(_keyCompanyIndustry) ?? '';
     _companySizeCache = prefs.getString(_keyCompanySize) ?? '';
     _avatarUrlCache = prefs.getString(_keyUserAvatarUrl);
+    _isLoggedInCache = prefs.getBool(_keyIsLoggedIn) ?? false;
+    _hasCompletedOnboardingCache = prefs.getBool(_keyHasCompletedOnboarding) ?? false;
+    _isLeaderCache = prefs.getBool(_keyIsLeader) ?? false;
+    _companyCodeCache = prefs.getString(_keyCompanyCode) ?? '';
+    _teamCodeCache = prefs.getString(_keyTeamCode) ?? '';
   }
 
   static Future<void> setUserName(String val) async {

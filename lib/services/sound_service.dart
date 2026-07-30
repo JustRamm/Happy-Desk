@@ -73,7 +73,7 @@ class SoundService {
   /// Play Shred paper / Dissolve Vent Note sound
   static Future<void> playShredSound() async {
     await _playSoundUrl(
-      'https://assets.mixkit.co/active_storage/sfx/2578/2578-preview.mp3',
+      'https://assets.mixkit.co/active_storage/sfx/2048/2048-preview.mp3',
       SystemSoundType.click,
       HapticFeedbackType.heavy,
     );
