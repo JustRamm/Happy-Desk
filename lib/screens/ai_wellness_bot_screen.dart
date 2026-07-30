@@ -341,7 +341,15 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
         _scrollToBottom();
         _saveMessages();
         if (i < chunks.length - 1) {
-          await Future.delayed(const Duration(milliseconds: 400));
+          setState(() {
+            _isTyping = true;
+          });
+          _scrollToBottom();
+          await Future.delayed(const Duration(seconds: 1));
+          if (!mounted) return;
+          setState(() {
+            _isTyping = false;
+          });
         }
       }
 
@@ -371,7 +379,15 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
         _scrollToBottom();
         _saveMessages();
         if (i < chunks.length - 1) {
-          await Future.delayed(const Duration(milliseconds: 400));
+          setState(() {
+            _isTyping = true;
+          });
+          _scrollToBottom();
+          await Future.delayed(const Duration(seconds: 1));
+          if (!mounted) return;
+          setState(() {
+            _isTyping = false;
+          });
         }
       }
     }
