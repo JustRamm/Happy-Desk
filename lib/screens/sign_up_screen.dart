@@ -309,8 +309,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (uploadedAvatarUrl != null) {
         await UserPreferencesStore.setUserAvatarUrl(uploadedAvatarUrl);
       }
+      await UserPreferencesStore.setIsLoggedIn(true);
     } catch (e) {
       debugPrint('Supabase registration note: $e');
+      await UserPreferencesStore.setIsLoggedIn(true);
     } finally {
       widget.onSignUpSuccess();
     }

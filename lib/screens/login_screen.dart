@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import 'forgot_password_screen.dart';
 import '../widgets/brand_logo_widget.dart';
 import '../services/supabase_service.dart';
+import '../services/user_preferences_store.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback onSignUpTap;
@@ -39,9 +40,11 @@ class _LoginScreenState extends State<LoginScreen> {
       if (email.isNotEmpty && password.isNotEmpty) {
         await SupabaseService.instance.loginUser(email: email, password: password);
       }
+      await UserPreferencesStore.setIsLoggedIn(true);
       widget.onLoginSuccess();
     } catch (e) {
       debugPrint('Supabase login note: $e');
+      await UserPreferencesStore.setIsLoggedIn(true);
       widget.onLoginSuccess();
     }
   }

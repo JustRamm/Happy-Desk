@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'mochi_prompt_service.dart';
+import 'supabase_service.dart';
 
 class UserPreferencesStore {
   static const String _keyIsClockedIn = 'is_clocked_in';
@@ -32,6 +33,8 @@ class UserPreferencesStore {
   static const String _keyCompanyCode = 'company_code';
   static const String _keyTeamCode = 'team_code';
   static const String _keyIsLeader = 'is_leader';
+  static const String _keyIsLoggedIn = 'is_logged_in';
+  static const String _keyHasCompletedOnboarding = 'has_completed_onboarding';
 
   // In-memory sync fallback cache
   static String _nameCache = '';
@@ -50,6 +53,8 @@ class UserPreferencesStore {
   static String _companyCodeCache = '';
   static String _teamCodeCache = '';
   static bool _isLeaderCache = false;
+  static bool _isLoggedInCache = false;
+  static bool _hasCompletedOnboardingCache = false;
 
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -66,6 +71,43 @@ class UserPreferencesStore {
     _teamCodeCache = prefs.getString(_keyTeamCode) ?? '';
     _isLeaderCache = prefs.getBool(_keyIsLeader) ?? false;
     _avatarUrlCache = prefs.getString(_keyUserAvatarUrl);
+    _isLoggedInCache = prefs.getBool(_keyIsLoggedIn) ?? false;
+    _hasCompletedOnboardingCache = prefs.getBool(_keyHasCompletedOnboarding) ?? false;
+
+    if (SupabaseService.instance.currentUser != null) {
+      _isLoggedInCache = true;
+      _hasCompletedOnboardingCache = true;
+    }
+  }
+
+  static Future<void> setIsLoggedIn(bool val) async {
+    _isLoggedInCache = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyIsLoggedIn, val);
+    if (val) {
+      _hasCompletedOnboardingCache = true;
+      await prefs.setBool(_keyHasCompletedOnboarding, true);
+    }
+  }
+
+  static bool isLoggedIn() {
+    if (SupabaseService.instance.currentUser != null) return true;
+    return _isLoggedInCache;
+  }
+
+  static Future<void> setHasCompletedOnboarding(bool val) async {
+    _hasCompletedOnboardingCache = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyHasCompletedOnboarding, val);
+  }
+
+  static bool hasCompletedOnboarding() => _hasCompletedOnboardingCache;
+
+  static Future<void> logout() async {
+    _isLoggedInCache = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyIsLoggedIn, false);
+    await SupabaseService.instance.signOut();
   }
 
   // Clock-in preferences

@@ -3,6 +3,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'splash_loading_screen.dart';
 import 'onboarding_screen.dart';
 import 'auth_screen.dart';
+import 'main_navigation_screen.dart';
+import '../services/user_preferences_store.dart';
 
 class OnboardingWrapperScreen extends StatefulWidget {
   const OnboardingWrapperScreen({super.key});
@@ -30,18 +32,36 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
       setState(() {
         _isLoading = false;
       });
-      // After fade-out animation completes (400ms), unmount splash widget
+      // After fade-out animation completes (400ms), route based on 4 user session scenarios
       Future.delayed(const Duration(milliseconds: 400), () {
-        if (mounted) {
-          setState(() {
-            _showSplashWidget = false;
-          });
+        if (!mounted) return;
+        setState(() {
+          _showSplashWidget = false;
+        });
+
+        // Scenario 4: Signed in -> Route Splash Screen -> Home (MainNavigationScreen)
+        if (UserPreferencesStore.isLoggedIn()) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => const MainNavigationScreen(),
+            ),
+          );
         }
+        // Scenario 3: Logged out previously & closed app -> Route Splash Screen -> Signin (AuthScreen)
+        else if (UserPreferencesStore.hasCompletedOnboarding()) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => const AuthScreen(initialIsLogin: true),
+            ),
+          );
+        }
+        // Scenario 1: First time install -> Show Splash Screen -> Onboarding Screen
       });
     }
   }
 
   void _navigateToAuth({bool isLogin = false}) {
+    UserPreferencesStore.setHasCompletedOnboarding(true);
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AuthScreen(initialIsLogin: isLogin),
