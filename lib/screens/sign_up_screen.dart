@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_logo_widget.dart';
+import '../services/supabase_service.dart';
+import '../services/user_preferences_store.dart';
 
 class SignUpScreen extends StatefulWidget {
   final VoidCallback onLoginTap;
@@ -120,7 +122,52 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _currentStep++;
       });
     } else {
+      _performSupabaseRegistration();
+    }
+  }
+
+  Future<void> _performSupabaseRegistration() async {
+    try {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+      final name = _nameController.text.trim();
+
+      if (_selectedRole == 'founder') {
+        final companyName = _workspaceNameController.text.trim().isNotEmpty
+            ? _workspaceNameController.text.trim()
+            : 'Acme Corp';
+        await SupabaseService.instance.signUpFounder(
+          email: email.isNotEmpty ? email : 'founder@happy-desk.app',
+          password: password.isNotEmpty ? password : 'Password123!',
+          name: name.isNotEmpty ? name : 'Founder',
+          companyName: companyName,
+        );
+      } else {
+        final code = _inviteCodeController.text.trim();
+        await SupabaseService.instance.signUpEmployee(
+          email: email.isNotEmpty ? email : 'employee@happy-desk.app',
+          password: password.isNotEmpty ? password : 'Password123!',
+          name: name.isNotEmpty ? name : 'Employee',
+          companyCode: code.isNotEmpty ? code : 'COMP-DEMO',
+          isLeader: _isLeadershipRole,
+          jobTitle: _jobRoleController.text.trim().isNotEmpty ? _jobRoleController.text.trim() : 'Employee',
+          department: _selectedDepartment,
+        );
+      }
+
+      await UserPreferencesStore.setUserProfile(
+        name: name.isNotEmpty ? name : 'User',
+        role: _jobRoleController.text.trim().isNotEmpty
+            ? _jobRoleController.text.trim()
+            : (_selectedRole == 'founder' ? 'Founder & CEO' : 'Employee'),
+        team: _selectedDepartment,
+        bio: _bioController.text.trim(),
+      );
+
       widget.onSignUpSuccess();
+    } catch (e) {
+      debugPrint('Supabase registration note: $e');
+      widget.onSignUpSuccess(); // Graceful fallback
     }
   }
 

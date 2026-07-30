@@ -10,6 +10,7 @@ import '../widgets/dissolve_stress_modal.dart';
 import '../widgets/multi_coffee_reset_modal.dart';
 import 'notifications_screen.dart';
 import '../services/sound_service.dart';
+import '../services/supabase_service.dart';
 
 class JarScreen extends StatefulWidget {
   final bool showBackButton;
@@ -23,6 +24,33 @@ class JarScreen extends StatefulWidget {
 class _JarScreenState extends State<JarScreen> {
   bool _todayNoteUnsealed = false;
   int _unopenedNotesCount = 2;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSupabaseNotes();
+  }
+
+  Future<void> _loadSupabaseNotes() async {
+    final notes = await SupabaseService.instance.getNglJarMessages();
+    if (notes.isNotEmpty) {
+      setState(() {
+        _myOpenedNotes.clear();
+        for (var note in notes) {
+          _myOpenedNotes.add({
+            'id': note['id'] ?? 'note_${_myOpenedNotes.length}',
+            'sender': note['is_anonymous'] == true ? 'Anonymous Teammate' : 'Teammate',
+            'category': (note['tag'] ?? 'wellbeing').toString().toUpperCase(),
+            'message': note['message'] ?? '',
+            'date': note['created_at'] != null ? note['created_at'].toString().split('T').first : 'Today',
+            'bgColor': const Color(0xFFFFF0EB),
+            'categoryColor': const Color(0xFFC84B1A),
+            'categoryBg': const Color(0xFFFFE6DD),
+          });
+        }
+      });
+    }
+  }
 
   // Sample Opened Notes (Receiver POV: Only visible to logged in user)
   final List<Map<String, dynamic>> _myOpenedNotes = [

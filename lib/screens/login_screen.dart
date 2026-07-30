@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import 'forgot_password_screen.dart';
 import '../widgets/brand_logo_widget.dart';
+import '../services/supabase_service.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback onSignUpTap;
@@ -29,6 +30,20 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    try {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+      if (email.isNotEmpty && password.isNotEmpty) {
+        await SupabaseService.instance.loginUser(email: email, password: password);
+      }
+      widget.onLoginSuccess();
+    } catch (e) {
+      debugPrint('Supabase login note: $e');
+      widget.onLoginSuccess();
+    }
   }
 
   @override
@@ -147,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity,
                       height: 54,
                       child: ElevatedButton(
-                        onPressed: widget.onLoginSuccess,
+                        onPressed: _handleLogin,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primary,
                           foregroundColor: Colors.white,

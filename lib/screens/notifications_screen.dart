@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/coffee_notification_store.dart';
 import '../widgets/multi_coffee_reset_modal.dart';
+import '../services/supabase_service.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -13,11 +14,22 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   String _selectedFilter = 'All';
+  List<Map<String, dynamic>> _broadcastFeedItems = [];
 
   @override
   void initState() {
     super.initState();
     CoffeeNotificationStore.markAllAsRead();
+    _loadTeamBroadcastFeed();
+  }
+
+  Future<void> _loadTeamBroadcastFeed() async {
+    final items = await SupabaseService.instance.getTeamBroadcastFeed();
+    if (items.isNotEmpty && mounted) {
+      setState(() {
+        _broadcastFeedItems = items;
+      });
+    }
   }
 
   final List<String> _filters = const [

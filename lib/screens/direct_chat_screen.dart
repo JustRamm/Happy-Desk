@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/coffee_notification_store.dart';
+import '../services/supabase_service.dart';
 import 'audio_video_call_screen.dart';
 
 class DirectChatScreen extends StatefulWidget {
@@ -23,76 +24,38 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   @override
   void initState() {
     super.initState();
+    _loadSupabaseMessages();
+  }
 
-    // Rich mock conversation history with file, image, and voice notes
-    _messages.addAll([
-      {
-        'text': 'Hey there! How is the project going today?',
-        'isUser': false,
-        'time': '10:10 AM',
-      },
-      {
-        'text':
-            'Going great! Just wrapping up the new U & ME design architecture.',
-        'isUser': true,
-        'time': '10:12 AM',
-      },
-      {
-        'text': 'Sent the pull request for review.',
-        'isUser': false,
-        'time': '10:14 AM',
-        'attachmentType': 'file',
-        'attachmentName': 'U_ME_Architecture_Spec.pdf',
-        'attachmentSize': '2.4 MB',
-      },
-      {
-        'text': 'Here is the preliminary UI mockup screenshot:',
-        'isUser': false,
-        'time': '10:15 AM',
-        'attachmentType': 'image',
-        'attachmentName': 'dashboard_v2_mockup.png',
-        'attachmentUrl':
-            'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80',
-      },
-      {
-        'text': '',
-        'isUser': true,
-        'time': '10:18 AM',
-        'attachmentType': 'voice',
-        'voiceDuration': '0:22',
-      },
-    ]);
+  Future<void> _loadSupabaseMessages() async {
+    final name = widget.teammate['name'] ?? 'Teammate';
+    final dbMessages = await SupabaseService.instance.getDirectMessages();
+    if (dbMessages.isNotEmpty) {
+      final filtered = dbMessages.where((m) =>
+        m['sender_name'] == name || m['receiver_name'] == name
+      ).toList();
+
+      if (filtered.isNotEmpty && mounted) {
+        setState(() {
+          _messages.clear();
+          for (var m in filtered) {
+            _messages.add({
+              'text': m['message'] ?? '',
+              'isUser': m['receiver_name'] == name,
+              'time': m['created_at'] != null ? m['created_at'].toString().split('T').last.substring(0, 5) : 'Now',
+              if (m['media_url'] != null) 'attachmentType': 'image',
+              if (m['media_url'] != null) 'attachmentUrl': m['media_url'],
+            });
+          }
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
     _messageController.dispose();
     super.dispose();
-  }
-
-  void _sendMessage() {
-    final text = _messageController.text.trim();
-    if (text.isEmpty && _stagedAttachment == null) return;
-
-    setState(() {
-      final newMsg = <String, dynamic>{
-        'text': text,
-        'isUser': true,
-        'time': 'Just now',
-      };
-
-      if (_stagedAttachment != null) {
-        newMsg['attachmentType'] = _stagedAttachment!['type'];
-        newMsg['attachmentName'] = _stagedAttachment!['name'];
-        newMsg['attachmentSize'] = _stagedAttachment!['size'];
-        newMsg['attachmentUrl'] = _stagedAttachment!['url'];
-        newMsg['voiceDuration'] = _stagedAttachment!['duration'];
-      }
-
-      _messages.add(newMsg);
-      _messageController.clear();
-      _stagedAttachment = null;
-    });
   }
 
   void _showAttachmentOptions() {
@@ -219,6 +182,36 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     setState(() {
       _stagedAttachment = attachment;
     });
+  }
+
+  Future<void> _sendMessage() async {
+    final text = _messageController.text.trim();
+    if (text.isEmpty && _stagedAttachment == null) return;
+
+    final name = widget.teammate['name'] ?? 'Teammate';
+    final String? mediaUrl = _stagedAttachment != null ? _stagedAttachment!['url'] : null;
+
+    setState(() {
+      _messages.add({
+        'text': text,
+        'isUser': true,
+        'time': 'Now',
+        if (_stagedAttachment != null) 'attachmentType': _stagedAttachment!['type'],
+        if (_stagedAttachment != null) 'attachmentName': _stagedAttachment!['name'],
+        if (_stagedAttachment != null) 'attachmentUrl': _stagedAttachment!['url'],
+      });
+      _stagedAttachment = null;
+    });
+
+    _messageController.clear();
+
+    try {
+      await SupabaseService.instance.sendDirectMessage(
+        receiverName: name,
+        message: text,
+        mediaUrl: mediaUrl,
+      );
+    } catch (_) {}
   }
 
   void _triggerIndividualCoffeeReset() {

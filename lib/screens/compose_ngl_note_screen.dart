@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import '../services/supabase_service.dart';
 
 class ComposeNglNoteScreen extends StatefulWidget {
   const ComposeNglNoteScreen({super.key});
@@ -44,8 +45,9 @@ class _ComposeNglNoteScreenState extends State<ComposeNglNoteScreen> {
     super.dispose();
   }
 
-  void _submitNote() {
-    if (_messageController.text.trim().isEmpty) {
+  Future<void> _submitNote() async {
+    final text = _messageController.text.trim();
+    if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -58,6 +60,15 @@ class _ComposeNglNoteScreenState extends State<ComposeNglNoteScreen> {
       return;
     }
 
+    try {
+      await SupabaseService.instance.postNglJarMessage(
+        message: text,
+        isAnonymous: _isAnonymous,
+        tag: _selectedCategory.toLowerCase(),
+      );
+    } catch (_) {}
+
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(

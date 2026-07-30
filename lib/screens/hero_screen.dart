@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import 'notifications_screen.dart';
 import '../widgets/multi_coffee_reset_modal.dart';
 import '../widgets/brand_logo_widget.dart';
+import '../services/supabase_service.dart';
 
 class HeroScreen extends StatefulWidget {
   final bool showBackButton;
@@ -18,6 +19,28 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
   bool _hasNominatedThisWeek = false;
   String? _selectedCoworker;
   final TextEditingController _storyController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSupabaseNominations();
+  }
+
+  Future<void> _loadSupabaseNominations() async {
+    final nominations = await SupabaseService.instance.getWeeklyHeroNominations();
+    if (nominations.isNotEmpty) {
+      setState(() {
+        _receivedNominations.clear();
+        for (var nom in nominations) {
+          _receivedNominations.add({
+            'time': nom['created_at'] != null ? nom['created_at'].toString().split('T').first : 'Recently',
+            'tags': [nom['badge_type'] ?? '#CoffeeHero'],
+            'reason': '${nom['nominee_name']}: ${nom['reason']}',
+          });
+        }
+      });
+    }
+  }
 
   final List<String> _coworkers = [
     'Marcus Vance (Engineering)',
@@ -121,6 +144,14 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
     }
 
     final nominee = _selectedCoworker!;
+    try {
+      SupabaseService.instance.submitHeroNomination(
+        nomineeName: nominee,
+        reason: _storyController.text.trim(),
+        badgeType: _selectedSuperpowers.isNotEmpty ? _selectedSuperpowers.first : 'Coffee Hero',
+      );
+    } catch (_) {}
+
     setState(() {
       _hasNominatedThisWeek = true;
     });

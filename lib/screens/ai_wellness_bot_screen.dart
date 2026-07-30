@@ -10,6 +10,7 @@ import '../services/user_preferences_store.dart';
 import '../services/mochi_prompt_service.dart';
 import '../services/mochi_memory_service.dart';
 import '../services/coffee_notification_store.dart';
+import '../services/supabase_service.dart';
 import '../widgets/box_breathing_modal.dart';
 import '../widgets/desk_stretches_modal.dart';
 import 'notifications_screen.dart';
@@ -266,12 +267,25 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
         await UserPreferencesStore.incrementMochiCheckIns();
       }
 
+      final textToDisplay = parsed.visibleText.isNotEmpty ? parsed.visibleText : reply;
+
+      // Save user & model turns to Supabase per-timestamp history
+      SupabaseService.instance.saveMochiChatMessage(
+        message: text,
+        isUser: true,
+      );
+      SupabaseService.instance.saveMochiChatMessage(
+        message: textToDisplay,
+        isUser: false,
+        actionType: determinedAction,
+      );
+
       if (!mounted) return;
       setState(() {
         _isTyping = false;
         _messages.add(
           _ChatMessage(
-            text: parsed.visibleText.isNotEmpty ? parsed.visibleText : reply,
+            text: textToDisplay,
             isUser: false,
             time: _formatCurrentTime(),
             actionType: determinedAction,

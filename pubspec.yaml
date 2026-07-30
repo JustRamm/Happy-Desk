@@ -42,6 +42,14 @@ dependencies:
   google_generative_ai: ^0.4.6
   http: ^1.2.1
   flutter_dotenv: ^5.2.1
+  supabase_flutter: ^2.8.0
+
+dependency_overrides:
+  app_links: 6.3.2
+  app_links_platform_interface: 2.0.2
+  app_links_linux:
+    path: scratch/mock_app_links_linux
+  pointycastle: 3.9.1
 
 dev_dependencies:
   flutter_test:
