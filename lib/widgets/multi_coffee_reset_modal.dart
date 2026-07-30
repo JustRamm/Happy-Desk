@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/coffee_notification_store.dart';
@@ -27,25 +28,25 @@ class _MultiCoffeeResetModalState extends State<MultiCoffeeResetModal> {
     {
       'name': 'Alex Miller',
       'role': 'Product Designer',
-      'avatar': 'assets/avatars/user_avatar.png',
+      'avatar': '',
       'selected': true,
     },
     {
       'name': 'Sarah Chen',
       'role': 'Lead Engineer',
-      'avatar': 'assets/avatars/avatar_1.png',
+      'avatar': '',
       'selected': true,
     },
     {
       'name': 'David Kim',
       'role': 'Frontend Architect',
-      'avatar': 'assets/avatars/avatar_2.png',
+      'avatar': '',
       'selected': false,
     },
     {
       'name': 'Marcus Vance',
       'role': 'Community Lead',
-      'avatar': 'assets/avatars/avatar_3.png',
+      'avatar': '',
       'selected': false,
     },
   ];
@@ -164,7 +165,24 @@ class _MultiCoffeeResetModalState extends State<MultiCoffeeResetModal> {
                       },
                       secondary: CircleAvatar(
                         radius: 18,
-                        backgroundImage: AssetImage(t['avatar']),
+                        backgroundColor: const Color(0xFFFFF0EB),
+                        child: ((t['avatar'] as String? ?? '').startsWith('http') ||
+                                ((t['avatar'] as String? ?? '').isNotEmpty && File(t['avatar']).existsSync()))
+                            ? ClipOval(
+                                child: (t['avatar'] as String).startsWith('http')
+                                    ? Image.network(t['avatar'], fit: BoxFit.cover, width: 36, height: 36)
+                                    : Image.file(File(t['avatar']), fit: BoxFit.cover, width: 36, height: 36),
+                              )
+                            : Text(
+                                (t['name'] as String? ?? '?').isNotEmpty
+                                    ? (t['name'] as String)[0].toUpperCase()
+                                    : '?',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFFAB3500),
+                                ),
+                              ),
                       ),
                       title: Text(
                         t['name'],

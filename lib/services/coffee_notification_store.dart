@@ -28,25 +28,7 @@ class CoffeeNotificationItem {
 
 class CoffeeNotificationStore {
   static final ValueNotifier<List<CoffeeNotificationItem>> notificationsNotifier =
-      ValueNotifier<List<CoffeeNotificationItem>>([
-    CoffeeNotificationItem(
-      id: '1',
-      title: 'Coffee Break Invite from David Kim',
-      body: 'David Kim invited you to a 5-minute coffee & chat break.',
-      time: 'Just now',
-      senderName: 'David Kim',
-      senderAvatar: 'assets/avatars/avatar_2.png',
-    ),
-    CoffeeNotificationItem(
-      id: '2',
-      title: 'Group Coffee Break Reset',
-      body: 'Sarah Chen started a group coffee break reset with 4 teammates!',
-      time: '25m ago',
-      senderName: 'Sarah Chen',
-      senderAvatar: 'assets/avatars/avatar_1.png',
-      isGroup: true,
-    ),
-  ]);
+      ValueNotifier<List<CoffeeNotificationItem>>([]);
 
   static void addCoffeeInvite({
     required String senderName,
@@ -62,7 +44,7 @@ class CoffeeNotificationStore {
       body: message,
       time: 'Just now',
       senderName: senderName,
-      senderAvatar: senderAvatar ?? 'assets/avatars/user_avatar.png',
+      senderAvatar: senderAvatar ?? '',
       isGroup: isGroup,
       isUnread: true,
     );

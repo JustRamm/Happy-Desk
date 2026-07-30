@@ -8,6 +8,7 @@ import 'edit_profile_screen.dart';
 import 'help_faq_screen.dart';
 import 'privacy_policy_screen.dart';
 import 'terms_of_service_screen.dart';
+import 'about_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -420,6 +421,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 10),
               _buildSettingsCard(
                 children: [
+                  _buildListTile(
+                    icon: Icons.info_outline_rounded,
+                    title: 'About U & ME & Mind Empowered',
+                    subtitle: 'Organization story, mission & developer details',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AboutScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildDivider(),
                   _buildListTile(
                     icon: Icons.help_outline_rounded,
                     title: 'Help Center & FAQ',

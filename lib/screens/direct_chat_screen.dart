@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/supabase_service.dart';
+import '../services/sound_service.dart';
 import 'audio_video_call_screen.dart';
 
 class DirectChatScreen extends StatefulWidget {
@@ -23,6 +25,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   @override
   void initState() {
     super.initState();
+    SoundService.playMessageOpenSound();
     _loadSupabaseMessages();
   }
 
@@ -188,6 +191,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     final text = _messageController.text.trim();
     if (text.isEmpty && _stagedAttachment == null) return;
 
+    SoundService.playMessageSentSound();
     final name = widget.teammate['name'] ?? 'Teammate';
     final String? mediaUrl = _stagedAttachment != null ? _stagedAttachment!['url'] : null;
 
@@ -218,8 +222,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   Widget build(BuildContext context) {
     final name = widget.teammate['name'] ?? 'David Kim';
     final role = widget.teammate['role'] ?? 'Frontend Architect';
-    final avatar =
-        widget.teammate['avatar'] ?? 'assets/avatars/user_avatar.png';
+    final avatar = widget.teammate['avatar'] as String? ?? '';
     final isOnline = widget.teammate['isOnline'] == true;
 
     return Scaffold(
@@ -239,7 +242,20 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 CircleAvatar(
                   radius: 18,
                   backgroundColor: const Color(0xFFFFDBD0),
-                  backgroundImage: AssetImage(avatar),
+                  child: (avatar.startsWith('http') || (avatar.isNotEmpty && File(avatar).existsSync()))
+                      ? ClipOval(
+                          child: avatar.startsWith('http')
+                              ? Image.network(avatar, fit: BoxFit.cover, width: 36, height: 36)
+                              : Image.file(File(avatar), fit: BoxFit.cover, width: 36, height: 36),
+                        )
+                      : Text(
+                          name.isNotEmpty ? name[0].toUpperCase() : '?',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFFAB3500),
+                          ),
+                        ),
                 ),
                 if (isOnline)
                   Positioned(

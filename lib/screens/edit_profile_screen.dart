@@ -19,6 +19,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _roleController;
   late TextEditingController _bioController;
   late TextEditingController _workplaceController;
+  late TextEditingController _hqLocationController;
+  late TextEditingController _industryController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
 
@@ -181,14 +183,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  final List<String> _statusVibes = [
-    'In Deep Focus',
-    'Available & Collaborative',
-    'On 5-Min Desk Stretch',
-    'WFH Coffee Break',
-  ];
-  String _selectedStatusVibe = 'Available & Collaborative';
-
   @override
   void initState() {
     super.initState();
@@ -196,6 +190,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _roleController = TextEditingController(text: UserPreferencesStore.getUserRole());
     _bioController = TextEditingController(text: UserPreferencesStore.getUserBio());
     _workplaceController = TextEditingController(text: UserPreferencesStore.getCompany());
+    _hqLocationController = TextEditingController(text: UserPreferencesStore.getCompanyHq());
+    _industryController = TextEditingController(text: UserPreferencesStore.getCompanyIndustry());
     _emailController = TextEditingController(text: 'alex.m@happy-desk.com');
     _phoneController = TextEditingController(text: '+1 (555) 234-5678');
   }
@@ -206,6 +202,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _roleController.dispose();
     _bioController.dispose();
     _workplaceController.dispose();
+    _hqLocationController.dispose();
+    _industryController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     super.dispose();
@@ -213,10 +211,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
-      await UserPreferencesStore.setUserName(_nameController.text.trim());
-      await UserPreferencesStore.setUserRole(_roleController.text.trim());
-      await UserPreferencesStore.setUserBio(_bioController.text.trim());
-      await UserPreferencesStore.setCompany(_workplaceController.text.trim());
+      final name = _nameController.text.trim();
+      final role = _roleController.text.trim();
+      final bio = _bioController.text.trim();
+      final company = _workplaceController.text.trim();
+      final hq = _hqLocationController.text.trim();
+      final ind = _industryController.text.trim();
+
+      await UserPreferencesStore.setUserName(name);
+      await UserPreferencesStore.setUserRole(role);
+      await UserPreferencesStore.setUserBio(bio);
+      await UserPreferencesStore.setCompany(company);
+      await UserPreferencesStore.setCompanyDetails(
+        companyName: company,
+        hqLocation: hq,
+        industry: ind,
+      );
 
       if (_customImageFile != null) {
         final uploadedUrl = await SupabaseService.instance.uploadAvatarImage(_customImageFile!);
@@ -225,11 +235,40 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         }
       }
 
+      // Sync with Supabase backend
+      try {
+        final user = SupabaseService.instance.currentUser;
+        if (user != null) {
+          await SupabaseService.instance.client.from('profiles').update({
+            'name': name,
+            'job_title': role,
+            'bio': bio,
+          }).eq('id', user.id);
+
+          final profileRes = await SupabaseService.instance.client
+              .from('profiles')
+              .select('company_id')
+              .eq('id', user.id)
+              .maybeSingle();
+
+          if (profileRes != null && profileRes['company_id'] != null) {
+            final companyId = profileRes['company_id'] as String;
+            await SupabaseService.instance.client.from('companies').update({
+              'name': company,
+              'hq_location': hq,
+              'industry': ind,
+            }).eq('id', companyId);
+          }
+        }
+      } catch (e) {
+        debugPrint('Error syncing edited profile to Supabase: $e');
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Profile updated successfully!',
+              'Profile & Company details updated successfully!',
               style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w600),
             ),
             backgroundColor: const Color(0xFF047857),
@@ -394,44 +433,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                       const SizedBox(height: 18),
 
-                      _buildFieldLabel('WORK VIBE STATUS'),
+                      _buildFieldLabel('MAIN BRANCH / HQ LOCATION'),
                       const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF6F6FD),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFE4E7FE)),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedStatusVibe,
-                            isExpanded: true,
-                            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.titleDark),
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.titleDark,
-                            ),
-                            items: _statusVibes.map((vibe) {
-                              return DropdownMenuItem<String>(
-                                value: vibe,
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.bolt_rounded, size: 16, color: AppTheme.primaryRust),
-                                    const SizedBox(width: 8),
-                                    Text(vibe),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (val) {
-                              if (val != null) {
-                                setState(() => _selectedStatusVibe = val);
-                              }
-                            },
-                          ),
-                        ),
+                      _buildTextFormField(
+                        controller: _hqLocationController,
+                        hintText: 'e.g. New York, USA or City/Branch',
+                        icon: Icons.location_city_rounded,
+                      ),
+
+                      const SizedBox(height: 18),
+
+                      _buildFieldLabel('INDUSTRY / SECTOR'),
+                      const SizedBox(height: 6),
+                      _buildTextFormField(
+                        controller: _industryController,
+                        hintText: 'e.g. Software & Tech, Healthcare, Finance',
+                        icon: Icons.domain_rounded,
                       ),
 
                       const SizedBox(height: 18),

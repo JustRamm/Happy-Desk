@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:camera/camera.dart';
@@ -148,8 +149,7 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
   Widget build(BuildContext context) {
     final String name = widget.teammate['name'] ?? 'Teammate';
     final String role = widget.teammate['role'] ?? 'Colleague';
-    final String avatar =
-        widget.teammate['avatar'] ?? 'assets/avatars/user_avatar.png';
+    final String avatar = widget.teammate['avatar'] ?? '';
 
     return Scaffold(
       backgroundColor: const Color(0xFF171B2B),
@@ -182,7 +182,21 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
                         ),
                         child: CircleAvatar(
                           radius: 64,
-                          backgroundImage: AssetImage(avatar),
+                          backgroundColor: const Color(0xFFFFF0EB),
+                          child: (avatar.startsWith('http') || (avatar.isNotEmpty && File(avatar).existsSync()))
+                              ? ClipOval(
+                                  child: avatar.startsWith('http')
+                                      ? Image.network(avatar, fit: BoxFit.cover, width: 128, height: 128)
+                                      : Image.file(File(avatar), fit: BoxFit.cover, width: 128, height: 128),
+                                )
+                              : Text(
+                                  name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFFAB3500),
+                                  ),
+                                ),
                         ),
                       ),
                     ),

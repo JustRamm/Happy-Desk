@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/sound_service.dart';
 
 class DeskStretchesModal extends StatefulWidget {
   const DeskStretchesModal({super.key});
@@ -75,6 +76,7 @@ class _DeskStretchesModalState extends State<DeskStretchesModal> {
 
   void _startTimer() {
     _timer?.cancel();
+    SoundService.playStretchStepSound();
     setState(() {
       _isRunning = true;
       _secondsLeft = 30;
@@ -87,6 +89,7 @@ class _DeskStretchesModalState extends State<DeskStretchesModal> {
         });
       } else {
         timer.cancel();
+        SoundService.playStretchStepSound();
         setState(() {
           _secondsLeft = 0;
           _isRunning = false;
@@ -97,6 +100,7 @@ class _DeskStretchesModalState extends State<DeskStretchesModal> {
 
   void _nextStretch() {
     _timer?.cancel();
+    SoundService.playStretchStepSound();
     if (_currentIndex < _stretches.length - 1) {
       setState(() {
         _currentIndex++;

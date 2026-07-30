@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/sound_service.dart';
 import '../services/coffee_notification_store.dart';
+import '../services/user_preferences_store.dart';
 
 class CoffeeBreakSchedulerScreen extends StatefulWidget {
   final Map<String, dynamic>? initialTeammate;
@@ -18,35 +21,32 @@ class CoffeeBreakSchedulerScreen extends StatefulWidget {
 class _CoffeeBreakSchedulerScreenState
     extends State<CoffeeBreakSchedulerScreen> {
   int _selectedDurationMinutes = 15;
-  String _selectedLocation = 'Office Kitchen & Pantry';
+  String _selectedLocation = 'Office Cafeteria (HQ Floor 2)';
   bool _syncWithCalendar = true;
   String _searchQuery = '';
 
-  final TextEditingController _noteController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController(
+    text: "Hey team! Let's take a quick 5-min coffee break reset together.",
+  );
   final TextEditingController _searchController = TextEditingController();
 
   final List<int> _durations = [5, 15, 30];
 
   final List<Map<String, dynamic>> _locations = [
     {
-      'title': 'Office Kitchen & Pantry',
-      'subtitle': 'Floor 3 - Fresh Brewed Coffee',
+      'title': 'Office Cafeteria (HQ Floor 2)',
+      'subtitle': 'In-person coffee nook',
       'icon': Icons.local_cafe_rounded,
     },
     {
-      'title': 'Virtual Lounge',
-      'subtitle': 'Google Meet Video Watercooler',
-      'icon': Icons.video_camera_front_rounded,
+      'title': 'Virtual Coffee Lounge',
+      'subtitle': 'Audio/Video call break',
+      'icon': Icons.video_call_rounded,
     },
     {
-      'title': 'Nearby Cafe',
-      'subtitle': 'Outdoor Walk & Fresh Air',
-      'icon': Icons.storefront_rounded,
-    },
-    {
-      'title': 'Quiet Zen Corner',
-      'subtitle': 'De-stress & Silent Recharge',
-      'icon': Icons.spa_rounded,
+      'title': 'Rooftop Terrace',
+      'subtitle': 'Fresh air & sun reset',
+      'icon': Icons.wb_sunny_rounded,
     },
   ];
 
@@ -54,25 +54,25 @@ class _CoffeeBreakSchedulerScreenState
     {
       'name': 'Alex Miller',
       'role': 'Product Designer',
-      'avatar': 'assets/avatars/user_avatar.png',
+      'avatar': '',
       'selected': true,
     },
     {
       'name': 'Sarah Chen',
       'role': 'Lead Engineer',
-      'avatar': 'assets/avatars/avatar_1.png',
+      'avatar': '',
       'selected': false,
     },
     {
       'name': 'David Kim',
       'role': 'Frontend Architect',
-      'avatar': 'assets/avatars/avatar_2.png',
+      'avatar': '',
       'selected': false,
     },
     {
       'name': 'Marcus Vance',
       'role': 'Community Lead',
-      'avatar': 'assets/avatars/avatar_3.png',
+      'avatar': '',
       'selected': false,
     },
   ];
@@ -121,7 +121,7 @@ class _CoffeeBreakSchedulerScreenState
 
     CoffeeNotificationStore.addCoffeeInvite(
       senderName: selectedNames,
-      senderAvatar: 'assets/avatars/user_avatar.png',
+      senderAvatar: UserPreferencesStore.getUserAvatarUrl() ?? '',
       message:
           'Coffee reset scheduled at $_selectedLocation for $_selectedDurationMinutes mins with $selectedNames.',
     );
@@ -450,7 +450,24 @@ class _CoffeeBreakSchedulerScreenState
                         },
                         secondary: CircleAvatar(
                           radius: 18,
-                          backgroundImage: AssetImage(tm['avatar']),
+                          backgroundColor: const Color(0xFFFFF0EB),
+                          child: ((tm['avatar'] as String? ?? '').startsWith('http') ||
+                                  ((tm['avatar'] as String? ?? '').isNotEmpty && File(tm['avatar']).existsSync()))
+                              ? ClipOval(
+                                  child: (tm['avatar'] as String).startsWith('http')
+                                      ? Image.network(tm['avatar'], fit: BoxFit.cover, width: 36, height: 36)
+                                      : Image.file(File(tm['avatar']), fit: BoxFit.cover, width: 36, height: 36),
+                                )
+                              : Text(
+                                  (tm['name'] as String? ?? '?').isNotEmpty
+                                      ? (tm['name'] as String)[0].toUpperCase()
+                                      : '?',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFFAB3500),
+                                  ),
+                                ),
                         ),
                         title: Text(
                           tm['name'],

@@ -1,12 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../widgets/multi_coffee_reset_modal.dart';
 import '../widgets/brand_logo_widget.dart';
 import 'direct_chat_screen.dart';
-import 'notifications_screen.dart';
 import 'new_chat_selector_screen.dart';
 import '../services/supabase_service.dart';
 import '../services/user_preferences_store.dart';
+import '../services/sound_service.dart';
 
 class ChatNotificationsScreen extends StatefulWidget {
   const ChatNotificationsScreen({super.key});
@@ -27,7 +27,7 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
       'time': '10:14 AM',
       'unread': true,
       'isOnline': true,
-      'avatar': 'assets/avatars/user_avatar.png',
+      'avatar': '',
     },
     {
       'name': 'Sarah Chen',
@@ -36,7 +36,7 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
       'time': 'Yesterday',
       'unread': false,
       'isOnline': true,
-      'avatar': 'assets/avatars/avatar_1.png',
+      'avatar': '',
     },
     {
       'name': 'David Kim',
@@ -45,7 +45,7 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
       'time': 'July 25',
       'unread': false,
       'isOnline': false,
-      'avatar': 'assets/avatars/avatar_2.png',
+      'avatar': '',
     },
     {
       'name': 'Marcus Vance',
@@ -54,7 +54,7 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
       'time': 'July 24',
       'unread': false,
       'isOnline': false,
-      'avatar': 'assets/avatars/avatar_3.png',
+      'avatar': '',
     },
   ];
 
@@ -89,7 +89,7 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
           'time': timeStr,
           'unread': isUnread,
           'isOnline': true,
-          'avatar': 'assets/avatars/user_avatar.png',
+          'avatar': msg['avatar_url'] as String? ?? '',
         };
       }
 
@@ -156,16 +156,24 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
                       // Brand Logo SVG
                       const BrandLogoWidget(height: 54),
 
-                      // Right Header Action Bar
+                      // Right Header Action Bar (History & New Chat Icons)
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const NotificationsScreen(),
+                              ScaffoldMessenger.of(context).clearSnackBars();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Upcoming feature: Chat History',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  backgroundColor: const Color(0xFF171B2B),
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(seconds: 2),
                                 ),
                               );
                             },
@@ -176,15 +184,31 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
-                                Icons.notifications_rounded,
+                                Icons.history_rounded,
                                 color: Color(0xFFAB3500),
-                                size: 22,
+                                size: 20,
                               ),
                             ),
-                            tooltip: 'Notifications',
+                            tooltip: 'History',
                           ),
+                          const SizedBox(width: 2),
                           IconButton(
-                            onPressed: () => MultiCoffeeResetModal.show(context),
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).clearSnackBars();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Upcoming feature: Create New Chat',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  backgroundColor: const Color(0xFF171B2B),
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
                             icon: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: const BoxDecoration(
@@ -192,12 +216,12 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
-                                Icons.local_cafe_rounded,
+                                Icons.chat_bubble_outline_rounded,
                                 color: Color(0xFF95416C),
-                                size: 22,
+                                size: 20,
                               ),
                             ),
-                            tooltip: 'Coffee Break',
+                            tooltip: 'New Chat',
                           ),
                         ],
                       ),
@@ -279,6 +303,7 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
                         color: isUnread ? const Color(0xFFFFF6F3) : Colors.white,
                         child: InkWell(
                           onTap: () async {
+                            SoundService.playMessageOpenSound();
                             setState(() {
                               chat['unread'] = false;
                             });
@@ -305,7 +330,23 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
                                     CircleAvatar(
                                       radius: 22,
                                       backgroundColor: const Color(0xFFFFF0EB),
-                                      backgroundImage: AssetImage(chat['avatar']),
+                                      child: ((chat['avatar'] as String? ?? '').startsWith('http') ||
+                                              ((chat['avatar'] as String? ?? '').isNotEmpty && File(chat['avatar']).existsSync()))
+                                          ? ClipOval(
+                                              child: (chat['avatar'] as String).startsWith('http')
+                                                  ? Image.network(chat['avatar'], fit: BoxFit.cover, width: 44, height: 44)
+                                                  : Image.file(File(chat['avatar']), fit: BoxFit.cover, width: 44, height: 44),
+                                            )
+                                          : Text(
+                                              (chat['name'] as String? ?? '?').isNotEmpty
+                                                  ? (chat['name'] as String)[0].toUpperCase()
+                                                  : '?',
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w800,
+                                                color: const Color(0xFFAB3500),
+                                              ),
+                                            ),
                                     ),
                                     if (isOnline)
                                       Positioned(

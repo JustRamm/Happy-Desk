@@ -11,6 +11,9 @@ CREATE TABLE IF NOT EXISTS public.companies (
     name TEXT NOT NULL,
     company_code TEXT UNIQUE NOT NULL,
     founder_id UUID,
+    hq_location TEXT DEFAULT '',
+    industry TEXT DEFAULT '',
+    company_size TEXT DEFAULT '',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -71,6 +74,17 @@ CREATE TABLE IF NOT EXISTS public.work_sessions (
     clock_in_lat DOUBLE PRECISION,
     clock_in_lng DOUBLE PRECISION,
     clock_in_location_name TEXT,
+    clock_in_country TEXT DEFAULT '',
+    clock_in_state TEXT DEFAULT '',
+    clock_in_district TEXT DEFAULT '',
+    clock_in_pincode TEXT DEFAULT '',
+    clock_out_lat DOUBLE PRECISION,
+    clock_out_lng DOUBLE PRECISION,
+    clock_out_location_name TEXT DEFAULT '',
+    clock_out_country TEXT DEFAULT '',
+    clock_out_state TEXT DEFAULT '',
+    clock_out_district TEXT DEFAULT '',
+    clock_out_pincode TEXT DEFAULT '',
     status TEXT DEFAULT 'active' CHECK (status IN ('active', 'on_break', 'completed')),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -304,3 +318,24 @@ VALUES
 ('11111111-1111-1111-1111-111111111111', 'Sarah Chen', 'clock_in', 'Sarah Chen Clocked In', 'Sarah Chen clocked in for standard shift at U & ME HQ (Floor 3).'),
 ('11111111-1111-1111-1111-111111111111', 'Alex Chen', 'leave_approved', 'Leave Approved: Alex Chen', 'Alex Chen''s Casual Leave for Jul 29 – Jul 30 was approved by HR.'),
 ('11111111-1111-1111-1111-111111111111', 'David Kim', 'hero_win', 'Weekly Hero Shoutout', 'David Kim was nominated as Problem Solver of the Week!');
+
+-- ==========================================
+-- SAFE MIGRATION FOR NEW FOUNDER & LOCATION FIELDS
+-- ==========================================
+DO $$ 
+BEGIN
+    -- Add hq_location column to companies if missing
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'companies' AND column_name = 'hq_location') THEN
+        ALTER TABLE public.companies ADD COLUMN hq_location TEXT DEFAULT 'New York, USA';
+    END IF;
+
+    -- Add industry column to companies if missing
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'companies' AND column_name = 'industry') THEN
+        ALTER TABLE public.companies ADD COLUMN industry TEXT DEFAULT 'Software & Tech';
+    END IF;
+
+    -- Add company_size column to companies if missing
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'companies' AND column_name = 'company_size') THEN
+        ALTER TABLE public.companies ADD COLUMN company_size TEXT DEFAULT '11-50 employees';
+    END IF;
+END $$;

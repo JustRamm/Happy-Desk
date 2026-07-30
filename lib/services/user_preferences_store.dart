@@ -25,16 +25,48 @@ class UserPreferencesStore {
   static const String _keyMochiContextSummary = 'mochi_context_summary';
   static const String _keyMochiFeedbackHistory = 'mochi_feedback_history';
 
+  static const String _keyRoleType = 'user_role_type';
+  static const String _keyCompanyHq = 'company_hq_location';
+  static const String _keyCompanyIndustry = 'company_industry';
+  static const String _keyCompanySize = 'company_size';
+  static const String _keyCompanyCode = 'company_code';
+  static const String _keyTeamCode = 'team_code';
+  static const String _keyIsLeader = 'is_leader';
+
   // In-memory sync fallback cache
-  static String _nameCache = 'Rownok Ahmed';
-  static String _roleCache = 'Senior Product Architect';
-  static String _teamCache = 'U & ME Engineering';
-  static String _strengthsCache = 'Cross-functional product design, user empathy, and operational alignment.';
-  static String _focusAreaCache = 'Improving employee experience across hybrid teams.';
-  static String _currentChallengesCache = 'Balancing stakeholder feedback while keeping the team focused.';
-  static String _communicationPreferenceCache = 'Concise, practical guidance with clear next steps.';
-  static String _bioCache = 'Building delightful, human-centric workplace software.';
-  static String _companyCache = 'U & ME HQ';
+  static String _nameCache = '';
+  static String _roleCache = 'Employee';
+  static String _roleTypeCache = 'employee';
+  static String _teamCache = 'General';
+  static String _strengthsCache = '';
+  static String _focusAreaCache = '';
+  static String _currentChallengesCache = '';
+  static String _communicationPreferenceCache = '';
+  static String _bioCache = '';
+  static String _companyCache = '';
+  static String _companyHqCache = '';
+  static String _companyIndustryCache = '';
+  static String _companySizeCache = '';
+  static String _companyCodeCache = '';
+  static String _teamCodeCache = '';
+  static bool _isLeaderCache = false;
+
+  static Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    _nameCache = prefs.getString(_keyUserName) ?? '';
+    _roleCache = prefs.getString(_keyUserRole) ?? 'Employee';
+    _roleTypeCache = prefs.getString(_keyRoleType) ?? 'employee';
+    _teamCache = prefs.getString(_keyUserTeam) ?? 'General';
+    _bioCache = prefs.getString(_keyUserBio) ?? '';
+    _companyCache = prefs.getString(_keyUserCompany) ?? '';
+    _companyHqCache = prefs.getString(_keyCompanyHq) ?? '';
+    _companyIndustryCache = prefs.getString(_keyCompanyIndustry) ?? '';
+    _companySizeCache = prefs.getString(_keyCompanySize) ?? '';
+    _companyCodeCache = prefs.getString(_keyCompanyCode) ?? '';
+    _teamCodeCache = prefs.getString(_keyTeamCode) ?? '';
+    _isLeaderCache = prefs.getBool(_keyIsLeader) ?? false;
+    _avatarUrlCache = prefs.getString(_keyUserAvatarUrl);
+  }
 
   // Clock-in preferences
   static Future<bool> isClockedIn() async {
@@ -90,16 +122,20 @@ class UserPreferencesStore {
 
   static Future<void> loadProfileData() async {
     final prefs = await SharedPreferences.getInstance();
-    _nameCache = prefs.getString(_keyUserName) ?? _nameCache;
-    _roleCache = prefs.getString(_keyUserRole) ?? _roleCache;
-    _teamCache = prefs.getString(_keyUserTeam) ?? _teamCache;
-    _strengthsCache = prefs.getString(_keyUserStrengths) ?? _strengthsCache;
-    _focusAreaCache = prefs.getString(_keyUserFocusArea) ?? _focusAreaCache;
-    _currentChallengesCache = prefs.getString(_keyUserCurrentChallenges) ?? _currentChallengesCache;
-    _communicationPreferenceCache = prefs.getString(_keyUserCommunicationPreference) ?? _communicationPreferenceCache;
-    _bioCache = prefs.getString(_keyUserBio) ?? _bioCache;
-    _companyCache = prefs.getString(_keyUserCompany) ?? _companyCache;
-    _avatarUrlCache = prefs.getString(_keyUserAvatarUrl) ?? _avatarUrlCache;
+    _nameCache = prefs.getString(_keyUserName) ?? '';
+    _roleCache = prefs.getString(_keyUserRole) ?? 'Employee';
+    _roleTypeCache = prefs.getString(_keyRoleType) ?? 'employee';
+    _teamCache = prefs.getString(_keyUserTeam) ?? 'General';
+    _strengthsCache = prefs.getString(_keyUserStrengths) ?? '';
+    _focusAreaCache = prefs.getString(_keyUserFocusArea) ?? '';
+    _currentChallengesCache = prefs.getString(_keyUserCurrentChallenges) ?? '';
+    _communicationPreferenceCache = prefs.getString(_keyUserCommunicationPreference) ?? '';
+    _bioCache = prefs.getString(_keyUserBio) ?? '';
+    _companyCache = prefs.getString(_keyUserCompany) ?? '';
+    _companyHqCache = prefs.getString(_keyCompanyHq) ?? '';
+    _companyIndustryCache = prefs.getString(_keyCompanyIndustry) ?? '';
+    _companySizeCache = prefs.getString(_keyCompanySize) ?? '';
+    _avatarUrlCache = prefs.getString(_keyUserAvatarUrl);
   }
 
   static Future<void> setUserName(String val) async {
@@ -208,6 +244,64 @@ class UserPreferencesStore {
     if (bio != null) await prefs.setString(_keyUserBio, bio);
     if (company != null) await prefs.setString(_keyUserCompany, company);
   }
+
+  static Future<void> setRoleType(String val) async {
+    _roleTypeCache = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyRoleType, val);
+  }
+
+  static String getRoleType() => _roleTypeCache;
+
+  static bool getIsFounder() =>
+      _roleTypeCache == 'founder' ||
+      _roleCache.toLowerCase().contains('founder');
+
+  static Future<void> setCompanyDetails({
+    required String companyName,
+    String? hqLocation,
+    String? industry,
+    String? companySize,
+  }) async {
+    _companyCache = companyName;
+    if (hqLocation != null) _companyHqCache = hqLocation;
+    if (industry != null) _companyIndustryCache = industry;
+    if (companySize != null) _companySizeCache = companySize;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUserCompany, companyName);
+    if (hqLocation != null) await prefs.setString(_keyCompanyHq, hqLocation);
+    if (industry != null) await prefs.setString(_keyCompanyIndustry, industry);
+    if (companySize != null) await prefs.setString(_keyCompanySize, companySize);
+  }
+
+  static String getCompanyHq() => _companyHqCache;
+  static String getCompanyIndustry() => _companyIndustryCache;
+  static String getCompanySize() => _companySizeCache;
+
+  static Future<void> setCompanyCode(String code) async {
+    _companyCodeCache = code;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyCompanyCode, code);
+  }
+
+  static String getCompanyCode() => _companyCodeCache;
+
+  static Future<void> setTeamCode(String code) async {
+    _teamCodeCache = code;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyTeamCode, code);
+  }
+
+  static String getTeamCode() => _teamCodeCache;
+
+  static Future<void> setIsLeader(bool val) async {
+    _isLeaderCache = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyIsLeader, val);
+  }
+
+  static bool getIsLeader() => _isLeaderCache;
 
   // Notification preferences
   static Future<bool> getMasterNotifications() async {

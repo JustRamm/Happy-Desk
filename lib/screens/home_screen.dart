@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -16,7 +17,8 @@ import '../services/user_preferences_store.dart';
 import '../services/sound_service.dart';
 import '../services/supabase_service.dart';
 import 'stress_vent_sounding_board_screen.dart';
-import 'notifications_screen.dart';
+import 'founder_team_analytics_screen.dart';
+import '../widgets/notification_bell_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -155,7 +157,8 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       // Clocking OUT
       SoundService.playClockOutSound();
-      await SupabaseService.instance.clockOutWorkSession();
+      final outSession = await SupabaseService.instance.clockOutWorkSession();
+      final outLocation = outSession?['clock_out_location_name'] ?? 'Work Location';
 
       setState(() {
         _isClockedIn = false;
@@ -168,9 +171,17 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Clocked OUT successfully. Great work today!',
-            style: GoogleFonts.beVietnamPro(fontSize: 13.5),
+          content: Row(
+            children: [
+              const Icon(Icons.location_on_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Clocked OUT at: $outLocation',
+                  style: GoogleFonts.beVietnamPro(fontSize: 13.5),
+                ),
+              ),
+            ],
           ),
           backgroundColor: AppTheme.primaryRust,
           behavior: SnackBarBehavior.floating,
@@ -346,36 +357,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Brand Logo SVG
                   const BrandLogoWidget(height: 54),
 
-                  // Notification icon
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Notifications Bell Icon
-                      IconButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const NotificationsScreen(),
-                            ),
-                          );
-                        },
-                        icon: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFFFF0EB),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.notifications_rounded,
-                            color: Color(0xFFAB3500),
-                            size: 22,
-                          ),
-                        ),
-                        tooltip: 'Notifications',
-                      ),
-                    ],
-                  ),
+                  // Notifications Bell Icon with live unread superscript count
+                  const NotificationBellWidget(),
                 ],
               ),
 
@@ -822,36 +805,74 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                // 3. Apply for Leave Button (Employee Leave Modal)
-                OutlinedButton.icon(
-                  onPressed: () => ApplyLeaveModal.show(context),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
+                // 3. Founder Analytics Button OR Employee Apply for Leave Button
+                if (UserPreferencesStore.getIsFounder())
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const FounderTeamAnalyticsScreen(),
+                        ),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      side: const BorderSide(
+                        color: Color(0xFF4A1500),
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
                     ),
-                    side: const BorderSide(
+                    icon: const Icon(
+                      Icons.analytics_rounded,
+                      size: 18,
                       color: Color(0xFF4A1500),
-                      width: 1.5,
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                    label: Text(
+                      'Team Hours & Analytics',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF4A1500),
+                      ),
+                    ),
+                  )
+                else
+                  OutlinedButton.icon(
+                    onPressed: () => ApplyLeaveModal.show(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      side: const BorderSide(
+                        color: Color(0xFF4A1500),
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.beach_access_rounded,
+                      size: 18,
+                      color: Color(0xFF4A1500),
+                    ),
+                    label: Text(
+                      'Apply for Leave',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF4A1500),
+                      ),
                     ),
                   ),
-                  icon: const Icon(
-                    Icons.beach_access_rounded,
-                    size: 18,
-                    color: Color(0xFF4A1500),
-                  ),
-                  label: Text(
-                    'Apply for Leave',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF4A1500),
-                    ),
-                  ),
-                ),
               ],
             ),
                 const SizedBox(height: 18),
@@ -930,7 +951,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             // Teammate 1 - Sarah (Clocked In)
                             _buildTeammateStatusAvatar(
                               name: 'Sarah M.',
-                              assetPath: 'assets/avatars/avatar_1.png',
+                              assetPath: '',
                               isClockedIn: true,
                               timeText: '9:15 AM',
                             ),
@@ -939,7 +960,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             // Teammate 2 - Alex C. (Clocked In)
                             _buildTeammateStatusAvatar(
                               name: 'Alex C.',
-                              assetPath: 'assets/avatars/avatar_2.png',
+                              assetPath: '',
                               isClockedIn: true,
                               timeText: '9:30 AM',
                             ),
@@ -948,7 +969,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             // Teammate 3 - David R. (Clocked In)
                             _buildTeammateStatusAvatar(
                               name: 'David R.',
-                              assetPath: 'assets/avatars/avatar_3.png',
+                              assetPath: '',
                               isClockedIn: true,
                               timeText: '9:45 AM',
                             ),
@@ -957,7 +978,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             // Teammate 4 - Elena R. (Not Clocked In)
                             _buildTeammateStatusAvatar(
                               name: 'Elena R.',
-                              assetPath: 'assets/avatars/avatar_4.png',
+                              assetPath: '',
                               isClockedIn: false,
                               timeText: 'Offline',
                             ),
@@ -966,7 +987,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             // User (Dynamic live status!)
                             _buildTeammateStatusAvatar(
                               name: 'You',
-                              assetPath: 'assets/avatars/user_avatar.png',
+                              assetPath: UserPreferencesStore.getUserAvatarUrl() ?? '',
                               isClockedIn: _isClockedIn,
                               timeText: _isClockedIn ? 'Active Now' : 'Not Yet',
                               isCurrentUser: true,
@@ -1021,25 +1042,25 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(22),
-                  child: Image.asset(
-                    assetPath,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: isCurrentUser
-                          ? const Color(0xFFC84B1A)
-                          : const Color(0xFF594139),
-                      child: Center(
-                        child: Text(
-                          name.isNotEmpty ? name[0] : '?',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
+                  child: (assetPath.startsWith('http') || (assetPath.isNotEmpty && File(assetPath).existsSync()))
+                      ? (assetPath.startsWith('http')
+                          ? Image.network(assetPath, fit: BoxFit.cover)
+                          : Image.file(File(assetPath), fit: BoxFit.cover))
+                      : Container(
+                          color: isCurrentUser
+                              ? const Color(0xFFC84B1A)
+                              : const Color(0xFF594139),
+                          child: Center(
+                            child: Text(
+                              name.isNotEmpty ? name[0].toUpperCase() : '?',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
                 ),
               ),
 

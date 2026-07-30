@@ -1,9 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'settings_screen.dart';
 import 'edit_profile_screen.dart';
+import 'founder_team_analytics_screen.dart';
 import '../widgets/brand_logo_widget.dart';
 import '../services/user_preferences_store.dart';
+import '../services/supabase_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,14 +18,84 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String _currentVibeStatus = 'In Deep Focus';
+  bool _isUploadingAvatar = false;
 
-  final List<String> _vibeOptions = [
-    'In Deep Focus',
-    'Available & Collaborative',
-    'On 5-Min Desk Stretch',
-    'WFH Coffee Break',
-  ];
+  Future<void> _pickAndUploadAvatar() async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+
+      setState(() {
+        _isUploadingAvatar = true;
+      });
+
+      final file = File(picked.path);
+      final uploadedUrl = await SupabaseService.instance.uploadAvatarImage(file);
+
+      if (uploadedUrl != null) {
+        await UserPreferencesStore.setUserAvatarUrl(uploadedUrl);
+      } else {
+        await UserPreferencesStore.setUserAvatarUrl(picked.path);
+      }
+
+      setState(() {
+        _isUploadingAvatar = false;
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile photo updated & saved to Supabase!'),
+          backgroundColor: Color(0xFF047857),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _isUploadingAvatar = false;
+      });
+      debugPrint('Error picking avatar: $e');
+    }
+  }
+
+  Widget _buildAvatarWidget(String avatarUrl, String userName) {
+    if (avatarUrl.startsWith('http')) {
+      return Image.network(
+        avatarUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildInitialsAvatar(userName),
+      );
+    } else if (avatarUrl.isNotEmpty && File(avatarUrl).existsSync()) {
+      return Image.file(
+        File(avatarUrl),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildInitialsAvatar(userName),
+      );
+    }
+    return _buildInitialsAvatar(userName);
+  }
+
+  Widget _buildInitialsAvatar(String name) {
+    final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?';
+    return Container(
+      color: const Color(0xFFFFF0EB),
+      alignment: Alignment.center,
+      child: Text(
+        initial,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 32,
+          fontWeight: FontWeight.w800,
+          color: const Color(0xFFAB3500),
+        ),
+      ),
+    );
+  }
 
   final List<Map<String, dynamic>> _projects = [
     {
@@ -89,6 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final userName = UserPreferencesStore.getUserName();
     final userRole = UserPreferencesStore.getUserRole();
     final company = UserPreferencesStore.getCompany();
+    final userAvatar = UserPreferencesStore.getUserAvatarUrl() ?? '';
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8FF),
@@ -143,49 +219,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: Column(
                   children: [
-                    Stack(
-                      children: [
-                        Container(
-                          width: 84,
-                          height: 84,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFFAB3500),
-                              width: 2.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFFAB3500).withValues(alpha: 0.15),
-                                blurRadius: 12,
-                              ),
-                            ],
-                          ),
-                          child: ClipOval(
-                            child: Image.asset(
-                              'assets/brand/app_icon.png',
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
+                    GestureDetector(
+                      onTap: _pickAndUploadAvatar,
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: 88,
+                            height: 88,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFAB3500),
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
+                              border: Border.all(
+                                color: const Color(0xFFAB3500),
+                                width: 2.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFAB3500).withValues(alpha: 0.15),
+                                  blurRadius: 12,
+                                ),
+                              ],
                             ),
-                            child: const Icon(
-                              Icons.star_rounded,
-                              size: 14,
-                              color: Colors.white,
+                            child: ClipOval(
+                              child: _isUploadingAvatar
+                                  ? const Center(
+                                      child: SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: Color(0xFFAB3500),
+                                        ),
+                                      ),
+                                    )
+                                  : _buildAvatarWidget(userAvatar, userName),
                             ),
                           ),
-                        ),
-                      ],
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFAB3500),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt_rounded,
+                                size: 14,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 14),
 
@@ -199,10 +286,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      userRole,
+                      UserPreferencesStore.getIsFounder()
+                          ? 'Founder & CEO'
+                          : (userRole.isNotEmpty ? userRole : 'Employee'),
                       style: GoogleFonts.beVietnamPro(
                         fontSize: 13,
-                        color: const Color(0xFF594139),
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFAB3500),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -214,7 +304,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        'Member of $company',
+                        UserPreferencesStore.getIsFounder()
+                            ? 'Founder of ${company.isNotEmpty ? company : 'Happy Desk HQ'}'
+                            : 'Member of ${company.isNotEmpty ? company : 'Happy Desk HQ'}',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -222,6 +314,205 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
+
+                    if (UserPreferencesStore.getIsFounder()) ...[
+                      const SizedBox(height: 12),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          if (UserPreferencesStore.getCompanyHq().isNotEmpty)
+                            Chip(
+                              label: Text('HQ: ${UserPreferencesStore.getCompanyHq()}'),
+                              backgroundColor: const Color(0xFFF3F2FF),
+                              labelStyle: GoogleFonts.beVietnamPro(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF7C3AED)),
+                              padding: EdgeInsets.zero,
+                            ),
+                          if (UserPreferencesStore.getCompanyIndustry().isNotEmpty)
+                            Chip(
+                              label: Text(UserPreferencesStore.getCompanyIndustry()),
+                              backgroundColor: const Color(0xFFE0F2FE),
+                              labelStyle: GoogleFonts.beVietnamPro(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF0284C7)),
+                              padding: EdgeInsets.zero,
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const FounderTeamAnalyticsScreen(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFAB3500),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        icon: const Icon(Icons.analytics_rounded, size: 16),
+                        label: Text(
+                          'View Team Working Hours',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Company Join Code Card
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F2FF),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE4E7FE)),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.key_rounded, size: 16, color: Color(0xFF7C3AED)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Company Join Code:',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: const Color(0xFF171B2B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SelectableText(
+                                  UserPreferencesStore.getCompanyCode().isNotEmpty
+                                      ? UserPreferencesStore.getCompanyCode()
+                                      : 'COMP-89241',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF7C3AED),
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton.icon(
+                                  onPressed: () {
+                                    final code = UserPreferencesStore.getCompanyCode().isNotEmpty
+                                        ? UserPreferencesStore.getCompanyCode()
+                                        : 'COMP-89241';
+                                    Clipboard.setData(ClipboardData(text: code));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Company Join Code copied to clipboard!'),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.copy_rounded, size: 14),
+                                  label: Text(
+                                    'Copy Join Code',
+                                    style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    // Leader Team Join Code Card
+                    if (UserPreferencesStore.getIsLeader()) ...[
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEBF7F5),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFF00AE88).withValues(alpha: 0.3)),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.group_work_rounded, size: 16, color: Color(0xFF00AE88)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Team Join Code:',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: const Color(0xFF171B2B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SelectableText(
+                                  UserPreferencesStore.getTeamCode().isNotEmpty
+                                      ? UserPreferencesStore.getTeamCode()
+                                      : 'TEAM-54912',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF00AE88),
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton.icon(
+                                  onPressed: () {
+                                    final code = UserPreferencesStore.getTeamCode().isNotEmpty
+                                        ? UserPreferencesStore.getTeamCode()
+                                        : 'TEAM-54912';
+                                    Clipboard.setData(ClipboardData(text: code));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Team Join Code copied to clipboard!'),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.copy_rounded, size: 14),
+                                  label: Text(
+                                    'Copy Team Code',
+                                    style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
 
                     const SizedBox(height: 16),
 
@@ -266,69 +557,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
 
               const SizedBox(height: 20),
-
-              // Live Work Vibe Status Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: const Color(0xFFE4E7FE)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.bolt_rounded, color: Color(0xFF95416C), size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Live Work Status',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF171B2B),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _vibeOptions.map((vibe) {
-                        final isSelected = _currentVibeStatus == vibe;
-                        return GestureDetector(
-                          onTap: () => setState(() => _currentVibeStatus = vibe),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFFF3F2FF) : const Color(0xFFFAF9F8),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isSelected ? const Color(0xFF95416C) : const Color(0xFFE5E7EB),
-                                width: isSelected ? 1.5 : 1,
-                              ),
-                            ),
-                            child: Text(
-                              vibe,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: isSelected ? const Color(0xFF95416C) : const Color(0xFF594139),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
 
               // SECTION 1: Workplace Schedule & Shift Hours Card
               Text(

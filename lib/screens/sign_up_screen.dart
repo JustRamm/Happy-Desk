@@ -29,7 +29,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String _selectedRole = ''; // 'employee' or 'founder'
   bool _isLeadershipRole = false; // For employees: team lead / manager checkbox
   String _generatedLeaderCode = '';
-  String _selectedAvatar = 'assets/avatars/user_avatar.png';
+  String _selectedAvatar = '';
   String _selectedDepartment = 'Design';
   final ImagePicker _imagePicker = ImagePicker();
 
@@ -54,9 +54,66 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _bioController = TextEditingController();
 
   Future<void> _pickProfileImage() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Upload Profile Photo',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.titleDark,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Color(0xFFFFF0EB),
+                  child: Icon(Icons.photo_library_rounded, color: AppTheme.primaryRust),
+                ),
+                title: Text(
+                  'Choose from Gallery',
+                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _getImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Color(0xFFEBF7F5),
+                  child: Icon(Icons.camera_alt_rounded, color: Color(0xFF00AE88)),
+                ),
+                title: Text(
+                  'Take Photo with Camera',
+                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _getImage(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _getImage(ImageSource source) async {
     try {
       final XFile? picked = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         maxWidth: 1024,
         maxHeight: 1024,
         imageQuality: 85,
@@ -66,18 +123,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() {
         _selectedAvatar = picked.path;
       });
-    } on PlatformException catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not open gallery. Please try again.'),
-        ),
-      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open image picker. Please try again.'),
+          ),
+        );
+      }
     }
   }
 
-  // Step 3 Controllers (Workplace Details)
+  // Step 3 Controllers (Workplace & Company Details)
   final _inviteCodeController = TextEditingController();
   final _workspaceNameController = TextEditingController();
+  final _hqLocationController = TextEditingController();
+  final _industryController = TextEditingController();
+  String _selectedCompanySize = '11-50 employees';
 
   @override
   void dispose() {
@@ -89,28 +151,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _bioController.dispose();
     _inviteCodeController.dispose();
     _workspaceNameController.dispose();
+    _hqLocationController.dispose();
+    _industryController.dispose();
     super.dispose();
   }
 
-  String _generateCode() {
+  String _generateCode({String prefix = 'COMP'}) {
     final rand = math.Random();
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final code = List.generate(6, (_) => chars[rand.nextInt(chars.length)]).join();
-    return 'LEAD-$code';
+    final code = List.generate(5, (_) => chars[rand.nextInt(chars.length)]).join();
+    return '$prefix-$code';
   }
 
   void _nextStep() {
     if (_currentStep == 0) {
-      // Role selection step: must have a role selected
       if (_selectedRole.isEmpty) return;
-
-      // If employee with leadership role, generate a code
       if (_selectedRole == 'employee' && _isLeadershipRole && _generatedLeaderCode.isEmpty) {
         _generatedLeaderCode = _generateCode();
       }
     }
-
-    if (_currentStep < 3) {
+    if (_currentStep < _totalSteps - 1) {
       setState(() {
         _currentStep++;
       });
@@ -123,55 +183,131 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final name = _nameController.text.trim();
-    final jobTitle = _jobRoleController.text.trim().isNotEmpty
-        ? _jobRoleController.text.trim()
-        : (_selectedRole == 'founder' ? 'Founder & CEO' : 'Employee');
-    final companyName = _selectedRole == 'founder'
-        ? (_workspaceNameController.text.trim().isNotEmpty
-            ? _workspaceNameController.text.trim()
-            : 'Acme Corp')
-        : (_workspaceNameController.text.trim().isNotEmpty
-            ? _workspaceNameController.text.trim()
-            : 'Happy Desk HQ');
+    final jobTitle = _selectedRole == 'founder'
+        ? 'Founder & CEO'
+        : (_jobRoleController.text.trim().isNotEmpty
+            ? _jobRoleController.text.trim()
+            : 'Employee');
+    final companyName = _workspaceNameController.text.trim();
+    final hqLocation = _hqLocationController.text.trim();
+    final industry = _industryController.text.trim();
     final bioText = _bioController.text.trim();
 
-    // 1. Instantly store local user profile in UserPreferencesStore
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your email address and password.'),
+          backgroundColor: Color(0xFFDC2626),
+        ),
+      );
+      return;
+    }
+
+    if (_selectedAvatar.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please upload a profile photo using gallery or camera.'),
+          backgroundColor: Color(0xFFDC2626),
+        ),
+      );
+      return;
+    }
+
+    if (_selectedRole == 'founder' && companyName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your Company / Workspace Name.'),
+          backgroundColor: Color(0xFFDC2626),
+        ),
+      );
+      return;
+    }
+
+    if (_selectedRole == 'employee' && _inviteCodeController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter the Company Join Code provided by your Founder.'),
+          backgroundColor: Color(0xFFDC2626),
+        ),
+      );
+      return;
+    }
+
+    // Store local profile
     await UserPreferencesStore.setUserProfile(
       name: name.isNotEmpty ? name : (_selectedRole == 'founder' ? 'Founder' : 'Employee'),
       role: jobTitle,
-      team: _selectedDepartment,
+      team: _selectedRole == 'founder' ? 'Executive Leadership' : _selectedDepartment,
       bio: bioText,
-      company: companyName,
+      company: companyName.isNotEmpty ? companyName : 'Happy Desk HQ',
     );
+
+    if (_selectedRole == 'founder') {
+      final compCode = _generatedLeaderCode.isNotEmpty ? _generatedLeaderCode : _generateCode(prefix: 'COMP');
+      await UserPreferencesStore.setRoleType('founder');
+      await UserPreferencesStore.setUserRole('Founder & CEO');
+      await UserPreferencesStore.setCompanyCode(compCode);
+      await UserPreferencesStore.setCompanyDetails(
+        companyName: companyName,
+        hqLocation: hqLocation,
+        industry: industry,
+        companySize: _selectedCompanySize,
+      );
+    } else {
+      await UserPreferencesStore.setRoleType('employee');
+      await UserPreferencesStore.setUserRole(jobTitle);
+      await UserPreferencesStore.setIsLeader(_isLeadershipRole);
+      await UserPreferencesStore.setCompanyCode(_inviteCodeController.text.trim());
+      if (_isLeadershipRole) {
+        final teamCode = _generatedLeaderCode.isNotEmpty ? _generatedLeaderCode : _generateCode(prefix: 'TEAM');
+        await UserPreferencesStore.setTeamCode(teamCode);
+      }
+    }
 
     if (_selectedAvatar.isNotEmpty) {
       await UserPreferencesStore.setUserAvatarUrl(_selectedAvatar);
     }
 
     try {
+      String? uploadedAvatarUrl;
+
       if (_selectedRole == 'founder') {
-        await SupabaseService.instance.signUpFounder(
-          email: email.isNotEmpty ? email : 'founder@happy-desk.app',
-          password: password.isNotEmpty ? password : 'Password123!',
+        final compCode = UserPreferencesStore.getCompanyCode();
+        final authRes = await SupabaseService.instance.signUpFounder(
+          email: email,
+          password: password,
           name: name.isNotEmpty ? name : 'Founder',
           companyName: companyName,
-          companyCode: _generatedLeaderCode.isNotEmpty ? _generatedLeaderCode : null,
-          jobTitle: jobTitle,
-          department: _selectedDepartment,
+          hqLocation: hqLocation,
+          industry: industry,
+          companySize: _selectedCompanySize,
+          companyCode: compCode,
+          jobTitle: 'Founder & CEO',
+          department: 'Executive Leadership',
           bio: bioText,
         );
+        if (authRes.user != null && _selectedAvatar.isNotEmpty && File(_selectedAvatar).existsSync()) {
+          uploadedAvatarUrl = await SupabaseService.instance.uploadAvatarImage(File(_selectedAvatar));
+        }
       } else {
         final code = _inviteCodeController.text.trim();
-        await SupabaseService.instance.signUpEmployee(
-          email: email.isNotEmpty ? email : 'employee@happy-desk.app',
-          password: password.isNotEmpty ? password : 'Password123!',
+        final authRes = await SupabaseService.instance.signUpEmployee(
+          email: email,
+          password: password,
           name: name.isNotEmpty ? name : 'Employee',
-          companyCode: code.isNotEmpty ? code : (_generatedLeaderCode.isNotEmpty ? _generatedLeaderCode : 'COMP-DEMO'),
+          companyCode: code.isNotEmpty ? code : 'COMP-DEMO',
           isLeader: _isLeadershipRole,
           jobTitle: jobTitle,
           department: _selectedDepartment,
           bio: bioText,
         );
+        if (authRes.user != null && _selectedAvatar.isNotEmpty && File(_selectedAvatar).existsSync()) {
+          uploadedAvatarUrl = await SupabaseService.instance.uploadAvatarImage(File(_selectedAvatar));
+        }
+      }
+
+      if (uploadedAvatarUrl != null) {
+        await UserPreferencesStore.setUserAvatarUrl(uploadedAvatarUrl);
       }
     } catch (e) {
       debugPrint('Supabase registration note: $e');
@@ -1071,20 +1207,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
           ),
 
-          const SizedBox(height: 18),
-
-          // Job Title / Role
-          _buildInputLabel(isFounder ? 'Executive Title / Position' : 'Job Title / Position'),
-          const SizedBox(height: 6),
-          _buildTextField(
-            controller: _jobRoleController,
-            hintText: isFounder
-                ? 'e.g. Founder & CEO, Managing Director'
-                : 'e.g. Product Designer, Software Engineer',
-            icon: isFounder ? Icons.workspace_premium_rounded : Icons.work_outline_rounded,
-          ),
-
-          const SizedBox(height: 14),
+          if (!isFounder) ...[
+            // Job Title / Role (Employees only)
+            _buildInputLabel('Job Title / Position'),
+            const SizedBox(height: 6),
+            _buildTextField(
+              controller: _jobRoleController,
+              hintText: 'e.g. Product Designer, Software Engineer',
+              icon: Icons.work_outline_rounded,
+            ),
+            const SizedBox(height: 14),
+          ],
 
           // Department Selection Chips
           _buildInputLabel(isFounder ? 'Executive Department' : 'Department'),
@@ -1236,6 +1369,55 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
           const SizedBox(height: 18),
 
+          if (isFounder) ...[
+            const SizedBox(height: 14),
+            _buildInputLabel('Main Branch / HQ Location'),
+            const SizedBox(height: 6),
+            _buildTextField(
+              controller: _hqLocationController,
+              hintText: 'e.g. New York, USA or City/Branch',
+              icon: Icons.location_city_rounded,
+            ),
+            const SizedBox(height: 12),
+            _buildInputLabel('Company Industry / Domain'),
+            const SizedBox(height: 6),
+            _buildTextField(
+              controller: _industryController,
+              hintText: 'e.g. Software & Tech, Healthcare, Finance',
+              icon: Icons.domain_rounded,
+            ),
+            const SizedBox(height: 12),
+            _buildInputLabel('Company Size'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: ['1-10 employees', '11-50 employees', '51-200 employees', '200+ employees'].map((size) {
+                final isSel = _selectedCompanySize == size;
+                return ChoiceChip(
+                  showCheckmark: false,
+                  label: Text(size),
+                  selected: isSel,
+                  selectedColor: AppTheme.primaryRust,
+                  backgroundColor: const Color(0xFFF4F4FD),
+                  labelStyle: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.5,
+                    fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                    color: isSel ? Colors.white : AppTheme.titleDark,
+                  ),
+                  onSelected: (val) {
+                    if (val) {
+                      setState(() {
+                        _selectedCompanySize = size;
+                      });
+                    }
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+          ],
+
           // Review Summary Card
           Container(
             padding: const EdgeInsets.all(16),
@@ -1259,19 +1441,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ? _emailController.text
                       : (isFounder ? 'founder@happy-desk.app' : 'employee@happy-desk.app'),
                 ),
-                const Divider(height: 20),
-                _buildReviewRow(
-                  Icons.work_rounded,
-                  'Job Title',
-                  _jobRoleController.text.isNotEmpty
-                      ? _jobRoleController.text
-                      : (isFounder ? 'Founder & CEO' : 'Employee'),
-                ),
+                if (!isFounder) ...[
+                  const Divider(height: 20),
+                  _buildReviewRow(
+                    Icons.work_rounded,
+                    'Job Title',
+                    _jobRoleController.text.isNotEmpty ? _jobRoleController.text : 'Employee',
+                  ),
+                ],
                 const Divider(height: 20),
                 _buildReviewRow(
                   Icons.apartment_rounded,
                   'Department',
-                  _selectedDepartment,
+                  isFounder ? 'Executive Leadership' : _selectedDepartment,
                 ),
                 if (isFounder) ...[
                   const Divider(height: 20),
@@ -1279,6 +1461,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     Icons.business_rounded,
                     'Company Workspace',
                     companyNameDisplay,
+                  ),
+                  const Divider(height: 20),
+                  _buildReviewRow(
+                    Icons.location_on_rounded,
+                    'HQ Location',
+                    _hqLocationController.text.isNotEmpty ? _hqLocationController.text : 'New York, USA',
                   ),
                   if (_generatedLeaderCode.isNotEmpty) ...[
                     const Divider(height: 20),
@@ -1374,7 +1562,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
               child: Text(
-                isFounder ? '🚀 Create Company & Launch Workspace' : '✨ Complete Setup & Join Team',
+                isFounder ? 'Create Company & Launch Workspace' : 'Complete Setup & Join Team',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,

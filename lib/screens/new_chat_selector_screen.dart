@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'direct_chat_screen.dart';
@@ -19,42 +20,42 @@ class _NewChatSelectorScreenState extends State<NewChatSelectorScreen> {
       'role': 'Product Designer',
       'team': 'Design',
       'isOnline': true,
-      'avatar': 'assets/avatars/user_avatar.png',
+      'avatar': '',
     },
     {
       'name': 'Sarah Chen',
       'role': 'Lead Engineer',
       'team': 'Engineering',
       'isOnline': true,
-      'avatar': 'assets/avatars/avatar_1.png',
+      'avatar': '',
     },
     {
       'name': 'David Kim',
       'role': 'Frontend Architect',
       'team': 'Engineering',
       'isOnline': false,
-      'avatar': 'assets/avatars/avatar_2.png',
+      'avatar': '',
     },
     {
       'name': 'Marcus Vance',
       'role': 'Community Lead',
       'team': 'Product',
       'isOnline': false,
-      'avatar': 'assets/avatars/avatar_3.png',
+      'avatar': '',
     },
     {
       'name': 'Elena Rostova',
       'role': 'Customer Success Lead',
       'team': 'Product',
       'isOnline': true,
-      'avatar': 'assets/avatars/user_avatar.png',
+      'avatar': '',
     },
     {
       'name': 'Mary Jane',
       'role': 'Product Manager',
       'team': 'Product',
       'isOnline': true,
-      'avatar': 'assets/avatars/avatar_1.png',
+      'avatar': '',
     },
   ];
 
@@ -246,7 +247,24 @@ class _NewChatSelectorScreenState extends State<NewChatSelectorScreen> {
                             children: [
                               CircleAvatar(
                                 radius: 22,
-                                backgroundImage: AssetImage(person['avatar']),
+                                backgroundColor: const Color(0xFFFFF0EB),
+                                child: ((person['avatar'] as String? ?? '').startsWith('http') ||
+                                        ((person['avatar'] as String? ?? '').isNotEmpty && File(person['avatar']).existsSync()))
+                                    ? ClipOval(
+                                        child: (person['avatar'] as String).startsWith('http')
+                                            ? Image.network(person['avatar'], fit: BoxFit.cover, width: 44, height: 44)
+                                            : Image.file(File(person['avatar']), fit: BoxFit.cover, width: 44, height: 44),
+                                      )
+                                    : Text(
+                                        (person['name'] as String? ?? '?').isNotEmpty
+                                            ? (person['name'] as String)[0].toUpperCase()
+                                            : '?',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                          color: const Color(0xFFAB3500),
+                                        ),
+                                      ),
                               ),
                               if (isOnline)
                                 Positioned(

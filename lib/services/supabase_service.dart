@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'user_preferences_store.dart';
@@ -48,18 +50,22 @@ class SupabaseService {
     required String password,
     required String name,
     required String companyName,
+    String? hqLocation,
+    String? industry,
+    String? companySize,
     String? companyCode,
     String jobTitle = 'Founder & CEO',
-    String department = 'Executive',
+    String department = 'Executive Leadership',
     String bio = '',
+    String? avatarUrl,
   }) async {
     await init();
     final finalCode = (companyCode != null && companyCode.trim().isNotEmpty)
         ? companyCode.trim().toUpperCase()
         : generateCode(prefix: 'COMP', length: 5);
 
-    final finalTitle = jobTitle.trim().isNotEmpty ? jobTitle.trim() : 'Founder & CEO';
-    final finalDepartment = department.trim().isNotEmpty ? department.trim() : 'Executive';
+    final finalTitle = 'Founder & CEO';
+    final finalDepartment = 'Executive Leadership';
 
     // 1. Auth Sign Up
     final res = await client.auth.signUp(
@@ -77,11 +83,14 @@ class SupabaseService {
 
     final user = res.user;
     if (user != null) {
-      // 2. Create Company Record
+      // 2. Create Company Record with HQ & Industry details
       final companyRes = await client.from('companies').insert({
         'name': companyName,
         'company_code': finalCode,
         'founder_id': user.id,
+        'hq_location': hqLocation ?? '',
+        'industry': industry ?? '',
+        'company_size': companySize ?? '',
       }).select().single();
 
       final companyId = companyRes['id'] as String;
@@ -110,6 +119,7 @@ class SupabaseService {
         'job_title': finalTitle,
         'department': finalDepartment,
         'bio': bio,
+        if (avatarUrl != null) 'avatar_url': avatarUrl,
       });
 
       // Save local preferences
@@ -120,6 +130,16 @@ class SupabaseService {
         bio: bio,
         company: companyName,
       );
+      await UserPreferencesStore.setRoleType('founder');
+      await UserPreferencesStore.setCompanyDetails(
+        companyName: companyName,
+        hqLocation: hqLocation,
+        industry: industry,
+        companySize: companySize,
+      );
+      if (avatarUrl != null) {
+        await UserPreferencesStore.setUserAvatarUrl(avatarUrl);
+      }
     }
     return res;
   }
@@ -134,6 +154,7 @@ class SupabaseService {
     String jobTitle = 'Employee',
     String department = 'Engineering',
     String bio = '',
+    String? avatarUrl,
   }) async {
     await init();
     final cleanCode = companyCode.trim().toUpperCase();
@@ -193,6 +214,7 @@ class SupabaseService {
         'job_title': jobTitle,
         'department': department,
         'bio': bio,
+        if (avatarUrl != null) 'avatar_url': avatarUrl,
       });
 
       String? companyName = companyMatch != null ? (companyMatch['name'] as String?) : null;
@@ -203,6 +225,9 @@ class SupabaseService {
         bio: bio,
         company: companyName,
       );
+      if (avatarUrl != null) {
+        await UserPreferencesStore.setUserAvatarUrl(avatarUrl);
+      }
     }
     return res;
   }
@@ -325,6 +350,67 @@ class SupabaseService {
     }
   }
 
+  /// Reverse Geocode Coordinates to Country, State, District, Pincode & Full Address
+  Future<Map<String, String>> fetchDetailedAddress(double lat, double lng) async {
+    try {
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1',
+      );
+      final response = await http.get(url, headers: {
+        'User-Agent': 'HappyDeskApp/1.0',
+      }).timeout(const Duration(seconds: 4));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final address = data['address'] as Map<String, dynamic>? ?? {};
+
+        final country = address['country']?.toString() ?? '';
+        final state = address['state']?.toString() ?? '';
+        final district = address['city_district']?.toString() ??
+            address['district']?.toString() ??
+            address['county']?.toString() ??
+            address['city']?.toString() ??
+            address['town']?.toString() ??
+            '';
+        final pincode = address['postcode']?.toString() ?? '';
+        final area = address['suburb']?.toString() ??
+            address['neighbourhood']?.toString() ??
+            address['residential']?.toString() ??
+            address['road']?.toString() ??
+            '';
+
+        final parts = <String>[];
+        if (area.isNotEmpty) parts.add(area);
+        if (district.isNotEmpty) parts.add(district);
+        if (state.isNotEmpty) parts.add(state);
+        if (pincode.isNotEmpty) parts.add(pincode);
+        if (country.isNotEmpty) parts.add(country);
+
+        final displayName = parts.isNotEmpty
+            ? parts.join(', ')
+            : (data['display_name']?.toString() ?? 'Lat: ${lat.toStringAsFixed(4)}, Lng: ${lng.toStringAsFixed(4)}');
+
+        return {
+          'location_name': displayName,
+          'country': country,
+          'state': state,
+          'district': district,
+          'pincode': pincode,
+        };
+      }
+    } catch (e) {
+      debugPrint('Error reverse geocoding: $e');
+    }
+
+    return {
+      'location_name': 'Lat: ${lat.toStringAsFixed(4)}, Lng: ${lng.toStringAsFixed(4)}',
+      'country': '',
+      'state': '',
+      'district': '',
+      'pincode': '',
+    };
+  }
+
   // Clock In with Live Location
   Future<Map<String, dynamic>?> clockInWithLocation() async {
     await init();
@@ -334,9 +420,20 @@ class SupabaseService {
     final position = await getCurrentDeviceLocation();
     final double? lat = position?.latitude;
     final double? lng = position?.longitude;
-    final String locationName = position != null
-        ? 'Lat: ${lat?.toStringAsFixed(4)}, Lng: ${lng?.toStringAsFixed(4)}'
-        : 'Office HQ';
+
+    Map<String, String> addressDetails = {
+      'location_name': 'Office HQ',
+      'country': '',
+      'state': '',
+      'district': '',
+      'pincode': '',
+    };
+
+    if (lat != null && lng != null) {
+      addressDetails = await fetchDetailedAddress(lat, lng);
+    }
+
+    final locationName = addressDetails['location_name'] ?? 'Office HQ';
 
     // Insert work session
     final sessionRes = await client.from('work_sessions').insert({
@@ -345,6 +442,10 @@ class SupabaseService {
       'clock_in_lat': lat,
       'clock_in_lng': lng,
       'clock_in_location_name': locationName,
+      'clock_in_country': addressDetails['country'],
+      'clock_in_state': addressDetails['state'],
+      'clock_in_district': addressDetails['district'],
+      'clock_in_pincode': addressDetails['pincode'],
       'status': 'active',
     }).select().single();
 
@@ -366,11 +467,29 @@ class SupabaseService {
     return sessionRes;
   }
 
-  // Clock Out
-  Future<void> clockOutWorkSession() async {
+  // Clock Out with Live Location
+  Future<Map<String, dynamic>?> clockOutWorkSession() async {
     await init();
     final user = currentUser;
-    if (user == null) return;
+    if (user == null) return null;
+
+    final position = await getCurrentDeviceLocation();
+    final double? lat = position?.latitude;
+    final double? lng = position?.longitude;
+
+    Map<String, String> addressDetails = {
+      'location_name': 'Work Complete',
+      'country': '',
+      'state': '',
+      'district': '',
+      'pincode': '',
+    };
+
+    if (lat != null && lng != null) {
+      addressDetails = await fetchDetailedAddress(lat, lng);
+    }
+
+    final locationName = addressDetails['location_name'] ?? 'Work Complete';
 
     final activeSessions = await client
         .from('work_sessions')
@@ -378,18 +497,28 @@ class SupabaseService {
         .eq('user_id', user.id)
         .eq('status', 'active');
 
+    Map<String, dynamic>? updatedSession;
     if (activeSessions.isNotEmpty) {
       final sessionId = activeSessions.first['id'];
-      await client.from('work_sessions').update({
+      updatedSession = await client.from('work_sessions').update({
         'clock_out_time': DateTime.now().toIso8601String(),
+        'clock_out_lat': lat,
+        'clock_out_lng': lng,
+        'clock_out_location_name': locationName,
+        'clock_out_country': addressDetails['country'],
+        'clock_out_state': addressDetails['state'],
+        'clock_out_district': addressDetails['district'],
+        'clock_out_pincode': addressDetails['pincode'],
         'status': 'completed',
-      }).eq('id', sessionId);
+      }).eq('id', sessionId).select().maybeSingle();
     }
 
     await client.from('profiles').update({
       'is_clocked_in': false,
       'is_on_break': false,
     }).eq('id', user.id);
+
+    return updatedSession;
   }
 
   // Fetch Work Sessions History
@@ -524,6 +653,40 @@ class SupabaseService {
       'likes_count': 0,
       'tag': tag,
     });
+  }
+
+  // Fetch Pending/Reviewed Company Leave Requests for Founder Review
+  Future<List<Map<String, dynamic>>> fetchCompanyLeaveRequests() async {
+    await init();
+    try {
+      final res = await client
+          .from('leave_requests')
+          .select('*, profiles:user_id(name, job_title, department, avatar_url)')
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(res);
+    } catch (e) {
+      debugPrint('Error fetching leave requests: $e');
+      return [];
+    }
+  }
+
+  // Update Leave Request Status (Approve / Reject)
+  Future<bool> updateLeaveRequestStatus({
+    required String requestId,
+    required String status,
+  }) async {
+    await init();
+    final user = currentUser;
+    try {
+      await client.from('leave_requests').update({
+        'status': status,
+        'reviewed_by': user?.id,
+      }).eq('id', requestId);
+      return true;
+    } catch (e) {
+      debugPrint('Error updating leave request status: $e');
+      return false;
+    }
   }
 
   // NGL Jar - Like Message
@@ -732,6 +895,8 @@ class SupabaseService {
       await client.from('profiles').update({
         'avatar_url': imageUrl,
       }).eq('id', user.id);
+
+      await UserPreferencesStore.setUserAvatarUrl(imageUrl);
 
       return imageUrl;
     } catch (e) {

@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
@@ -11,9 +12,10 @@ import '../services/mochi_prompt_service.dart';
 import '../services/mochi_memory_service.dart';
 import '../services/coffee_notification_store.dart';
 import '../services/supabase_service.dart';
+import '../services/sound_service.dart';
 import '../widgets/box_breathing_modal.dart';
 import '../widgets/desk_stretches_modal.dart';
-import 'notifications_screen.dart';
+import '../widgets/notification_bell_widget.dart';
 
 class AiWellnessBotScreen extends StatefulWidget {
   const AiWellnessBotScreen({super.key});
@@ -57,6 +59,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
   @override
   void initState() {
     super.initState();
+    SoundService.playMessageOpenSound();
     _promptService.ensureLoaded();
     _loadShiftState();
     _loadSavedMessages();
@@ -133,16 +136,43 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       } catch (_) {}
     }
 
-    // Default Initial Mochi Welcome Message
+    final name = UserPreferencesStore.getUserName();
+    final firstName = name.isNotEmpty ? name.split(' ').first : '';
+
+    final greetingsMsg1 = [
+      firstName.isNotEmpty ? "Hey $firstName, I'm Mochi!" : "Hey, I'm Mochi!",
+      firstName.isNotEmpty ? "Hi $firstName! Mochi here." : "Hi there! Mochi here.",
+      firstName.isNotEmpty ? "Hey $firstName!" : "Hey there!",
+    ];
+
+    final greetingsMsg2 = [
+      "wassup",
+      "how are you?",
+      "how's your day going?",
+      "feeling bored?",
+      "how are things at work today?",
+      "what's on your mind?",
+      "taking a quick break?",
+    ];
+
+    final random = math.Random();
+    final selectedMsg1 = greetingsMsg1[random.nextInt(greetingsMsg1.length)];
+    final selectedMsg2 = greetingsMsg2[random.nextInt(greetingsMsg2.length)];
+
+    // Default Initial Mochi Welcome Messages (2 separate dynamic messages)
     setState(() {
-      _messages.add(
+      _messages.addAll([
         _ChatMessage(
-          text:
-              "Hey there! I'm Mochi — your workplace stress companion. I'm right here to listen without any judgment. What's been on your mind at work today?",
+          text: selectedMsg1,
           isUser: false,
           time: _formatCurrentTime(),
         ),
-      );
+        _ChatMessage(
+          text: selectedMsg2,
+          isUser: false,
+          time: _formatCurrentTime(),
+        ),
+      ]);
     });
   }
 
@@ -180,7 +210,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     final text = prefilledText ?? _textController.text.trim();
     if (text.isEmpty) return;
 
-    HapticFeedback.selectionClick();
+    SoundService.playMessageSentSound();
     _textController.clear();
 
     final currentTime = _formatCurrentTime();
@@ -227,24 +257,40 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
         lowerText.contains('boss') ||
         lowerText.contains('say to my team');
 
-    final bool suggestsBreathing =
-        lowerText.contains('breath') ||
+    final bool isPersonalCrisis =
+        lowerText.contains('sick') ||
+        lowerText.contains('die') ||
+        lowerText.contains('hospital') ||
+        lowerText.contains('mom') ||
+        lowerText.contains('mother') ||
+        lowerText.contains('father') ||
+        lowerText.contains('dad') ||
+        lowerText.contains('family') ||
+        lowerText.contains('emergency') ||
+        lowerText.contains('passed away');
+
+    final bool suggestsBreathing = !isPersonalCrisis &&
+        (lowerText.contains('breath') ||
         lowerText.contains('anxious') ||
         lowerText.contains('panic') ||
         lowerText.contains('overwhelmed') ||
-        lowerText.contains('heart');
+        lowerText.contains('heart'));
 
-    final bool suggestsStretches =
-        lowerText.contains('neck') ||
+    final bool suggestsStretches = !isPersonalCrisis &&
+        (lowerText.contains('neck') ||
         lowerText.contains('shoulder') ||
         lowerText.contains('back') ||
         lowerText.contains('stiff') ||
-        lowerText.contains('exhausted');
+        lowerText.contains('exhausted'));
 
-    final detectedDistortions = _promptService.detectCognitiveDistortions(text);
+    final detectedDistortions = isPersonalCrisis
+        ? <String>[]
+        : _promptService.detectCognitiveDistortions(text);
 
     String? determinedAction;
-    if (asksBoundary) {
+    if (isPersonalCrisis) {
+      determinedAction = null;
+    } else if (asksBoundary) {
       determinedAction = 'boundary';
     } else if (suggestsBreathing) {
       determinedAction = 'breathing';
@@ -280,39 +326,61 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
         actionType: determinedAction,
       );
 
+      final chunks = _splitBotResponse(textToDisplay);
+
       if (!mounted) return;
       setState(() {
         _isTyping = false;
-        _messages.add(
-          _ChatMessage(
-            text: textToDisplay,
-            isUser: false,
-            time: _formatCurrentTime(),
-            actionType: determinedAction,
-          ),
-        );
       });
-      _scrollToBottom();
-      _saveMessages();
+
+      for (int i = 0; i < chunks.length; i++) {
+        if (!mounted) return;
+        setState(() {
+          _messages.add(
+            _ChatMessage(
+              text: chunks[i],
+              isUser: false,
+              time: _formatCurrentTime(),
+              actionType: (i == chunks.length - 1) ? determinedAction : null,
+            ),
+          );
+        });
+        _scrollToBottom();
+        _saveMessages();
+        if (i < chunks.length - 1) {
+          await Future.delayed(const Duration(milliseconds: 400));
+        }
+      }
+
       summarizeSessionIfNeeded();
     } catch (e) {
       if (!mounted) return;
       final fallbackText = _generateDomainFallbackResponse(text);
+      final chunks = _splitBotResponse(fallbackText);
+      final finalAction = determinedAction ?? (suggestsBreathing ? 'breathing' : null);
 
       setState(() {
         _isTyping = false;
-        _messages.add(
-          _ChatMessage(
-            text: fallbackText,
-            isUser: false,
-            time: _formatCurrentTime(),
-            actionType:
-                determinedAction ?? (suggestsBreathing ? 'breathing' : null),
-          ),
-        );
       });
-      _scrollToBottom();
-      _saveMessages();
+
+      for (int i = 0; i < chunks.length; i++) {
+        if (!mounted) return;
+        setState(() {
+          _messages.add(
+            _ChatMessage(
+              text: chunks[i],
+              isUser: false,
+              time: _formatCurrentTime(),
+              actionType: (i == chunks.length - 1) ? finalAction : null,
+            ),
+          );
+        });
+        _scrollToBottom();
+        _saveMessages();
+        if (i < chunks.length - 1) {
+          await Future.delayed(const Duration(milliseconds: 400));
+        }
+      }
     }
   }
 
@@ -321,13 +389,49 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     final name = UserPreferencesStore.getUserName();
     final firstName = name.isNotEmpty ? name.split(' ').first : '';
 
-    // Workplace relationship / Crush on boss / Manager romance dynamics
+    // Family Sickness, Illness & Emergency Care
+    if (lower.contains('sick') ||
+        lower.contains('die') ||
+        lower.contains('hospital') ||
+        lower.contains('mom') ||
+        lower.contains('mother') ||
+        lower.contains('father') ||
+        lower.contains('dad') ||
+        lower.contains('family') ||
+        lower.contains('emergency') ||
+        lower.contains('passed away')) {
+      return "Oh no... I am so sorry to hear that. Hearing that someone close to you is sick or in danger is terrifying and overwhelming. Please don't worry about work right now — take a deep breath and focus on being there for your family. I'm right here with you if you need a safe space to talk or vent.";
+    }
+
+    // Casual Chit-Chat ("how are you", "how was your day", "what about you")
+    if (lower.contains('how are you') ||
+        lower.contains('how is it going') ||
+        lower.contains('how was your day') ||
+        lower.contains('how\'s your day') ||
+        lower.contains('what about you') ||
+        lower.contains('how r u')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      if (lower.contains('day')) {
+        return "Honestly? It was kind of slow and quiet here, I was getting a bit lonely waiting for you! How was your day$namePart?";
+      }
+      return "Aah... I'm doing pretty good! A bit quiet here waiting for you, but I'm glad you stopped by$namePart. How are you holding up today?";
+    }
+
+    // Coworker & Team compatibility / disconnect
+    if (lower.contains('coworker') ||
+        lower.contains('out of touch') ||
+        lower.contains('not on the same page') ||
+        lower.contains('compatibility') ||
+        lower.contains('connecting with my coworkers')) {
+      return "Feeling out of sync with your team can make everyday work feel way more exhausting than it needs to be. Often, this disconnect comes down to different communication styles rather than a true lack of compatibility.\n\nHere is a simple, low-pressure approach: try starting with small 1-on-1 micro-connections over coffee or quick check-ins, rather than trying to fix the whole team dynamic at once.";
+    }
+
+    // Workplace relationship / Manager romance dynamics
     if (lower.contains('crush') ||
         lower.contains('boss') ||
         lower.contains('in love') ||
         lower.contains('unethical') ||
         lower.contains('manager') ||
-        lower.contains('coworker') ||
         lower.contains('dating') ||
         lower.contains('romance') ||
         lower.contains('feelings for')) {
@@ -377,6 +481,59 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     final text = _fallbackResponses[_fallbackIndex % _fallbackResponses.length];
     _fallbackIndex++;
     return text;
+  }
+
+  List<String> _splitBotResponse(String fullText) {
+    final trimmed = fullText.trim();
+    if (trimmed.isEmpty) return [fullText];
+
+    // Try splitting by double newlines (paragraphs)
+    final paragraphs = trimmed
+        .split(RegExp(r'\n\s*\n'))
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+
+    if (paragraphs.length >= 2 && paragraphs.length <= 3) {
+      return paragraphs;
+    }
+    if (paragraphs.length > 3) {
+      final chunk1 = paragraphs[0];
+      final chunk2 = paragraphs[1];
+      final chunk3 = paragraphs.sublist(2).join('\n\n');
+      return [chunk1, chunk2, chunk3];
+    }
+
+    // If text is short (< 160 chars), keep it in 1 message bubble
+    if (trimmed.length < 160) {
+      return [trimmed];
+    }
+
+    // Split single long text into sentences (. ! ?)
+    final sentenceMatches = RegExp(r'[^.!?]+[.!?]+').allMatches(trimmed);
+    final sentences = sentenceMatches.map((m) => m.group(0)!.trim()).toList();
+
+    if (sentences.length <= 1) {
+      return [trimmed];
+    } else if (sentences.length == 2) {
+      return [sentences[0], sentences[1]];
+    } else {
+      final partSize = (sentences.length / 3).ceil();
+      final p1 = sentences.sublist(0, partSize).join(' ');
+      final p2 = sentences
+          .sublist(partSize, (partSize * 2).clamp(0, sentences.length))
+          .join(' ');
+      final p3 = sentences
+          .sublist((partSize * 2).clamp(0, sentences.length))
+          .join(' ');
+
+      final result = <String>[];
+      if (p1.trim().isNotEmpty) result.add(p1.trim());
+      if (p2.trim().isNotEmpty) result.add(p2.trim());
+      if (p3.trim().isNotEmpty) result.add(p3.trim());
+
+      return result.isNotEmpty ? result : [trimmed];
+    }
   }
 
   Future<void> _maybeCaptureStylePreference(String text) async {
@@ -615,69 +772,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
                     ),
                   ),
                   const Spacer(),
-                  ValueListenableBuilder<List<CoffeeNotificationItem>>(
-                    valueListenable:
-                        CoffeeNotificationStore.notificationsNotifier,
-                    builder: (context, notifications, child) {
-                      final unreadCount = notifications
-                          .where((item) => item.isUnread)
-                          .length;
-                      return Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const NotificationsScreen(),
-                                ),
-                              );
-                            },
-                            icon: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFFFF0EB),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.notifications_rounded,
-                                color: Color(0xFFAB3500),
-                                size: 22,
-                              ),
-                            ),
-                            tooltip: 'Notifications',
-                          ),
-                          if (unreadCount > 0)
-                            Positioned(
-                              right: 2,
-                              top: 2,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFF6B35),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.white, width: 1.5),
-                                ),
-                                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                                child: Text(
-                                  unreadCount > 9 ? '9+' : '$unreadCount',
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
+                  const NotificationBellWidget(),
                 ],
               ),
             ),
@@ -707,13 +802,13 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
             ),
 
 
-            // Clean Floating Conversational Input Field (No awkward bottom white gap!)
+            // Clean Floating Conversational Input Field (Multiline, line wrap & max height)
             Container(
               margin: const EdgeInsets.fromLTRB(16, 4, 16, 6),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: const Color(0xFFE4E7FE), width: 1.5),
                 boxShadow: [
                   BoxShadow(
@@ -724,12 +819,15 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
                 ],
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
                     child: TextField(
                       controller: _textController,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _handleSendMessage(),
+                      minLines: 1,
+                      maxLines: 4,
+                      keyboardType: TextInputType.multiline,
+                      scrollPhysics: const BouncingScrollPhysics(),
                       style: GoogleFonts.beVietnamPro(
                         fontSize: 14,
                         color: const Color(0xFF171B2B),
@@ -742,32 +840,35 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
                         ),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
+                          horizontal: 8,
                           vertical: 10,
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => _handleSendMessage(),
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF95416C),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(0x3395416C),
-                            blurRadius: 8,
-                            offset: Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.send_rounded,
-                        color: Colors.white,
-                        size: 18,
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: GestureDetector(
+                      onTap: () => _handleSendMessage(),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF95416C),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0x3395416C),
+                              blurRadius: 8,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.send_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                       ),
                     ),
                   ),
@@ -781,12 +882,13 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
   }
 
   Widget _buildMessageBubble(_ChatMessage message) {
-    final bubble = Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      constraints: BoxConstraints(
-        minWidth: 48,
-        maxWidth: MediaQuery.of(context).size.width * 0.78,
-      ),
+    final bubble = IntrinsicWidth(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        constraints: BoxConstraints(
+          minWidth: 48,
+          maxWidth: MediaQuery.of(context).size.width * 0.78,
+        ),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: message.isUser ? const Color(0xFF95416C) : Colors.white,
@@ -899,22 +1001,26 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
                 ),
               ),
           ],
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.bottomRight,
-            child: Text(
-              message.time,
-              style: GoogleFonts.beVietnamPro(
-                fontSize: 10.5,
-                color: message.isUser
-                    ? Colors.white70
-                    : const Color(0xFF8D7168),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                message.time,
+                style: GoogleFonts.beVietnamPro(
+                  fontSize: 10,
+                  color: message.isUser
+                      ? Colors.white70
+                      : const Color(0xFF8D7168),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
-    );
+    ),
+  );
 
     if (message.isUser) {
       return Align(
@@ -947,32 +1053,88 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
   }
 
   Widget _buildTypingIndicator() {
+    return const _MochiListeningIndicator();
+  }
+}
+
+class _MochiListeningIndicator extends StatefulWidget {
+  const _MochiListeningIndicator();
+
+  @override
+  State<_MochiListeningIndicator> createState() =>
+      __MochiListeningIndicatorState();
+}
+
+class __MochiListeningIndicatorState extends State<_MochiListeningIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _bounceController;
+  late Animation<double> _bounceAnimation;
+  Timer? _dotsTimer;
+  int _dotCount = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _bounceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+
+    _bounceAnimation = Tween<double>(begin: 0.0, end: -6.0).animate(
+      CurvedAnimation(parent: _bounceController, curve: Curves.easeInOut),
+    );
+
+    _dotsTimer = Timer.periodic(const Duration(milliseconds: 320), (timer) {
+      if (!mounted) return;
+      setState(() {
+        if (_dotCount < 4) {
+          _dotCount++;
+        } else {
+          _dotCount = 2; // Cycle back: 1 -> 2 -> 3 -> 4 -> 2 -> 3 -> 4...
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _bounceController.dispose();
+    _dotsTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dots = '.' * _dotCount;
+
     return Align(
       alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE4E7FE)),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 4, bottom: 12, top: 4),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF95416C)),
+            AnimatedBuilder(
+              animation: _bounceAnimation,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(0, _bounceAnimation.value),
+                  child: child,
+                );
+              },
+              child: SvgPicture.asset(
+                'assets/brand/mochi_bot.svg',
+                width: 28,
+                height: 28,
               ),
             ),
             const SizedBox(width: 10),
             Text(
-              'Mochi is listening...',
+              'Mochi is listening$dots',
               style: GoogleFonts.beVietnamPro(
-                fontSize: 12,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
                 color: const Color(0xFF8D7168),
               ),
             ),

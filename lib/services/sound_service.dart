@@ -1,90 +1,135 @@
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 
+enum HapticFeedbackType { light, medium, heavy, selection }
+
 class SoundService {
   static final AudioPlayer _player = AudioPlayer();
 
-  /// Play shredding paper / swoosh sound effect + system haptics
-  static Future<void> playShredSound() async {
+  static Future<void> _playSoundUrl(
+    String url,
+    SystemSoundType soundType,
+    HapticFeedbackType hapticType,
+  ) async {
     try {
-      await HapticFeedback.heavyImpact();
-      await SystemSound.play(SystemSoundType.click);
+      if (hapticType == HapticFeedbackType.heavy) {
+        await HapticFeedback.heavyImpact();
+      } else if (hapticType == HapticFeedbackType.medium) {
+        await HapticFeedback.mediumImpact();
+      } else if (hapticType == HapticFeedbackType.light) {
+        await HapticFeedback.lightImpact();
+      } else {
+        await HapticFeedback.selectionClick();
+      }
+
+      await SystemSound.play(soundType);
+
       await _player.stop();
       await _player.setVolume(1.0);
-      await _player.play(UrlSource('https://assets.mixkit.co/active_storage/sfx/2578/2578-preview.mp3'));
-    } catch (_) {
-      await SystemSound.play(SystemSoundType.click);
-      await HapticFeedback.heavyImpact();
+      await _player.play(UrlSource(url)).timeout(
+        const Duration(milliseconds: 1500),
+        onTimeout: () async {
+          await SystemSound.play(soundType);
+        },
+      );
+    } catch (e) {
+      await SystemSound.play(soundType);
     }
   }
 
-  /// Play opening NGL Jar chime / pop sound effect
-  static Future<void> playJarOpenSound() async {
-    try {
-      await HapticFeedback.mediumImpact();
-      await SystemSound.play(SystemSoundType.click);
-      await _player.stop();
-      await _player.setVolume(1.0);
-      await _player.play(UrlSource('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'));
-    } catch (_) {
-      await SystemSound.play(SystemSoundType.click);
-      await HapticFeedback.mediumImpact();
-    }
-  }
-
-  /// Play Clock-In chime / bell tone
-  static Future<void> playClockInSound() async {
-    try {
-      await HapticFeedback.selectionClick();
-      await SystemSound.play(SystemSoundType.click);
-      await _player.stop();
-      await _player.setVolume(1.0);
-      await _player.play(UrlSource('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'));
-    } catch (_) {
-      await SystemSound.play(SystemSoundType.click);
-      await HapticFeedback.selectionClick();
-    }
-  }
-
-  /// Play Clock-Out tone
-  static Future<void> playClockOutSound() async {
-    try {
-      await HapticFeedback.lightImpact();
-      await SystemSound.play(SystemSoundType.click);
-      await _player.stop();
-      await _player.setVolume(1.0);
-      await _player.play(UrlSource('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'));
-    } catch (_) {
-      await SystemSound.play(SystemSoundType.click);
-      await HapticFeedback.lightImpact();
-    }
-  }
-
-  /// Play Inhale breath tone
+  /// Play Inhale breath sound
   static Future<void> playInhaleSound() async {
-    try {
-      await HapticFeedback.selectionClick();
-      await SystemSound.play(SystemSoundType.click);
-      await _player.stop();
-      await _player.setVolume(1.0);
-      await _player.play(UrlSource('https://assets.mixkit.co/active_storage/sfx/2569/2569-preview.mp3'));
-    } catch (_) {
-      await SystemSound.play(SystemSoundType.click);
-      await HapticFeedback.selectionClick();
-    }
+    await _playSoundUrl(
+      'https://assets.mixkit.co/active_storage/sfx/2569/2569-preview.mp3',
+      SystemSoundType.click,
+      HapticFeedbackType.selection,
+    );
   }
 
-  /// Play Exhale breath tone
+  /// Play Exhale breath sound
   static Future<void> playExhaleSound() async {
-    try {
-      await HapticFeedback.lightImpact();
-      await SystemSound.play(SystemSoundType.click);
-      await _player.stop();
-      await _player.setVolume(1.0);
-      await _player.play(UrlSource('https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3'));
-    } catch (_) {
-      await SystemSound.play(SystemSoundType.click);
-      await HapticFeedback.lightImpact();
-    }
+    await _playSoundUrl(
+      'https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3',
+      SystemSoundType.click,
+      HapticFeedbackType.light,
+    );
+  }
+
+  /// Play Hold breath tone
+  static Future<void> playHoldSound() async {
+    await HapticFeedback.mediumImpact();
+    await SystemSound.play(SystemSoundType.click);
+  }
+
+  /// Play Desk Stretches step transition sound
+  static Future<void> playStretchStepSound() async {
+    await _playSoundUrl(
+      'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3',
+      SystemSoundType.click,
+      HapticFeedbackType.medium,
+    );
+  }
+
+  /// Play Shred paper / Dissolve Vent Note sound
+  static Future<void> playShredSound() async {
+    await _playSoundUrl(
+      'https://assets.mixkit.co/active_storage/sfx/2578/2578-preview.mp3',
+      SystemSoundType.click,
+      HapticFeedbackType.heavy,
+    );
+  }
+
+  /// Play Open NGL Jar note sound
+  static Future<void> playJarOpenSound() async {
+    await _playSoundUrl(
+      'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3',
+      SystemSoundType.click,
+      HapticFeedbackType.medium,
+    );
+  }
+
+  /// Play Clock-In sound
+  static Future<void> playClockInSound() async {
+    await _playSoundUrl(
+      'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3',
+      SystemSoundType.click,
+      HapticFeedbackType.selection,
+    );
+  }
+
+  /// Play Clock-Out sound
+  static Future<void> playClockOutSound() async {
+    await _playSoundUrl(
+      'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3',
+      SystemSoundType.click,
+      HapticFeedbackType.light,
+    );
+  }
+
+  /// Play Message Sent sound
+  static Future<void> playMessageSentSound() async {
+    await _playSoundUrl(
+      'https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3',
+      SystemSoundType.click,
+      HapticFeedbackType.light,
+    );
+  }
+
+  /// Play Message Open / Chat click sound
+  static Future<void> playMessageOpenSound() async {
+    await _playSoundUrl(
+      'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3',
+      SystemSoundType.click,
+      HapticFeedbackType.selection,
+    );
+  }
+
+  /// Play NGL Anonymous Message Sent sound
+  static Future<void> playNglSendSound() async {
+    await _playSoundUrl(
+      'https://assets.mixkit.co/active_storage/sfx/2578/2578-preview.mp3',
+      SystemSoundType.click,
+      HapticFeedbackType.heavy,
+    );
   }
 }

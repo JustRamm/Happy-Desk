@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../screens/direct_chat_screen.dart';
+import '../screens/audio_video_call_screen.dart';
+import '../services/sound_service.dart';
 import '../services/coffee_notification_store.dart';
 
 class TeammateProfileModal extends StatelessWidget {
@@ -11,8 +14,8 @@ class TeammateProfileModal extends StatelessWidget {
     required this.teammate,
   });
 
-  static void show(BuildContext context, Map<String, dynamic> teammate) {
-    showModalBottomSheet(
+  static Future<void> show(BuildContext context, Map<String, dynamic> teammate) {
+    return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
@@ -27,7 +30,7 @@ class TeammateProfileModal extends StatelessWidget {
   Widget build(BuildContext context) {
     final String name = teammate['name'] ?? 'Alex Miller';
     final String role = teammate['role'] ?? 'Product Designer';
-    final String avatar = teammate['avatar'] ?? 'assets/avatars/user_avatar.png';
+    final String avatar = teammate['avatar'] ?? '';
     final bool isOnline = teammate['isOnline'] == true;
 
     return Padding(
@@ -83,10 +86,22 @@ class TeammateProfileModal extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(45),
-                  child: Image.asset(
-                    avatar,
-                    fit: BoxFit.cover,
-                  ),
+                  child: (avatar.startsWith('http') || (avatar.isNotEmpty && File(avatar).existsSync()))
+                      ? (avatar.startsWith('http')
+                          ? Image.network(avatar, fit: BoxFit.cover, width: 90, height: 90)
+                          : Image.file(File(avatar), fit: BoxFit.cover, width: 90, height: 90))
+                      : Container(
+                          color: const Color(0xFFFFF0EB),
+                          alignment: Alignment.center,
+                          child: Text(
+                            name.isNotEmpty ? name[0].toUpperCase() : '?',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 36,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFFAB3500),
+                            ),
+                          ),
+                        ),
                 ),
               ),
               Positioned(
