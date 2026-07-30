@@ -6,6 +6,7 @@ import 'package:camera/camera.dart';
 import 'services/mochi_prompt_service.dart';
 import 'services/supabase_service.dart';
 import 'services/user_preferences_store.dart';
+import 'services/session_manager_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/onboarding_wrapper_screen.dart';
 
@@ -26,6 +27,9 @@ void main() async {
   await UserPreferencesStore.loadProfileData();
   await SupabaseService.instance.init();
   await MochiPromptService.instance.ensureLoaded();
+
+  // Initialize Background-to-Foreground Resume Session Manager
+  SessionManagerService.instance.initialize();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
