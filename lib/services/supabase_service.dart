@@ -49,11 +49,17 @@ class SupabaseService {
     required String name,
     required String companyName,
     String? companyCode,
+    String jobTitle = 'Founder & CEO',
+    String department = 'Executive',
+    String bio = '',
   }) async {
     await init();
     final finalCode = (companyCode != null && companyCode.trim().isNotEmpty)
         ? companyCode.trim().toUpperCase()
         : generateCode(prefix: 'COMP', length: 5);
+
+    final finalTitle = jobTitle.trim().isNotEmpty ? jobTitle.trim() : 'Founder & CEO';
+    final finalDepartment = department.trim().isNotEmpty ? department.trim() : 'Executive';
 
     // 1. Auth Sign Up
     final res = await client.auth.signUp(
@@ -63,8 +69,9 @@ class SupabaseService {
         'name': name,
         'role_type': 'founder',
         'is_leader': true,
-        'job_title': 'Founder & CEO',
-        'department': 'Executive',
+        'job_title': finalTitle,
+        'department': finalDepartment,
+        'bio': bio,
       },
     );
 
@@ -79,7 +86,20 @@ class SupabaseService {
 
       final companyId = companyRes['id'] as String;
 
-      // 3. Update Founder Profile with Company ID
+      // 3. Create Master Join Code in company_join_codes table
+      try {
+        await client.from('company_join_codes').insert({
+          'company_id': companyId,
+          'code': finalCode,
+          'role_tag': 'leader',
+          'created_by': user.id,
+          'is_active': true,
+        });
+      } catch (e) {
+        debugPrint('Note creating master join code: $e');
+      }
+
+      // 4. Update Founder Profile with Company ID & Metadata
       await client.from('profiles').upsert({
         'id': user.id,
         'email': email,
@@ -87,15 +107,17 @@ class SupabaseService {
         'role_type': 'founder',
         'is_leader': true,
         'company_id': companyId,
-        'job_title': 'Founder & CEO',
-        'department': 'Executive',
+        'job_title': finalTitle,
+        'department': finalDepartment,
+        'bio': bio,
       });
 
       // Save local preferences
       await UserPreferencesStore.setUserProfile(
         name: name,
-        role: 'Founder & CEO',
-        team: 'Executive',
+        role: finalTitle,
+        team: finalDepartment,
+        bio: bio,
         company: companyName,
       );
     }
@@ -111,6 +133,7 @@ class SupabaseService {
     bool isLeader = false,
     String jobTitle = 'Employee',
     String department = 'Engineering',
+    String bio = '',
   }) async {
     await init();
     final cleanCode = companyCode.trim().toUpperCase();
@@ -141,8 +164,6 @@ class SupabaseService {
         if (joinCodeMatch['role_tag'] == 'leader') {
           assignedLeader = true;
         }
-      } else {
-        throw Exception('Invalid company join code. Please check with your Founder or Team Leader.');
       }
     }
 
@@ -156,6 +177,7 @@ class SupabaseService {
         'is_leader': assignedLeader,
         'job_title': jobTitle,
         'department': department,
+        'bio': bio,
       },
     );
 
@@ -170,12 +192,16 @@ class SupabaseService {
         'company_id': companyId,
         'job_title': jobTitle,
         'department': department,
+        'bio': bio,
       });
 
+      String? companyName = companyMatch != null ? (companyMatch['name'] as String?) : null;
       await UserPreferencesStore.setUserProfile(
         name: name,
         role: jobTitle,
         team: department,
+        bio: bio,
+        company: companyName,
       );
     }
     return res;
@@ -197,6 +223,14 @@ class SupabaseService {
       // Fetch Profile Data
       final profile = await client.from('profiles').select().eq('id', user.id).maybeSingle();
       if (profile != null) {
+        String? companyName;
+        if (profile['company_id'] != null) {
+          try {
+            final comp = await client.from('companies').select('name').eq('id', profile['company_id']).maybeSingle();
+            if (comp != null) companyName = comp['name'] as String?;
+          } catch (_) {}
+        }
+
         await UserPreferencesStore.setUserProfile(
           name: profile['name'] ?? 'User',
           role: profile['job_title'] ?? 'Employee',
@@ -206,7 +240,11 @@ class SupabaseService {
           focusArea: profile['focus_area'] ?? '',
           currentChallenges: profile['current_challenges'] ?? '',
           communicationPreference: profile['communication_preference'] ?? '',
+          company: companyName,
         );
+        if (profile['avatar_url'] != null) {
+          await UserPreferencesStore.setUserAvatarUrl(profile['avatar_url'] as String);
+        }
       }
     }
     return res;
@@ -611,6 +649,35 @@ class SupabaseService {
       'media_url': mediaUrl,
       'is_read': false,
     });
+  }
+
+  Future<void> markDirectMessagesAsRead(String senderName) async {
+    await init();
+    try {
+      final currentUserName = UserPreferencesStore.getUserName();
+      await client
+          .from('direct_messages')
+          .update({'is_read': true})
+          .eq('sender_name', senderName)
+          .eq('receiver_name', currentUserName)
+          .eq('is_read', false);
+    } catch (e) {
+      debugPrint('Error marking direct messages as read: $e');
+    }
+  }
+
+  Future<void> updateFcmToken(String fcmToken) async {
+    await init();
+    final user = currentUser;
+    if (user != null) {
+      try {
+        await client.from('profiles').update({
+          'fcm_token': fcmToken,
+        }).eq('id', user.id);
+      } catch (e) {
+        debugPrint('Note updating fcm_token: $e');
+      }
+    }
   }
 
   // 13. Team Broadcast Feed - Fetch & Broadcast

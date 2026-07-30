@@ -994,8 +994,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return GestureDetector(
       onTap: () {
         TeammateProfileModal.show(context, {
-          'name': isCurrentUser ? 'Rownok Ahmed' : name,
-          'role': isCurrentUser ? 'Senior Product Architect' : 'Team Member',
+          'name': isCurrentUser ? UserPreferencesStore.getUserName() : name,
+          'role': isCurrentUser ? UserPreferencesStore.getUserRole() : 'Team Member',
           'avatar': assetPath,
           'isOnline': isClockedIn,
         });

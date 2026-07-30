@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/coffee_notification_store.dart';
 import '../services/supabase_service.dart';
 import 'audio_video_call_screen.dart';
 
@@ -29,6 +28,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
   Future<void> _loadSupabaseMessages() async {
     final name = widget.teammate['name'] ?? 'Teammate';
+    await SupabaseService.instance.markDirectMessagesAsRead(name);
     final dbMessages = await SupabaseService.instance.getDirectMessages();
     if (dbMessages.isNotEmpty) {
       final filtered = dbMessages.where((m) =>
@@ -214,36 +214,6 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     } catch (_) {}
   }
 
-  void _triggerIndividualCoffeeReset() {
-    final name = widget.teammate['name'] ?? 'Teammate';
-    final avatar = widget.teammate['avatar'];
-
-    CoffeeNotificationStore.addCoffeeInvite(
-      senderName: name,
-      senderAvatar: avatar,
-      message: '$name sent you a 1-on-1 coffee break invitation!',
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.local_cafe_rounded, color: Colors.white, size: 18),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Coffee break invitation sent to $name! Added to notifications.',
-                style: GoogleFonts.beVietnamPro(fontSize: 13.5),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: const Color(0xFFFF6B35),
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final name = widget.teammate['name'] ?? 'David Kim';
@@ -410,7 +380,8 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 14),
                       constraints: BoxConstraints(
-                        maxWidth: MediaQuery.of(context).size.width * 0.78,
+                        minWidth: 48,
+                        maxWidth: MediaQuery.of(context).size.width * 0.75,
                       ),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 12),
@@ -436,6 +407,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                         ],
                       ),
                       child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: isUser
                             ? CrossAxisAlignment.end
                             : CrossAxisAlignment.start,

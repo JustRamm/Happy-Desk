@@ -33,13 +33,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String _selectedDepartment = 'Design';
   final ImagePicker _imagePicker = ImagePicker();
 
-  final List<String> _avatarPresets = [
-    'assets/avatars/user_avatar.png',
-    'assets/avatars/avatar_1.png',
-    'assets/avatars/avatar_2.png',
-    'assets/avatars/avatar_3.png',
-  ];
-
   final List<String> _departments = [
     'Design',
     'Engineering',
@@ -127,20 +120,45 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _performSupabaseRegistration() async {
-    try {
-      final email = _emailController.text.trim();
-      final password = _passwordController.text.trim();
-      final name = _nameController.text.trim();
-
-      if (_selectedRole == 'founder') {
-        final companyName = _workspaceNameController.text.trim().isNotEmpty
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final name = _nameController.text.trim();
+    final jobTitle = _jobRoleController.text.trim().isNotEmpty
+        ? _jobRoleController.text.trim()
+        : (_selectedRole == 'founder' ? 'Founder & CEO' : 'Employee');
+    final companyName = _selectedRole == 'founder'
+        ? (_workspaceNameController.text.trim().isNotEmpty
             ? _workspaceNameController.text.trim()
-            : 'Acme Corp';
+            : 'Acme Corp')
+        : (_workspaceNameController.text.trim().isNotEmpty
+            ? _workspaceNameController.text.trim()
+            : 'Happy Desk HQ');
+    final bioText = _bioController.text.trim();
+
+    // 1. Instantly store local user profile in UserPreferencesStore
+    await UserPreferencesStore.setUserProfile(
+      name: name.isNotEmpty ? name : (_selectedRole == 'founder' ? 'Founder' : 'Employee'),
+      role: jobTitle,
+      team: _selectedDepartment,
+      bio: bioText,
+      company: companyName,
+    );
+
+    if (_selectedAvatar.isNotEmpty) {
+      await UserPreferencesStore.setUserAvatarUrl(_selectedAvatar);
+    }
+
+    try {
+      if (_selectedRole == 'founder') {
         await SupabaseService.instance.signUpFounder(
           email: email.isNotEmpty ? email : 'founder@happy-desk.app',
           password: password.isNotEmpty ? password : 'Password123!',
           name: name.isNotEmpty ? name : 'Founder',
           companyName: companyName,
+          companyCode: _generatedLeaderCode.isNotEmpty ? _generatedLeaderCode : null,
+          jobTitle: jobTitle,
+          department: _selectedDepartment,
+          bio: bioText,
         );
       } else {
         final code = _inviteCodeController.text.trim();
@@ -148,26 +166,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
           email: email.isNotEmpty ? email : 'employee@happy-desk.app',
           password: password.isNotEmpty ? password : 'Password123!',
           name: name.isNotEmpty ? name : 'Employee',
-          companyCode: code.isNotEmpty ? code : 'COMP-DEMO',
+          companyCode: code.isNotEmpty ? code : (_generatedLeaderCode.isNotEmpty ? _generatedLeaderCode : 'COMP-DEMO'),
           isLeader: _isLeadershipRole,
-          jobTitle: _jobRoleController.text.trim().isNotEmpty ? _jobRoleController.text.trim() : 'Employee',
+          jobTitle: jobTitle,
           department: _selectedDepartment,
+          bio: bioText,
         );
       }
-
-      await UserPreferencesStore.setUserProfile(
-        name: name.isNotEmpty ? name : 'User',
-        role: _jobRoleController.text.trim().isNotEmpty
-            ? _jobRoleController.text.trim()
-            : (_selectedRole == 'founder' ? 'Founder & CEO' : 'Employee'),
-        team: _selectedDepartment,
-        bio: _bioController.text.trim(),
-      );
-
-      widget.onSignUpSuccess();
     } catch (e) {
       debugPrint('Supabase registration note: $e');
-      widget.onSignUpSuccess(); // Graceful fallback
+    } finally {
+      widget.onSignUpSuccess();
     }
   }
 
@@ -770,6 +779,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget _buildStepOneCredentials({required Key key}) {
     final passwordsMatch = _passwordController.text.isNotEmpty &&
         _passwordController.text == _confirmPasswordController.text;
+    final isFounder = _selectedRole == 'founder';
 
     return Container(
       key: key,
@@ -791,7 +801,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         children: [
           Center(
             child: Text(
-              'Create Your Account',
+              isFounder ? 'Set Up Founder Account' : 'Create Your Account',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
@@ -802,7 +812,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
           const SizedBox(height: 4),
           Center(
             child: Text(
-              'Enter your login credentials',
+              isFounder
+                  ? 'Enter credentials for your executive admin account'
+                  : 'Enter your login credentials',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w500,
@@ -814,22 +826,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
           const SizedBox(height: 16),
 
           // Full Name Field
-          _buildInputLabel('Full Name'),
+          _buildInputLabel(isFounder ? 'Founder / Admin Name' : 'Full Name'),
           const SizedBox(height: 6),
           _buildTextField(
             controller: _nameController,
-            hintText: 'Full Name',
+            hintText: isFounder ? 'e.g. Sarah Connor' : 'Full Name',
             icon: Icons.person_outline_rounded,
           ),
 
           const SizedBox(height: 14),
 
           // Work Email Field
-          _buildInputLabel('Work Email'),
+          _buildInputLabel(isFounder ? 'Executive Email' : 'Work Email'),
           const SizedBox(height: 6),
           _buildTextField(
             controller: _emailController,
-            hintText: 'alex@company.com',
+            hintText: isFounder ? 'founder@company.com' : 'alex@company.com',
             icon: Icons.alternate_email_rounded,
           ),
 
@@ -922,7 +934,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Continue to Profile Setup',
+                    isFounder ? 'Continue to Executive Profile' : 'Continue to Profile Setup',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -943,6 +955,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   // STEP 2: Profile Customization & Avatar Upload
   // ---------------------------------------------------------------------------
   Widget _buildStepTwoProfile({required Key key}) {
+    final isFounder = _selectedRole == 'founder';
+    final deptList = isFounder
+        ? ['Executive', 'Leadership & Ops', 'Product', 'Engineering', 'Marketing']
+        : ['Design', 'Engineering', 'Operations', 'Marketing', 'People / HR'];
+
+    if (isFounder && !_departments.contains(_selectedDepartment) && !deptList.contains(_selectedDepartment)) {
+      _selectedDepartment = 'Executive';
+    }
+
     return Container(
       key: key,
       width: double.infinity,
@@ -963,7 +984,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         children: [
           Center(
             child: Text(
-              'Customize Your Profile',
+              isFounder ? 'Executive Profile & Vision' : 'Customize Your Profile',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
@@ -974,7 +995,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
           const SizedBox(height: 4),
           Center(
             child: Text(
-              'Upload photo & enter job role',
+              isFounder
+                  ? 'Set executive title & company bio'
+                  : 'Upload photo & enter job role',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w500,
@@ -1051,23 +1074,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
           const SizedBox(height: 18),
 
           // Job Title / Role
-          _buildInputLabel('Job Title / Position'),
+          _buildInputLabel(isFounder ? 'Executive Title / Position' : 'Job Title / Position'),
           const SizedBox(height: 6),
           _buildTextField(
             controller: _jobRoleController,
-            hintText: 'e.g. Product Designer, Software Engineer',
-            icon: Icons.work_outline_rounded,
+            hintText: isFounder
+                ? 'e.g. Founder & CEO, Managing Director'
+                : 'e.g. Product Designer, Software Engineer',
+            icon: isFounder ? Icons.workspace_premium_rounded : Icons.work_outline_rounded,
           ),
 
           const SizedBox(height: 14),
 
           // Department Selection Chips
-          _buildInputLabel('Department'),
+          _buildInputLabel(isFounder ? 'Executive Department' : 'Department'),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _departments.map((dept) {
+            children: deptList.map((dept) {
               final isSelected = _selectedDepartment == dept;
               return ChoiceChip(
                 showCheckmark: false,
@@ -1102,11 +1127,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
           const SizedBox(height: 14),
 
           // Short Bio / Motto
-          _buildInputLabel('Bio / Personal Motto'),
+          _buildInputLabel(isFounder ? 'Company Vision / Founder Bio' : 'Bio / Personal Motto'),
           const SizedBox(height: 6),
           _buildTextField(
             controller: _bioController,
-            hintText: 'e.g. Building delightful products & team spirit!',
+            hintText: isFounder
+                ? 'e.g. Building our company culture & driving vision!'
+                : 'e.g. Building delightful products & team spirit!',
             icon: Icons.chat_bubble_outline_rounded,
           ),
 
@@ -1131,7 +1158,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Next: Finalize Setup',
+                    isFounder ? 'Next: Review Workspace Setup' : 'Next: Finalize Setup',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -1152,11 +1179,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
   // STEP 3: Final Review & Account Creation
   // ---------------------------------------------------------------------------
   Widget _buildStepThreeWorkplace({required Key key}) {
-    final roleLabel = _selectedRole == 'founder'
-        ? 'Founder / Admin'
+    final isFounder = _selectedRole == 'founder';
+    final roleLabel = isFounder
+        ? 'Founder & CEO (Workspace Owner)'
         : _isLeadershipRole
             ? 'Employee (Team Lead)'
             : 'Employee (Team Member)';
+
+    final companyNameDisplay = isFounder
+        ? (_workspaceNameController.text.trim().isNotEmpty
+            ? _workspaceNameController.text.trim()
+            : 'Acme Corp')
+        : 'Joined via Team Code';
 
     return Container(
       key: key,
@@ -1178,7 +1212,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         children: [
           Center(
             child: Text(
-              'Finalize Setup',
+              isFounder ? 'Launch Company Workspace' : 'Finalize Setup',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
@@ -1189,7 +1223,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
           const SizedBox(height: 4),
           Center(
             child: Text(
-              'Review your details & complete signup',
+              isFounder
+                  ? 'Review details & activate company workspace'
+                  : 'Review your details & complete signup',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w500,
@@ -1210,14 +1246,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             child: Column(
               children: [
-                _buildReviewRow(Icons.person_rounded, 'Role', roleLabel),
+                _buildReviewRow(
+                  isFounder ? Icons.workspace_premium_rounded : Icons.person_rounded,
+                  'Role',
+                  roleLabel,
+                ),
                 const Divider(height: 20),
                 _buildReviewRow(
                   Icons.email_rounded,
                   'Email',
                   _emailController.text.isNotEmpty
                       ? _emailController.text
-                      : 'Not set',
+                      : (isFounder ? 'founder@happy-desk.app' : 'employee@happy-desk.app'),
                 ),
                 const Divider(height: 20),
                 _buildReviewRow(
@@ -1225,7 +1265,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   'Job Title',
                   _jobRoleController.text.isNotEmpty
                       ? _jobRoleController.text
-                      : 'Not set',
+                      : (isFounder ? 'Founder & CEO' : 'Employee'),
                 ),
                 const Divider(height: 20),
                 _buildReviewRow(
@@ -1233,14 +1273,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   'Department',
                   _selectedDepartment,
                 ),
-                if (_selectedRole == 'founder') ...[
+                if (isFounder) ...[
                   const Divider(height: 20),
                   _buildReviewRow(
                     Icons.business_rounded,
-                    'Workspace',
-                    _workspaceNameController.text.isNotEmpty
-                        ? _workspaceNameController.text
-                        : 'Not set',
+                    'Company Workspace',
+                    companyNameDisplay,
+                  ),
+                  if (_generatedLeaderCode.isNotEmpty) ...[
+                    const Divider(height: 20),
+                    _buildReviewRow(
+                      Icons.key_rounded,
+                      'Master Join Code',
+                      _generatedLeaderCode,
+                    ),
+                  ],
+                  const Divider(height: 20),
+                  _buildReviewRow(
+                    Icons.admin_panel_settings_rounded,
+                    'Admin Privileges',
+                    'Full Executive Dashboard & Team Analytics',
                   ),
                 ],
               ],
@@ -1253,20 +1305,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFEBF7F5),
+              color: isFounder ? const Color(0xFFFFF3EE) : const Color(0xFFEBF7F5),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF00AE88).withValues(alpha: 0.3)),
+              border: Border.all(
+                color: isFounder
+                    ? AppTheme.primaryRust.withValues(alpha: 0.3)
+                    : const Color(0xFF00AE88).withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF00AE88),
+                  decoration: BoxDecoration(
+                    color: isFounder ? AppTheme.primaryRust : const Color(0xFF00AE88),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.check_rounded,
+                  child: Icon(
+                    isFounder ? Icons.rocket_launch_rounded : Icons.check_rounded,
                     color: Colors.white,
                     size: 16,
                   ),
@@ -1277,18 +1333,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Profile 100% Complete!',
+                        isFounder ? 'Founder Workspace 100% Ready!' : 'Profile 100% Complete!',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF005844),
+                          color: isFounder ? AppTheme.primaryRust : const Color(0xFF005844),
                         ),
                       ),
                       Text(
-                        'All required details, avatar & workplace preferences saved.',
+                        isFounder
+                            ? 'Activating your workspace will generate company join codes for your team.'
+                            : 'All required details, avatar & workplace preferences saved.',
                         style: GoogleFonts.beVietnamPro(
                           fontSize: 11.5,
-                          color: const Color(0xFF006C53),
+                          color: isFounder ? AppTheme.primaryRust : const Color(0xFF006C53),
                         ),
                       ),
                     ],
@@ -1305,7 +1363,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: widget.onSignUpSuccess,
+              onPressed: _performSupabaseRegistration,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryRust,
                 foregroundColor: Colors.white,
@@ -1316,9 +1374,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
               child: Text(
-                'Complete Account Setup',
+                isFounder ? '🚀 Create Company & Launch Workspace' : '✨ Complete Setup & Join Team',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16.5,
+                  fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -1370,10 +1428,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
       onTap: () {
         setState(() {
           _selectedRole = id;
-          // Reset leadership when switching roles
           if (id == 'founder') {
+            _isLeadershipRole = true;
+            _selectedDepartment = 'Executive';
+            if (_generatedLeaderCode.isEmpty) {
+              _generatedLeaderCode = _generateCode();
+            }
+          } else {
             _isLeadershipRole = false;
-            _generatedLeaderCode = '';
+            _selectedDepartment = 'Design';
           }
         });
       },
@@ -1496,21 +1559,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
         ),
-      ),
-    );
-  }
-
-  Widget _buildSmallAvatar(String assetPath) {
-    return Container(
-      width: 26,
-      height: 26,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 1.5),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(13),
-        child: Image.asset(assetPath, fit: BoxFit.cover),
       ),
     );
   }

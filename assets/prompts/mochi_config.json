@@ -1,9 +1,9 @@
 {
   "version": "1.0",
-  "model": "gemini-1.5-flash",
+  "model": "gemini-flash-latest",
   "generation": {
     "temperature": 0.45,
-    "maxOutputTokens": 250
+    "maxOutputTokens": 600
   },
   "moodTags": [
     "work",

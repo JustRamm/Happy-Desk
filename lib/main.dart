@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:camera/camera.dart';
 import 'services/mochi_prompt_service.dart';
 import 'services/supabase_service.dart';
+import 'services/user_preferences_store.dart';
 import 'theme/app_theme.dart';
 import 'screens/onboarding_wrapper_screen.dart';
 
@@ -22,6 +23,7 @@ void main() async {
     debugPrint('Camera initialization info: $e');
   }
 
+  await UserPreferencesStore.loadProfileData();
   await SupabaseService.instance.init();
   await MochiPromptService.instance.ensureLoaded();
 

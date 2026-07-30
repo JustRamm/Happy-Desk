@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/user_preferences_store.dart';
 
 class PdfReportViewerScreen extends StatelessWidget {
   const PdfReportViewerScreen({super.key});
@@ -154,9 +155,9 @@ class PdfReportViewerScreen extends StatelessWidget {
                         ),
                         child: Column(
                           children: [
-                            _buildDocMetaRow('Employee Name', 'Rownok Ahmed'),
-                            _buildDocMetaRow('Designation', 'Senior Product Architect'),
-                            _buildDocMetaRow('Department', 'U & ME Engineering Team'),
+                            _buildDocMetaRow('Employee Name', UserPreferencesStore.getUserName()),
+                            _buildDocMetaRow('Designation', UserPreferencesStore.getUserRole()),
+                            _buildDocMetaRow('Department', UserPreferencesStore.getUserTeam()),
                             _buildDocMetaRow('Reporting Period', 'July 1 - July 28, 2026'),
                             _buildDocMetaRow('Export Date', 'July 28, 2026 at 09:45 PM'),
                           ],

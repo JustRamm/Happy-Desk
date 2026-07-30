@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     current_challenges TEXT DEFAULT '',
     communication_preference TEXT DEFAULT '',
     avatar_url TEXT DEFAULT 'assets/avatars/user_avatar.png',
+    fcm_token TEXT DEFAULT '',
     is_clocked_in BOOLEAN DEFAULT FALSE,
     is_on_break BOOLEAN DEFAULT FALSE,
     last_clock_in_time TIMESTAMPTZ,
@@ -189,7 +190,18 @@ CREATE TABLE IF NOT EXISTS public.mochi_cbt_logs (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 16. Enable Row Level Security (RLS)
+-- 16. Call Invites Table (Audio / Video Calls)
+CREATE TABLE IF NOT EXISTS public.call_invites (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    caller_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    receiver_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    caller_name TEXT NOT NULL,
+    is_video BOOLEAN DEFAULT FALSE,
+    status TEXT DEFAULT 'ringing' CHECK (status IN ('ringing', 'accepted', 'rejected', 'ended')),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 17. Enable Row Level Security (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_join_codes ENABLE ROW LEVEL SECURITY;
@@ -204,8 +216,9 @@ ALTER TABLE public.direct_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.team_broadcast_feed ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mochi_mood_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mochi_cbt_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.call_invites ENABLE ROW LEVEL SECURITY;
 
--- 17. Create Permissive RLS Policies
+-- 18. Create Permissive RLS Policies
 DROP POLICY IF EXISTS "Public Profiles access" ON public.profiles;
 CREATE POLICY "Public Profiles access" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
 
@@ -247,6 +260,9 @@ CREATE POLICY "Public Mood Logs access" ON public.mochi_mood_logs FOR ALL USING 
 
 DROP POLICY IF EXISTS "Public CBT Logs access" ON public.mochi_cbt_logs;
 CREATE POLICY "Public CBT Logs access" ON public.mochi_cbt_logs FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public Call Invites access" ON public.call_invites;
+CREATE POLICY "Public Call Invites access" ON public.call_invites FOR ALL USING (true) WITH CHECK (true);
 
 -- 18. Storage Buckets Setup
 INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true) ON CONFLICT (id) DO NOTHING;

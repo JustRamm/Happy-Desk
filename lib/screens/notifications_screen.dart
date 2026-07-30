@@ -323,6 +323,46 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     );
                   },
                 ),
+              // Live Supabase Broadcast Feed Items
+              if (_broadcastFeedItems.isNotEmpty) ...[
+                ..._broadcastFeedItems.map((feedItem) {
+                  final eventType = feedItem['event_type'] ?? 'general';
+                  final title = feedItem['title'] ?? feedItem['sender_name'] ?? 'Broadcast';
+                  final body = feedItem['body'] ?? '';
+                  final timeRaw = feedItem['created_at']?.toString() ?? '';
+                  final timeStr = timeRaw.isNotEmpty ? timeRaw.split('T').last.substring(0, 5) : 'Recently';
+
+                  IconData iconData = Icons.campaign_rounded;
+                  Color iconBg = const Color(0xFFEFF6FF);
+                  Color iconColor = const Color(0xFF2563EB);
+
+                  if (eventType == 'clock_in') {
+                    iconData = Icons.location_on_rounded;
+                    iconBg = const Color(0xFFFFF0EB);
+                    iconColor = AppTheme.primaryRust;
+                  } else if (eventType == 'leave_approved') {
+                    iconData = Icons.event_available_rounded;
+                    iconBg = const Color(0xFFEDFDF5);
+                    iconColor = const Color(0xFF00AE88);
+                  } else if (eventType == 'hero_win') {
+                    iconData = Icons.emoji_events_rounded;
+                    iconBg = const Color(0xFFFFFBEB);
+                    iconColor = const Color(0xFFD97706);
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 14.0),
+                    child: _buildNotificationCard(
+                      icon: iconData,
+                      iconBg: iconBg,
+                      iconColor: iconColor,
+                      title: title,
+                      time: timeStr,
+                      body: body,
+                    ),
+                  );
+                }),
+              ],
 
               // Card 1: Clock-In Broadcast
               if (_selectedFilter == 'All' || _selectedFilter == 'Clock-Ins') ...[

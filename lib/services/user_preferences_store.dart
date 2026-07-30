@@ -99,6 +99,7 @@ class UserPreferencesStore {
     _communicationPreferenceCache = prefs.getString(_keyUserCommunicationPreference) ?? _communicationPreferenceCache;
     _bioCache = prefs.getString(_keyUserBio) ?? _bioCache;
     _companyCache = prefs.getString(_keyUserCompany) ?? _companyCache;
+    _avatarUrlCache = prefs.getString(_keyUserAvatarUrl) ?? _avatarUrlCache;
   }
 
   static Future<void> setUserName(String val) async {

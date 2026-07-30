@@ -36,7 +36,6 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
   String _leaveSummary = '';
   String _coffeeHistorySummary = '';
   String _cbtTrendSummary = '';
-  String _selectedMochiMode = 'care'; // 'care' or 'hardcore'
 
   // Read API Key securely from .env file with fallback
   static String get _geminiApiKey =>
@@ -46,11 +45,11 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
   final MochiPromptService _promptService = MochiPromptService.instance;
 
   final List<String> _fallbackResponses = [
-    "I'm sorry, that didn't come through cleanly. I'm here to listen to whatever is on your mind about work or the pressure you're feeling.",
-    "That sounds really heavy. I want to stay with what you're experiencing, not move too fast toward a solution.",
-    "If you're feeling stuck, it's okay to say that directly. I'm here to help you sort through the part that feels most uncomfortable.",
-    "I can help with workplace stress, uncomfortable conversations, or feeling overwhelmed at your desk. Tell me a bit more about what landed hardest for you.",
-    "Let's keep this simple. What do you want to feel differently about in this moment?",
+    "I hear you. Navigating work dynamics and personal feelings can take a lot of mental energy. What part of this feels most important to sort out right now?",
+    "Whether you're looking for a practical action plan or just need a safe space to unpack what's on your mind, I'm right here with you.",
+    "If you're feeling stuck or uncertain, we can break it down step-by-step. Tell me a bit more about what's going on.",
+    "I'm here to help with workplace relationships, stress, or tough conversations. What would feel most helpful for you in this moment?",
+    "Let's focus on what gives you clarity and peace of mind. What's the main thing on your mind right now?",
   ];
 
   int _fallbackIndex = 0;
@@ -322,6 +321,19 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     final name = UserPreferencesStore.getUserName();
     final firstName = name.isNotEmpty ? name.split(' ').first : '';
 
+    // Workplace relationship / Crush on boss / Manager romance dynamics
+    if (lower.contains('crush') ||
+        lower.contains('boss') ||
+        lower.contains('in love') ||
+        lower.contains('unethical') ||
+        lower.contains('manager') ||
+        lower.contains('coworker') ||
+        lower.contains('dating') ||
+        lower.contains('romance') ||
+        lower.contains('feelings for')) {
+      return "Here's the straight answer: Do not act on romantic feelings while they are still your direct manager or boss.\n\nFalling for a manager happens, but pursuing a connection across a direct reporting line creates significant workplace and ethical risks:\n\n• Power Dynamic & Ethics: It compromises objective performance reviews, task assignments, and team credibility.\n• HR Policies: Most organizations have strict non-fraternization policies for direct reporting lines.\n\nIf the feelings are serious, either maintain strict professional boundaries or explore transferring to a different team before pursuing anything further.";
+    }
+
     // Greetings
     final greetingWords = [
       'hi',
@@ -416,7 +428,6 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       coffeeHistorySummary: _coffeeHistorySummary,
       cbtTrendSummary: _cbtTrendSummary,
       detectedDistortions: detectedDistortions,
-      mochiMode: _selectedMochiMode,
     );
 
     // Build multi-turn chat history ensuring user/model alternation AND user start
@@ -547,27 +558,6 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     return _generateDomainFallbackResponse(userPrompt);
   }
 
-  void _recordMoodSentiment(String label) async {
-    HapticFeedback.mediumImpact();
-    await UserPreferencesStore.incrementMochiCheckIns();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Logged mood "$label" to your profile statistics!',
-          style: GoogleFonts.beVietnamPro(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: const Color(0xFF95416C),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -692,101 +682,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
               ),
             ),
 
-            // Mode Selector Bar
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F2FF),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedMochiMode = 'care';
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: _selectedMochiMode == 'care'
-                              ? const Color(0xFF95416C)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.favorite_rounded,
-                              size: 14,
-                              color: _selectedMochiMode == 'care'
-                                  ? Colors.white
-                                  : const Color(0xFF8D7168),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Emotional Care',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w700,
-                                color: _selectedMochiMode == 'care'
-                                    ? Colors.white
-                                    : const Color(0xFF8D7168),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedMochiMode = 'hardcore';
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: _selectedMochiMode == 'hardcore'
-                              ? const Color(0xFF047857)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.bolt_rounded,
-                              size: 14,
-                              color: _selectedMochiMode == 'hardcore'
-                                  ? Colors.white
-                                  : const Color(0xFF8D7168),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Hardcore Solutions',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w700,
-                                color: _selectedMochiMode == 'hardcore'
-                                    ? Colors.white
-                                    : const Color(0xFF8D7168),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+
 
             // Main Conversational Chat ListView
             Expanded(
@@ -888,6 +784,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     final bubble = Container(
       margin: const EdgeInsets.only(bottom: 12),
       constraints: BoxConstraints(
+        minWidth: 48,
         maxWidth: MediaQuery.of(context).size.width * 0.78,
       ),
       padding: const EdgeInsets.all(16),
@@ -911,6 +808,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
@@ -970,44 +868,6 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                     side: const BorderSide(color: Color(0xFFE4E7FE)),
-                  ),
-                ),
-              ),
-            if (message.actionType == 'boundary')
-              ElevatedButton.icon(
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: message.text));
-                  HapticFeedback.selectionClick();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Boundary script copied to clipboard!',
-                        style: GoogleFonts.beVietnamPro(fontSize: 13),
-                      ),
-                      backgroundColor: const Color(0xFFAB3500),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.copy_rounded, size: 16),
-                label: Text(
-                  'Copy Script to Clipboard',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE6F7F0),
-                  foregroundColor: const Color(0xFF047857),
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: Color(0xFFA7F3D0)),
                   ),
                 ),
               ),
@@ -1117,28 +977,6 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSuggestionChip(String label) {
-    return GestureDetector(
-      onTap: () => _handleSendMessage(label),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF0EB),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFFFD6C7)),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFFAB3500),
-          ),
         ),
       ),
     );

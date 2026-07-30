@@ -24,7 +24,7 @@ class CustomBottomNavBar extends StatelessWidget {
       _NavBarItem(
         icon: Icons.self_improvement_outlined,
         activeIcon: Icons.self_improvement_rounded,
-        label: 'Mind',
+        label: 'Mochi',
       ),
       _NavBarItem(
         icon: Icons.chat_bubble_outline_rounded,

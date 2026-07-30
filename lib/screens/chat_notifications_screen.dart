@@ -5,6 +5,8 @@ import '../widgets/brand_logo_widget.dart';
 import 'direct_chat_screen.dart';
 import 'notifications_screen.dart';
 import 'new_chat_selector_screen.dart';
+import '../services/supabase_service.dart';
+import '../services/user_preferences_store.dart';
 
 class ChatNotificationsScreen extends StatefulWidget {
   const ChatNotificationsScreen({super.key});
@@ -55,6 +57,50 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
       'avatar': 'assets/avatars/avatar_3.png',
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLiveChats();
+  }
+
+  Future<void> _loadLiveChats() async {
+    final dbMessages = await SupabaseService.instance.getDirectMessages();
+    if (dbMessages.isNotEmpty && mounted) {
+      final currentUserName = UserPreferencesStore.getUserName();
+      final Map<String, Map<String, dynamic>> latestByPerson = {};
+
+      for (var msg in dbMessages) {
+        final sender = msg['sender_name'] as String? ?? 'Unknown';
+        final receiver = msg['receiver_name'] as String? ?? 'Unknown';
+        final isMeSender = (sender == currentUserName);
+        final otherPerson = isMeSender ? receiver : sender;
+
+        if (otherPerson.isEmpty || otherPerson == currentUserName) continue;
+
+        final isUnread = !isMeSender && (msg['is_read'] == false);
+        final timeRaw = msg['created_at']?.toString() ?? '';
+        final timeStr = timeRaw.isNotEmpty ? timeRaw.split('T').last.substring(0, 5) : 'Now';
+
+        latestByPerson[otherPerson] = {
+          'name': otherPerson,
+          'role': 'Teammate',
+          'lastMessage': msg['message'] ?? '',
+          'time': timeStr,
+          'unread': isUnread,
+          'isOnline': true,
+          'avatar': 'assets/avatars/user_avatar.png',
+        };
+      }
+
+      if (latestByPerson.isNotEmpty) {
+        setState(() {
+          _chats.clear();
+          _chats.addAll(latestByPerson.values);
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -232,7 +278,13 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
                       Material(
                         color: isUnread ? const Color(0xFFFFF6F3) : Colors.white,
                         child: InkWell(
-                          onTap: () {
+                          onTap: () async {
+                            setState(() {
+                              chat['unread'] = false;
+                            });
+                            await SupabaseService.instance
+                                .markDirectMessagesAsRead(chat['name'] ?? '');
+                            if (!context.mounted) return;
                             Navigator.push(
                               context,
                               MaterialPageRoute(
