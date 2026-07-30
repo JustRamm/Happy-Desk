@@ -423,8 +423,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   _buildListTile(
                     icon: Icons.info_outline_rounded,
-                    title: 'About U & ME & Mind Empowered',
-                    subtitle: 'Organization story, mission & developer details',
+                    title: 'About',
+                    subtitle: 'App info, Mind Empowered story & developers',
                     onTap: () {
                       Navigator.push(
                         context,

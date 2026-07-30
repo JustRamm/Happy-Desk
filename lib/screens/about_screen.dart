@@ -18,7 +18,7 @@ class AboutScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'About U & ME',
+          'About',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 19,
             fontWeight: FontWeight.w800,
@@ -66,7 +66,7 @@ class AboutScreen extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'Version 1.0.0+41 • Happy Desk Edition',
+                'Version 1.0.0+49 • Happy Desk Edition',
                 style: GoogleFonts.beVietnamPro(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -92,7 +92,47 @@ class AboutScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // SECTION 1: About Mind Empowered (ME)
+              // 1. FIRST: About U & ME App
+              _buildSectionCard(
+                title: 'About U & ME App',
+                icon: Icons.spa_rounded,
+                iconColor: const Color(0xFFD97706),
+                bgColor: const Color(0xFFFEF3C7),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'U & ME (Happy Desk) bridges employee workplace productivity with deep emotional destressing and psychological safety:',
+                      style: GoogleFonts.beVietnamPro(
+                        fontSize: 13,
+                        height: 1.55,
+                        color: const Color(0xFF171B2B),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFeatureBullet(
+                      icon: Icons.location_on_rounded,
+                      text: 'Location-Aware Work Sessions: Real device GPS geocoded clock-in logs for shift verification.',
+                    ),
+                    _buildFeatureBullet(
+                      icon: Icons.psychology_rounded,
+                      text: 'Mochi Emotional Companion: 1-on-1 empathetic listening, CBT thought reframing, and breathing resets.',
+                    ),
+                    _buildFeatureBullet(
+                      icon: Icons.forum_rounded,
+                      text: 'NGL Venting Jar: Safe, anonymous space for sharing workplace thoughts and peer encouragement.',
+                    ),
+                    _buildFeatureBullet(
+                      icon: Icons.emoji_events_rounded,
+                      text: 'Weekly Hero Shoutouts: Celebrating everyday workplace wins and peer appreciation.',
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              // 2. SECOND: About Mind Empowered (ME) Organisation
               _buildSectionCard(
                 title: 'About Mind Empowered (ME)',
                 icon: Icons.volunteer_activism_rounded,
@@ -101,6 +141,18 @@ class AboutScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Mind Empowered Banner Image
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(
+                        'assets/about/ME.png',
+                        width: double.infinity,
+                        height: 140,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
                     Text(
                       'Mind Empowered (ME) is a charitable organization based in India, born from compassion, empathy, and deep understanding.',
                       style: GoogleFonts.beVietnamPro(
@@ -127,21 +179,7 @@ class AboutScreen extends StatelessWidget {
                         color: const Color(0xFF594139),
                       ),
                     ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // SECTION 2: Vision & Mission
-              _buildSectionCard(
-                title: 'Vision & Mission',
-                icon: Icons.auto_awesome_rounded,
-                iconColor: const Color(0xFF7C3AED),
-                bgColor: const Color(0xFFF3F2FF),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                    const SizedBox(height: 16),
                     _buildPillarHeader('OUR VISION', Icons.visibility_rounded, const Color(0xFF7C3AED)),
                     const SizedBox(height: 4),
                     Text(
@@ -152,7 +190,7 @@ class AboutScreen extends StatelessWidget {
                         color: const Color(0xFF171B2B),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
                     _buildPillarHeader('OUR MISSION', Icons.flag_rounded, const Color(0xFF7C3AED)),
                     const SizedBox(height: 4),
                     Text(
@@ -163,42 +201,38 @@ class AboutScreen extends StatelessWidget {
                         color: const Color(0xFF594139),
                       ),
                     ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // SECTION 3: 3 Core Objectives
-              _buildSectionCard(
-                title: 'Our 3 Core Objectives',
-                icon: Icons.hub_rounded,
-                iconColor: const Color(0xFF00AE88),
-                bgColor: const Color(0xFFEBF7F5),
-                child: Column(
-                  children: [
+                    const SizedBox(height: 16),
+                    Text(
+                      'Our 3 Core Objectives:',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF00AE88),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     _buildObjectiveTile(
                       icon: Icons.psychology_rounded,
                       color: const Color(0xFF00AE88),
                       title: '1. Self-Awareness',
                       description:
-                          'Fostered through comprehensive educational programs, interactive webinars, mental health workshops, and offline community events.',
+                          'Fostered through comprehensive educational programs, interactive webinars, and mental health workshops.',
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     _buildObjectiveTile(
                       icon: Icons.palette_rounded,
                       color: const Color(0xFF0284C7),
                       title: '2. Self-Expression',
                       description:
-                          'Encouraged through creative and community engagement, skills showcases, community volunteering, and peer support groups.',
+                          'Encouraged through creative showcases, community volunteering, and peer support groups.',
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     _buildObjectiveTile(
                       icon: Icons.rocket_launch_rounded,
                       color: const Color(0xFFAB3500),
                       title: '3. Self-Sufficiency',
                       description:
-                          'Achieved through technical and creative workshops, soft skills training, and empowering workplace wellness tools.',
+                          'Achieved through technical and creative workshops, soft skills training, and workplace wellness tools.',
                     ),
                   ],
                 ),
@@ -206,93 +240,134 @@ class AboutScreen extends StatelessWidget {
 
               const SizedBox(height: 18),
 
-              // SECTION 4: Application Theme & Purpose
+              // 3. THIRD: People Who Made Them (Co-Founders & Tech Leadership)
               _buildSectionCard(
-                title: 'App Theme & Philosophy',
-                icon: Icons.spa_rounded,
-                iconColor: const Color(0xFFD97706),
-                bgColor: const Color(0xFFFEF3C7),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'U & ME (Happy Desk) bridges employee workplace productivity with deep emotional destressing and psychological safety:',
-                      style: GoogleFonts.beVietnamPro(
-                        fontSize: 13,
-                        height: 1.5,
-                        color: const Color(0xFF171B2B),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildFeatureBullet(
-                      icon: Icons.location_on_rounded,
-                      text: 'Location-Aware Work Sessions: Instant geocoded clock-in/out logs for effortless shift tracking.',
-                    ),
-                    _buildFeatureBullet(
-                      icon: Icons.smart_toy_rounded,
-                      text: 'Mochi Emotional Companion: 1-on-1 empathetic listening, CBT thought reframing, and breathing resets.',
-                    ),
-                    _buildFeatureBullet(
-                      icon: Icons.forum_rounded,
-                      text: 'NGL Venting Jar: Safe, anonymous space for sharing workplace thoughts and peer encouragement.',
-                    ),
-                    _buildFeatureBullet(
-                      icon: Icons.emoji_events_rounded,
-                      text: 'Weekly Hero Shoutouts: Celebrating everyday workplace wins and peer appreciation.',
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // SECTION 5: Developer & Tech Leadership
-              _buildSectionCard(
-                title: 'Developer & Tech Leadership',
-                icon: Icons.code_rounded,
+                title: 'People Behind U & ME',
+                icon: Icons.groups_rounded,
                 iconColor: const Color(0xFF171B2B),
                 bgColor: const Color(0xFFF3F4F6),
-                child: Row(
+                child: Column(
                   children: [
+                    // Co-Founders Card
                     Container(
-                      width: 52,
-                      height: 52,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFFF0EB),
-                        shape: BoxShape.circle,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF0EB),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFFFD4C4)),
                       ),
-                      child: const Center(
-                        child: Icon(Icons.person_rounded, color: AppTheme.primaryRust, size: 28),
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.asset(
+                              'assets/about/founders.png',
+                              width: 72,
+                              height: 72,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 72,
+                                height: 72,
+                                color: const Color(0xFFAB3500).withValues(alpha: 0.1),
+                                child: const Icon(Icons.people_rounded, color: Color(0xFFAB3500), size: 36),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Maya Menon & Srila Menon',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF171B2B),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Co-Founders of Mind Empowered (ME)',
+                                  style: GoogleFonts.beVietnamPro(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFFAB3500),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Visionaries behind workplace emotional safety and mental health resilience.',
+                                  style: GoogleFonts.beVietnamPro(
+                                    fontSize: 11.5,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+
+                    const SizedBox(height: 12),
+
+                    // Lead Developer Card
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F2FF),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFE4E7FE)),
+                      ),
+                      child: Row(
                         children: [
-                          Text(
-                            'Abiram T. Bijoy',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF171B2B),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.asset(
+                              'assets/about/abiram.png',
+                              width: 72,
+                              height: 72,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 72,
+                                height: 72,
+                                color: const Color(0xFF7C3AED).withValues(alpha: 0.1),
+                                child: const Icon(Icons.code_rounded, color: Color(0xFF7C3AED), size: 36),
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Mind Empowered Dev Team Lead',
-                            style: GoogleFonts.beVietnamPro(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFFAB3500),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Lead Architect of U & ME Flutter & Supabase ecosystem.',
-                            style: GoogleFonts.beVietnamPro(
-                              fontSize: 11.5,
-                              color: AppTheme.textSecondary,
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Abiram T. Bijoy',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF171B2B),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Mind Empowered Dev Team Lead',
+                                  style: GoogleFonts.beVietnamPro(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF7C3AED),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Lead Architect of U & ME Flutter & Supabase ecosystem.',
+                                  style: GoogleFonts.beVietnamPro(
+                                    fontSize: 11.5,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
