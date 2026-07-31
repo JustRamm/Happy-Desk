@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/supabase_service.dart';
@@ -21,12 +23,32 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   // Currently staged attachment preview before sending
   Map<String, dynamic>? _stagedAttachment;
   bool _isPlayingVoice = false;
+  bool _isTeammateTyping = false;
 
   @override
   void initState() {
     super.initState();
     SoundService.playMessageOpenSound();
     _loadSupabaseMessages();
+    _startTypingSimulation();
+  }
+
+  void _startTypingSimulation() {
+    Timer(const Duration(milliseconds: 2500), () {
+      if (mounted) {
+        setState(() {
+          _isTeammateTyping = true;
+        });
+      }
+    });
+
+    Timer(const Duration(milliseconds: 5500), () {
+      if (mounted) {
+        setState(() {
+          _isTeammateTyping = false;
+        });
+      }
+    });
   }
 
   Future<void> _loadSupabaseMessages() async {
@@ -42,10 +64,12 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         setState(() {
           _messages.clear();
           for (var m in filtered) {
+            final isRead = m['is_read'] == true;
             _messages.add({
               'text': m['message'] ?? '',
               'isUser': m['receiver_name'] == name,
               'time': m['created_at'] != null ? m['created_at'].toString().split('T').last.substring(0, 5) : 'Now',
+              'status': isRead ? 'read' : 'delivered',
               if (m['media_url'] != null) 'attachmentType': 'image',
               if (m['media_url'] != null) 'attachmentUrl': m['media_url'],
             });
@@ -200,6 +224,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         'text': text,
         'isUser': true,
         'time': 'Now',
+        'status': 'sent',
         if (_stagedAttachment != null) 'attachmentType': _stagedAttachment!['type'],
         if (_stagedAttachment != null) 'attachmentName': _stagedAttachment!['name'],
         if (_stagedAttachment != null) 'attachmentUrl': _stagedAttachment!['url'],
@@ -215,6 +240,11 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         message: text,
         mediaUrl: mediaUrl,
       );
+      if (mounted) {
+        setState(() {
+          _messages.last['status'] = 'delivered';
+        });
+      }
     } catch (_) {}
   }
 
@@ -384,8 +414,11 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 padding: const EdgeInsets.all(20),
                 physics: const AlwaysScrollableScrollPhysics(
                     parent: BouncingScrollPhysics()),
-                itemCount: _messages.length,
+                itemCount: _messages.length + (_isTeammateTyping ? 1 : 0),
                 itemBuilder: (context, index) {
+                  if (_isTeammateTyping && index == _messages.length) {
+                    return _buildTypingIndicatorBubble();
+                  }
                   final msg = _messages[index];
                   final isUser = msg['isUser'] == true;
                   final attachmentType = msg['attachmentType'];
@@ -453,13 +486,22 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                             _buildVoiceBubble(msg, isUser),
 
                           const SizedBox(height: 4),
-                          Text(
-                            msg['time'],
-                            style: GoogleFonts.beVietnamPro(
-                              fontSize: 10.5,
-                              color:
-                                  isUser ? Colors.white70 : const Color(0xFF8D7168),
-                            ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Text(
+                                msg['time'],
+                                style: GoogleFonts.beVietnamPro(
+                                  fontSize: 10.5,
+                                  color: isUser ? Colors.white70 : const Color(0xFF8D7168),
+                                ),
+                              ),
+                              if (isUser) ...[
+                                const SizedBox(width: 4),
+                                _buildStatusIcon(msg['status'] ?? 'sent'),
+                              ],
+                            ],
                           ),
                         ],
                       ),
@@ -761,6 +803,118 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStatusIcon(String status) {
+    if (status == 'sent') {
+      return const Icon(
+        Icons.check_rounded,
+        size: 13,
+        color: Colors.white60,
+      );
+    } else if (status == 'delivered') {
+      return const Icon(
+        Icons.done_all_rounded,
+        size: 13,
+        color: Colors.white60,
+      );
+    } else {
+      // 'read'
+      return const Icon(
+        Icons.done_all_rounded,
+        size: 13,
+        color: Color(0xFF64FBCE),
+      );
+    }
+  }
+
+  Widget _buildTypingIndicatorBubble() {
+    final name = widget.teammate['name'] ?? 'Teammate';
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+            bottomLeft: Radius.circular(4),
+            bottomRight: Radius.circular(20),
+          ),
+          border: Border.all(color: const Color(0xFFE4E7FE)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$name is typing',
+              style: GoogleFonts.beVietnamPro(
+                fontSize: 13,
+                color: const Color(0xFF8D7168),
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+            const SizedBox(width: 8),
+            const _BouncingDots(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BouncingDots extends StatefulWidget {
+  const _BouncingDots();
+
+  @override
+  State<_BouncingDots> createState() => _BouncingDotsState();
+}
+
+class _BouncingDotsState extends State<_BouncingDots>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(3, (index) {
+            final delay = index * 0.2;
+            final double value = (math.sin((_controller.value * math.pi * 2) - (delay * math.pi)) + 1.0) / 2.0;
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 1.5),
+              width: 5,
+              height: 5,
+              transform: Matrix4.translationValues(0, -value * 4, 0),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFF6B35),
+                shape: BoxShape.circle,
+              ),
+            );
+          }),
+        );
+      },
     );
   }
 }

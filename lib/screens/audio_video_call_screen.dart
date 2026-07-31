@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../main.dart';
 
 class AudioVideoCallScreen extends StatefulWidget {
@@ -31,6 +32,8 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
   bool _isSpeakerOn = true;
   int _secondsElapsed = 0;
   Timer? _callTimer;
+  bool _isConnected = false;
+  final AudioPlayer _ringtonePlayer = AudioPlayer();
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -49,17 +52,43 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {
-          _secondsElapsed++;
-        });
-      }
-    });
+    _startRinging();
 
     if (_isVideoEnabled) {
       _initCamera();
     }
+  }
+
+  Future<void> _startRinging() async {
+    try {
+      await _ringtonePlayer.setReleaseMode(ReleaseMode.loop);
+      await _ringtonePlayer.play(UrlSource('https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3'));
+    } catch (e) {
+      debugPrint('Error playing calling ringtone: $e');
+    }
+
+    Timer(const Duration(milliseconds: 4500), () async {
+      if (mounted) {
+        try {
+          await _ringtonePlayer.stop();
+          final beepPlayer = AudioPlayer();
+          await beepPlayer.play(UrlSource('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'));
+        } catch (_) {}
+
+        setState(() {
+          _isConnected = true;
+          _secondsElapsed = 0;
+        });
+
+        _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (mounted) {
+            setState(() {
+              _secondsElapsed++;
+            });
+          }
+        });
+      }
+    });
   }
 
   Future<void> _initCamera() async {
@@ -134,6 +163,7 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
   @override
   void dispose() {
     _callTimer?.cancel();
+    _ringtonePlayer.dispose();
     _pulseController.dispose();
     _cameraController?.dispose();
     super.dispose();
@@ -249,14 +279,14 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF10B981),
+                          decoration: BoxDecoration(
+                            color: _isConnected ? const Color(0xFF10B981) : Colors.orangeAccent,
                             shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          _formatDuration(_secondsElapsed),
+                          _isConnected ? _formatDuration(_secondsElapsed) : 'Ringing...',
                           style: GoogleFonts.beVietnamPro(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
