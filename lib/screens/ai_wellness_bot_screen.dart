@@ -15,7 +15,6 @@ import '../services/supabase_service.dart';
 import '../services/sound_service.dart';
 import '../widgets/box_breathing_modal.dart';
 import '../widgets/desk_stretches_modal.dart';
-import '../widgets/notification_bell_widget.dart';
 
 class AiWellnessBotScreen extends StatefulWidget {
   const AiWellnessBotScreen({super.key});
@@ -293,12 +292,66 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       determinedAction = 'cbt_reframe';
     }
 
+    // Pre-fetch user's NGL Jar notes and Weekly Hero nominations
+    List<Map<String, dynamic>> nglNotes = [];
+    List<Map<String, dynamic>> myHeroNoms = [];
+    try {
+      nglNotes = await SupabaseService.instance.getNglJarMessages();
+      final allHero = await SupabaseService.instance.getWeeklyHeroNominations();
+      final myName = UserPreferencesStore.getUserName();
+      myHeroNoms = allHero.where((n) => n['nominee_name'] == myName).toList();
+    } catch (e) {
+      debugPrint('Error pre-fetching feature data for Mochi: $e');
+    }
+
+    final String nglJarSummary = nglNotes.isNotEmpty
+        ? nglNotes.map((n) => '- "${n['message']}"').join('\n')
+        : 'None';
+    final String weeklyHeroSummary = myHeroNoms.isNotEmpty
+        ? myHeroNoms.map((n) => '- "${n['reason']}"').join('\n')
+        : 'None';
+
+    final bool feelsUnnoticed = lowerText.contains('not noticed') ||
+        lowerText.contains('unnoticed') ||
+        lowerText.contains('invisible') ||
+        lowerText.contains('ignored') ||
+        lowerText.contains('unappreciated') ||
+        lowerText.contains('no one appreciates') ||
+        lowerText.contains('nobody appreciates') ||
+        lowerText.contains('nobody notices') ||
+        lowerText.contains('no one notices') ||
+        lowerText.contains('underappreciated') ||
+        lowerText.contains('unseen') ||
+        lowerText.contains('left out');
+
+    String? unnoticedResponseOverride;
+    if (feelsUnnoticed && (nglNotes.isNotEmpty || myHeroNoms.isNotEmpty)) {
+      if (nglNotes.isNotEmpty && myHeroNoms.isNotEmpty) {
+        final nglContent = nglNotes.first['message'] ?? '';
+        final heroContent = myHeroNoms.first['reason'] ?? '';
+        unnoticedResponseOverride = 'I\'m sure you\'re wrong since one coworker said this "$nglContent" or you were one coworker hero of this week because u did "$heroContent"';
+      } else if (nglNotes.isNotEmpty) {
+        final nglContent = nglNotes.first['message'] ?? '';
+        unnoticedResponseOverride = 'I\'m sure you\'re wrong since one coworker said this in your NGL Jar: "$nglContent"';
+      } else {
+        final heroContent = myHeroNoms.first['reason'] ?? '';
+        unnoticedResponseOverride = 'I\'m sure you\'re wrong since you were one coworker hero of this week because u did "$heroContent"';
+      }
+    }
+
     // Call Real Live Gemini API
     try {
-      final String reply = await _fetchGeminiResponse(
-        text,
-        detectedDistortions: detectedDistortions,
-      );
+      final String reply;
+      if (unnoticedResponseOverride != null) {
+        reply = unnoticedResponseOverride;
+      } else {
+        reply = await _fetchGeminiResponse(
+          text,
+          detectedDistortions: detectedDistortions,
+          nglJarSummary: nglJarSummary,
+          weeklyHeroSummary: weeklyHeroSummary,
+        );
+      }
       final parsed = _promptService.parseModelReply(reply);
 
       if (parsed.moodLog != null) {
@@ -356,7 +409,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       summarizeSessionIfNeeded();
     } catch (e) {
       if (!mounted) return;
-      final fallbackText = _generateDomainFallbackResponse(text);
+      final fallbackText = unnoticedResponseOverride ?? _generateDomainFallbackResponse(text);
       final chunks = _splitBotResponse(fallbackText);
       final finalAction = determinedAction ?? (suggestsBreathing ? 'breathing' : null);
 
@@ -502,6 +555,26 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       return "That sounds like a heavy weight to carry right now. I'm right here with you. Would a quick 60-second breathing exercise help clear space, or do you want to talk it through?";
     }
 
+    // Vague, trailing, incomplete inputs (e.g. "I'm cool, just", "just...", "nothing, just", "hard to explain")
+    if (lower == 'just' ||
+        lower == 'just...' ||
+        lower.endsWith(' just') ||
+        lower.endsWith(' just...') ||
+        lower.endsWith(' but') ||
+        lower.endsWith(' but...') ||
+        lower.contains('hard to explain') ||
+        lower.contains('hard to say') ||
+        lower.contains('don\'t know') ||
+        lower.contains('not sure') ||
+        lower.contains('nothing really') ||
+        lower.contains('nothing, just') ||
+        lower.contains('fine, just') ||
+        lower.contains('cool, just') ||
+        lower.contains('ok, just') ||
+        lower.contains('okay, just')) {
+      return "I'm right here with you. You don't have to explain it right now, and we don't have to talk about anything specific. Just know that I'm standing by your side whenever you feel like sharing.";
+    }
+
     final text = _fallbackResponses[_fallbackIndex % _fallbackResponses.length];
     _fallbackIndex++;
     return text;
@@ -587,6 +660,8 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
   Future<String> _fetchGeminiResponse(
     String userPrompt, {
     List<String>? detectedDistortions,
+    String? nglJarSummary,
+    String? weeklyHeroSummary,
   }) async {
     await _promptService.ensureLoaded();
     final config = _promptService.config;
@@ -609,6 +684,8 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       coffeeHistorySummary: _coffeeHistorySummary,
       cbtTrendSummary: _cbtTrendSummary,
       detectedDistortions: detectedDistortions,
+      nglJarSummary: nglJarSummary,
+      weeklyHeroSummary: weeklyHeroSummary,
     );
 
     // Build multi-turn chat history ensuring user/model alternation AND user start
@@ -796,7 +873,69 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
                     ),
                   ),
                   const Spacer(),
-                  const NotificationBellWidget(),
+                  IconButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).clearSnackBars();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Upcoming feature: Chat History',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          backgroundColor: const Color(0xFF171B2B),
+                          behavior: SnackBarBehavior.floating,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFFF0EB),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.history_rounded,
+                        color: Color(0xFFAB3500),
+                        size: 20,
+                      ),
+                    ),
+                    tooltip: 'History',
+                  ),
+                  const SizedBox(width: 2),
+                  IconButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).clearSnackBars();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Upcoming feature: Create New Chat',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          backgroundColor: const Color(0xFF171B2B),
+                          behavior: SnackBarBehavior.floating,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF3F2FF),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        color: Color(0xFF95416C),
+                        size: 20,
+                      ),
+                    ),
+                    tooltip: 'New Chat',
+                  ),
                 ],
               ),
             ),
@@ -823,7 +962,14 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
                         (index + 1 < _messages.length) && !_messages[index + 1].isUser;
                     final bool showAvatar = !msg.isUser && !isNextAlsoBot;
 
-                    return _buildMessageBubble(msg, showAvatar: showAvatar);
+                    final bubble = _buildMessageBubble(msg, showAvatar: showAvatar);
+                    if (msg.isNew) {
+                      return _AnimatedMessageBubble(
+                        message: msg,
+                        child: bubble,
+                      );
+                    }
+                    return bubble;
                   } else {
                     return _buildTypingIndicator();
                   }
@@ -1177,17 +1323,80 @@ class __MochiListeningIndicatorState extends State<_MochiListeningIndicator>
   }
 }
 
+class _AnimatedMessageBubble extends StatefulWidget {
+  final Widget child;
+  final _ChatMessage message;
+  const _AnimatedMessageBubble({
+    required this.child,
+    required this.message,
+  });
+
+  @override
+  State<_AnimatedMessageBubble> createState() => __AnimatedMessageBubbleState();
+}
+
+class __AnimatedMessageBubbleState extends State<_AnimatedMessageBubble>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacityAnimation;
+  late final Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0.0, 0.15),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _controller.forward().then((_) {
+      if (mounted) {
+        widget.message.isNew = false;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacityAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
 class _ChatMessage {
   final String text;
   final bool isUser;
   final String time;
   final String? actionType;
+  bool isNew;
 
   _ChatMessage({
     required this.text,
     required this.isUser,
     required this.time,
     this.actionType,
+    this.isNew = true,
   });
 
   Map<String, dynamic> toJson() => {
@@ -1202,5 +1411,6 @@ class _ChatMessage {
     isUser: json['isUser'] ?? false,
     time: json['time'] ?? '',
     actionType: json['actionType'],
+    isNew: false,
   );
 }

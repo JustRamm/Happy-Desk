@@ -128,6 +128,49 @@ class _HomeScreenState extends State<HomeScreen> {
         _lastClockInLocation = location;
       });
     }
+
+    if (clockedIn) {
+      try {
+        final user = SupabaseService.instance.currentUser;
+        if (user != null) {
+          final activeSession = await SupabaseService.instance.client
+              .from('work_sessions')
+              .select('clock_in_location_name, clock_in_time')
+              .eq('user_id', user.id)
+              .eq('status', 'active')
+              .order('clock_in_time', ascending: false)
+              .limit(1)
+              .maybeSingle();
+
+          if (activeSession != null && activeSession['clock_in_location_name'] != null) {
+            final locName = activeSession['clock_in_location_name'] as String;
+            final dbTimeStr = activeSession['clock_in_time'] as String?;
+            
+            String formattedTime = time ?? '';
+            if (dbTimeStr != null) {
+              try {
+                final parsed = DateTime.parse(dbTimeStr).toLocal();
+                final hr = parsed.hour > 12 ? parsed.hour - 12 : (parsed.hour == 0 ? 12 : parsed.hour);
+                final min = parsed.minute.toString().padLeft(2, '0');
+                final period = parsed.hour >= 12 ? 'PM' : 'AM';
+                formattedTime = '$hr:$min $period';
+              } catch (_) {}
+            }
+
+            if (mounted) {
+              setState(() {
+                _lastClockInLocation = locName;
+                _lastClockInTime = formattedTime;
+              });
+            }
+            await UserPreferencesStore.setLastClockInLocation(locName);
+            await UserPreferencesStore.setLastClockInTime(formattedTime);
+          }
+        }
+      } catch (e) {
+        debugPrint('Error syncing active session location: $e');
+      }
+    }
   }
 
   Future<void> _loadTeamStatus() async {

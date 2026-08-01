@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/brand_logo_widget.dart';
+import '../widgets/notification_bell_widget.dart';
 import 'direct_chat_screen.dart';
 import 'new_chat_selector_screen.dart';
 import '../services/supabase_service.dart';
@@ -119,75 +120,8 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
                       // Brand Logo SVG
                       const BrandLogoWidget(height: 54),
 
-                      // Right Header Action Bar (History & New Chat Icons)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).clearSnackBars();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Upcoming feature: Chat History',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  backgroundColor: const Color(0xFF171B2B),
-                                  behavior: SnackBarBehavior.floating,
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            },
-                            icon: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFFFF0EB),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.history_rounded,
-                                color: Color(0xFFAB3500),
-                                size: 20,
-                              ),
-                            ),
-                            tooltip: 'History',
-                          ),
-                          const SizedBox(width: 2),
-                          IconButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).clearSnackBars();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Upcoming feature: Create New Chat',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  backgroundColor: const Color(0xFF171B2B),
-                                  behavior: SnackBarBehavior.floating,
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            },
-                            icon: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFF3F2FF),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.chat_bubble_outline_rounded,
-                                color: Color(0xFF95416C),
-                                size: 20,
-                              ),
-                            ),
-                            tooltip: 'New Chat',
-                          ),
-                        ],
-                      ),
+                       // Right Header Action Bar (Notification Bell Icon)
+                       const NotificationBellWidget(),
                     ],
                   ),
                 ),

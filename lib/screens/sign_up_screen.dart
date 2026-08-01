@@ -216,7 +216,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (_selectedRole == 'founder' && companyName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter your Company / Workspace Name.'),
+          content: Text('Please enter your Company Name.'),
           backgroundColor: Color(0xFFDC2626),
         ),
       );
@@ -324,6 +324,39 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
+  bool _isStepZeroValid() {
+    if (_selectedRole.isEmpty) return false;
+    if (_selectedRole == 'employee') {
+      return _inviteCodeController.text.trim().isNotEmpty;
+    } else if (_selectedRole == 'founder') {
+      return _workspaceNameController.text.trim().isNotEmpty;
+    }
+    return true;
+  }
+
+  bool _isStepOneValid() {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final pass = _passwordController.text.trim();
+    final confirm = _confirmPasswordController.text.trim();
+    return name.isNotEmpty &&
+        email.isNotEmpty &&
+        pass.isNotEmpty &&
+        confirm.isNotEmpty &&
+        (pass == confirm);
+  }
+
+  bool _isStepTwoValid() {
+    if (_selectedAvatar.isEmpty) return false;
+    if (_selectedRole == 'employee') {
+      return _jobRoleController.text.trim().isNotEmpty;
+    } else if (_selectedRole == 'founder') {
+      return _hqLocationController.text.trim().isNotEmpty &&
+          _industryController.text.trim().isNotEmpty;
+    }
+    return true;
+  }
+
   int get _totalSteps => 4;
 
   @override
@@ -390,62 +423,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             );
                           },
                           child: _buildCurrentStepCard(),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Social Proof Cards Row
-                        Row(
-                          children: [
-                            // Card 1: Teams Connected
-                            Expanded(
-                              child: Container(
-                                height: 105,
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF00B887),
-                                  borderRadius: BorderRadius.circular(22),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF00B887).withValues(alpha: 0.2),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: const Icon(
-                                        Icons.auto_awesome,
-                                        color: Color(0xFF06372B),
-                                        size: 16,
-                                      ),
-                                    ),
-                                    Text(
-                                      '1,200+ Teams\nConnected',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w800,
-                                        color: const Color(0xFF06372B),
-                                        height: 1.2,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(width: 12),
-
-                                      ],
                         ),
 
                         const Spacer(),
@@ -542,7 +519,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               Expanded(
                 child: _buildRoleSelectionCard(
                   id: 'founder',
-                  title: 'Founder / Admin',
+                  title: 'Founder',
                   subtitle: 'Create & manage\nyour company',
                   icon: Icons.workspace_premium_rounded,
                   accentColor: const Color(0xFFFF652F),
@@ -553,7 +530,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: _buildRoleSelectionCard(
                   id: 'employee',
                   title: 'Employee',
-                  subtitle: 'Join an existing\nworkplace',
+                  subtitle: 'Join an existing\ncompany',
                   icon: Icons.badge_rounded,
                   accentColor: const Color(0xFF4B7BF5),
                 ),
@@ -561,7 +538,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ],
           ),
 
-          // Employee Leadership Checkbox (only visible when employee is selected)
+          // Employee Leadership Checkbox & Inputs (only visible when employee is selected)
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOutCubic,
@@ -646,20 +623,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                       ),
 
-                      // Show generated code for leaders, or invite code input for regular employees
+                      // Show invite code input for employee (always required to join company)
+                      _buildEmployeeInviteSection(),
+
+                      // Show generated code for leaders if checked
                       AnimatedSize(
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeInOutCubic,
                         child: _isLeadershipRole
                             ? _buildLeaderCodeSection()
-                            : _buildEmployeeInviteSection(),
+                            : const SizedBox.shrink(),
                       ),
                     ],
                   )
                 : const SizedBox.shrink(),
           ),
 
-          // Founder workspace name (only visible when founder is selected)
+          // Founder company name (only visible when founder is selected)
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOutCubic,
@@ -668,12 +648,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 18),
-                      _buildInputLabel('Workspace / Company Name'),
+                      _buildInputLabel('Company Name'),
                       const SizedBox(height: 6),
                       _buildTextField(
                         controller: _workspaceNameController,
                         hintText: 'e.g. Acme Studio Inc.',
                         icon: Icons.business_rounded,
+                        onChanged: (_) => setState(() {}),
                       ),
                     ],
                   )
@@ -687,7 +668,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: _selectedRole.isNotEmpty ? _nextStep : null,
+              onPressed: _isStepZeroValid() ? _nextStep : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryRust,
                 foregroundColor: Colors.white,
@@ -896,16 +877,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildInputLabel('Team Invite Code'),
+          _buildInputLabel('Company Join Code'),
           const SizedBox(height: 6),
           _buildTextField(
             controller: _inviteCodeController,
-            hintText: 'e.g. LEAD-ABC123',
+            hintText: 'e.g. COMP-5U2KG',
             icon: Icons.vpn_key_outlined,
+            onChanged: (val) => setState(() {}),
           ),
           const SizedBox(height: 6),
           Text(
-            'Enter the code shared by your team lead or admin.',
+            'Enter the Company Join Code provided by your Founder.',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 11,
               fontWeight: FontWeight.w500,
@@ -970,12 +952,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
           const SizedBox(height: 16),
 
           // Full Name Field
-          _buildInputLabel(isFounder ? 'Founder / Admin Name' : 'Full Name'),
+          _buildInputLabel(isFounder ? 'Founder Name' : 'Full Name'),
           const SizedBox(height: 6),
           _buildTextField(
             controller: _nameController,
             hintText: isFounder ? 'e.g. Sarah Connor' : 'Full Name',
             icon: Icons.person_outline_rounded,
+            onChanged: (val) => setState(() {}),
           ),
 
           const SizedBox(height: 14),
@@ -987,6 +970,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             controller: _emailController,
             hintText: isFounder ? 'founder@company.com' : 'alex@company.com',
             icon: Icons.alternate_email_rounded,
+            onChanged: (val) => setState(() {}),
           ),
 
           const SizedBox(height: 14),
@@ -1064,7 +1048,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: _nextStep,
+              onPressed: _isStepOneValid() ? _nextStep : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryRust,
                 foregroundColor: Colors.white,
@@ -1176,25 +1160,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         onTap: _pickProfileImage,
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(43),
-                          child: _selectedAvatar.startsWith('assets/')
-                              ? Image.asset(_selectedAvatar, fit: BoxFit.cover)
-                              : Image.file(File(_selectedAvatar), fit: BoxFit.cover),
+                          child: _selectedAvatar.isEmpty
+                              ? Container(
+                                  color: const Color(0xFFFFF0EB),
+                                  child: const Icon(
+                                    Icons.person_rounded,
+                                    size: 44,
+                                    color: AppTheme.primaryRust,
+                                  ),
+                                )
+                              : (_selectedAvatar.startsWith('assets/')
+                                  ? Image.asset(_selectedAvatar, fit: BoxFit.cover)
+                                  : Image.file(File(_selectedAvatar), fit: BoxFit.cover)),
                         ),
                       ),
                     ),
                     Positioned(
                       right: 0,
                       bottom: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          color: AppTheme.primaryRust,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt_rounded,
-                          color: Colors.white,
-                          size: 16,
+                      child: GestureDetector(
+                        onTap: _pickProfileImage,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: AppTheme.primaryRust,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
                         ),
                       ),
                     ),
@@ -1223,49 +1219,49 @@ class _SignUpScreenState extends State<SignUpScreen> {
               controller: _jobRoleController,
               hintText: 'e.g. Product Designer, Software Engineer',
               icon: Icons.work_outline_rounded,
+              onChanged: (val) => setState(() {}),
+            ),
+            const SizedBox(height: 14),
+
+            // Department Selection Chips
+            _buildInputLabel('Department'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: deptList.map((dept) {
+                final isSelected = _selectedDepartment == dept;
+                return ChoiceChip(
+                  showCheckmark: false,
+                  label: Text(dept),
+                  labelStyle: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected ? Colors.white : AppTheme.titleDark,
+                  ),
+                  selected: isSelected,
+                  selectedColor: AppTheme.primaryRust,
+                  backgroundColor: const Color(0xFFF4F4FD),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: isSelected
+                          ? AppTheme.primaryRust
+                          : Colors.transparent,
+                    ),
+                  ),
+                  onSelected: (selected) {
+                    if (selected) {
+                      setState(() {
+                        _selectedDepartment = dept;
+                      });
+                    }
+                  },
+                );
+              }).toList(),
             ),
             const SizedBox(height: 14),
           ],
-
-          // Department Selection Chips
-          _buildInputLabel(isFounder ? 'Executive Department' : 'Department'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: deptList.map((dept) {
-              final isSelected = _selectedDepartment == dept;
-              return ChoiceChip(
-                showCheckmark: false,
-                label: Text(dept),
-                labelStyle: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? Colors.white : AppTheme.titleDark,
-                ),
-                selected: isSelected,
-                selectedColor: AppTheme.primaryRust,
-                backgroundColor: const Color(0xFFF4F4FD),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: isSelected
-                        ? AppTheme.primaryRust
-                        : Colors.transparent,
-                  ),
-                ),
-                onSelected: (selected) {
-                  if (selected) {
-                    setState(() {
-                      _selectedDepartment = dept;
-                    });
-                  }
-                },
-              );
-            }).toList(),
-          ),
-
-          const SizedBox(height: 14),
 
           // Short Bio / Motto
           _buildInputLabel(isFounder ? 'Company Vision / Founder Bio' : 'Bio / Personal Motto'),
@@ -1276,123 +1272,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ? 'e.g. Building our company culture & driving vision!'
                 : 'e.g. Building delightful products & team spirit!',
             icon: Icons.chat_bubble_outline_rounded,
+            onChanged: (val) => setState(() {}),
           ),
-
-          const SizedBox(height: 20),
-
-          // Continue Button to Step 3
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _nextStep,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryRust,
-                foregroundColor: Colors.white,
-                elevation: 3,
-                shadowColor: AppTheme.primaryRust.withValues(alpha: 0.35),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(26),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    isFounder ? 'Next: Review Workspace Setup' : 'Next: Finalize Setup',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  // STEP 3: Final Review & Account Creation
-  // ---------------------------------------------------------------------------
-  Widget _buildStepThreeWorkplace({required Key key}) {
-    final isFounder = _selectedRole == 'founder';
-    final roleLabel = isFounder
-        ? 'Founder & CEO (Workspace Owner)'
-        : _isLeadershipRole
-            ? 'Employee (Team Lead)'
-            : 'Employee (Team Member)';
-
-    final companyNameDisplay = isFounder
-        ? (_workspaceNameController.text.trim().isNotEmpty
-            ? _workspaceNameController.text.trim()
-            : 'Acme Corp')
-        : 'Joined via Team Code';
-
-    return Container(
-      key: key,
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(26),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Text(
-              isFounder ? 'Launch Company Workspace' : 'Finalize Setup',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.titleDark,
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Center(
-            child: Text(
-              isFounder
-                  ? 'Review details & activate company workspace'
-                  : 'Review your details & complete signup',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w500,
-                color: AppTheme.textSecondary,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 18),
 
           if (isFounder) ...[
             const SizedBox(height: 14),
-            _buildInputLabel('Main Branch / HQ Location'),
+            _buildInputLabel('Main Branch'),
             const SizedBox(height: 6),
             _buildTextField(
               controller: _hqLocationController,
-              hintText: 'e.g. New York, USA or City/Branch',
+              hintText: 'e.g. New York, USA',
               icon: Icons.location_city_rounded,
+              onChanged: (val) => setState(() {}),
             ),
             const SizedBox(height: 12),
-            _buildInputLabel('Company Industry / Domain'),
+            _buildInputLabel('Company Domain'),
             const SizedBox(height: 6),
             _buildTextField(
               controller: _industryController,
-              hintText: 'e.g. Software & Tech, Healthcare, Finance',
+              hintText: 'e.g. Software & Tech',
               icon: Icons.domain_rounded,
+              onChanged: (val) => setState(() {}),
             ),
             const SizedBox(height: 12),
             _buildInputLabel('Company Size'),
@@ -1423,8 +1323,108 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 16),
           ],
+
+          const SizedBox(height: 20),
+
+          // Continue Button to Step 3
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: _isStepTwoValid() ? _nextStep : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryRust,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: const Color(0xFFE0DDD9),
+                disabledForegroundColor: const Color(0xFF9E9A95),
+                elevation: 3,
+                shadowColor: AppTheme.primaryRust.withValues(alpha: 0.35),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(26),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    isFounder ? 'Next: Review Company Setup' : 'Next: Finalize Setup',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // STEP 3: Final Review & Account Creation
+  // ---------------------------------------------------------------------------
+  Widget _buildStepThreeWorkplace({required Key key}) {
+    final isFounder = _selectedRole == 'founder';
+    final roleLabel = isFounder
+        ? 'Founder & CEO (Company Owner)'
+        : _isLeadershipRole
+            ? 'Employee (Team Lead)'
+            : 'Employee (Team Member)';
+
+    final companyNameDisplay = isFounder
+        ? (_workspaceNameController.text.trim().isNotEmpty
+            ? _workspaceNameController.text.trim()
+            : 'Acme Corp')
+        : 'Joined via Team Code';
+
+    return Container(
+      key: key,
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Text(
+              isFounder ? 'Launch Company' : 'Finalize Setup',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.titleDark,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Center(
+            child: Text(
+              isFounder
+                  ? 'Review details & activate company'
+                  : 'Review your details & complete signup',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 18),
 
           // Review Summary Card
           Container(
@@ -1463,17 +1463,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   'Department',
                   isFounder ? 'Executive Leadership' : _selectedDepartment,
                 ),
-                if (isFounder) ...[
+                 if (isFounder) ...[
                   const Divider(height: 20),
                   _buildReviewRow(
                     Icons.business_rounded,
-                    'Company Workspace',
+                    'Company Name',
                     companyNameDisplay,
                   ),
                   const Divider(height: 20),
                   _buildReviewRow(
                     Icons.location_on_rounded,
-                    'HQ Location',
+                    'Main Branch',
                     _hqLocationController.text.isNotEmpty ? _hqLocationController.text : 'New York, USA',
                   ),
                   if (_generatedLeaderCode.isNotEmpty) ...[
@@ -1529,7 +1529,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isFounder ? 'Founder Workspace 100% Ready!' : 'Profile 100% Complete!',
+                        isFounder ? 'Founder Account 100% Ready!' : 'Profile 100% Complete!',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w800,
@@ -1538,7 +1538,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       Text(
                         isFounder
-                            ? 'Activating your workspace will generate company join codes for your team.'
+                            ? 'Activating your company will generate company join codes for your team.'
                             : 'All required details, avatar & workplace preferences saved.',
                         style: GoogleFonts.beVietnamPro(
                           fontSize: 11.5,
@@ -1570,7 +1570,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
               child: Text(
-                isFounder ? 'Create Company & Launch Workspace' : 'Complete Setup & Join Team',
+                isFounder ? 'Launch Company' : 'Complete Setup & Join Team',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,

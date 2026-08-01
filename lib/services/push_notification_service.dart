@@ -23,7 +23,7 @@ class PushNotificationService {
 
     try {
       await _localNotifications.initialize(
-        initSettings,
+        settings: initSettings,
         onDidReceiveNotificationResponse: (response) {
           debugPrint('Notification clicked: ${response.payload}');
         },
@@ -58,10 +58,10 @@ class PushNotificationService {
 
     try {
       await _localNotifications.show(
-        DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        title,
-        body,
-        details,
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title: title,
+        body: body,
+        notificationDetails: details,
         payload: payload,
       );
     } catch (e) {

@@ -387,7 +387,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: Text(
                         UserPreferencesStore.getIsFounder()
-                            ? 'Founder of ${company.isNotEmpty ? company : 'Happy Desk HQ'}'
+                            ? (company.isNotEmpty ? company : 'Happy Desk HQ')
                             : 'Member of ${company.isNotEmpty ? company : 'Happy Desk HQ'}',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,

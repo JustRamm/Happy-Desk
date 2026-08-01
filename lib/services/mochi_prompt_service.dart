@@ -134,6 +134,8 @@ class MochiPromptService {
     String? coffeeHistorySummary,
     String? cbtTrendSummary,
     List<String>? detectedDistortions,
+    String? nglJarSummary,
+    String? weeklyHeroSummary,
   }) {
     if (_basePrompt == null) {
       throw StateError('Call ensureLoaded() before building the prompt.');
@@ -186,6 +188,14 @@ class MochiPromptService {
     if (sessionMemorySummary != null &&
         sessionMemorySummary.trim().isNotEmpty) {
       buffer.writeln('Memory from past sessions: $sessionMemorySummary');
+    }
+
+    if (nglJarSummary != null && nglJarSummary.trim().isNotEmpty) {
+      buffer.writeln('User NGL Jar Messages: $nglJarSummary');
+    }
+
+    if (weeklyHeroSummary != null && weeklyHeroSummary.trim().isNotEmpty) {
+      buffer.writeln('User Weekly Hero Nominations Received: $weeklyHeroSummary');
     }
 
     return buffer.toString();

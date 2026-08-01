@@ -297,7 +297,31 @@ class SupabaseService {
           .select('id, name, email, job_title, department, avatar_url, is_clocked_in, is_on_break, is_leader, role_type, company_id')
           .eq('company_id', companyId)
           .order('name', ascending: true);
-      return List<Map<String, dynamic>>.from(res);
+
+      final List<Map<String, dynamic>> profilesList = List<Map<String, dynamic>>.from(res);
+
+      // Query active work sessions for clocked-in teammates to populate location_name dynamically
+      for (var emp in profilesList) {
+        if (emp['is_clocked_in'] == true) {
+          try {
+            final activeSession = await client
+                .from('work_sessions')
+                .select('clock_in_location_name')
+                .eq('user_id', emp['id'])
+                .eq('status', 'active')
+                .order('clock_in_time', ascending: false)
+                .limit(1)
+                .maybeSingle();
+            if (activeSession != null) {
+              emp['location_name'] = activeSession['clock_in_location_name'];
+            }
+          } catch (e) {
+            debugPrint('Error loading active session for teammate location: $e');
+          }
+        }
+      }
+
+      return profilesList;
     } catch (e) {
       debugPrint('Error fetching teammates: $e');
       return [];
@@ -408,10 +432,19 @@ class SupabaseService {
 
     try {
       return await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 5),
+        ),
       );
     } catch (e) {
       debugPrint('Error getting location position: $e');
+      try {
+        final lastPos = await Geolocator.getLastKnownPosition();
+        if (lastPos != null) return lastPos;
+      } catch (ex) {
+        debugPrint('Error getting last known position: $ex');
+      }
       return null;
     }
   }
@@ -423,7 +456,7 @@ class SupabaseService {
         'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1',
       );
       final response = await http.get(url, headers: {
-        'User-Agent': 'HappyDeskApp/1.0',
+        'User-Agent': 'HappyDeskApp/1.0.0 (contact@mindempowered.com)',
       }).timeout(const Duration(seconds: 4));
 
       if (response.statusCode == 200) {
@@ -484,11 +517,14 @@ class SupabaseService {
     if (user == null) return null;
 
     final position = await getCurrentDeviceLocation();
-    final double? lat = position?.latitude;
-    final double? lng = position?.longitude;
+    double? lat = position?.latitude;
+    double? lng = position?.longitude;
+
+    final companyHq = UserPreferencesStore.getCompanyHq();
+    final fallbackLocation = companyHq.isNotEmpty ? companyHq : 'Office HQ';
 
     Map<String, String> addressDetails = {
-      'location_name': 'Office HQ',
+      'location_name': fallbackLocation,
       'country': '',
       'state': '',
       'district': '',
@@ -499,7 +535,7 @@ class SupabaseService {
       addressDetails = await fetchDetailedAddress(lat, lng);
     }
 
-    final locationName = addressDetails['location_name'] ?? 'Office HQ';
+    final locationName = addressDetails['location_name'] ?? fallbackLocation;
 
     // Insert work session
     final sessionRes = await client.from('work_sessions').insert({
