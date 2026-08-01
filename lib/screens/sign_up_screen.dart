@@ -53,6 +53,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _jobRoleController = TextEditingController();
   final _bioController = TextEditingController();
 
+  // Step 2 Coordinates & Maps Controllers for Founders
+  final _hqLatitudeController = TextEditingController();
+  final _hqLongitudeController = TextEditingController();
+  final _hqMapsLinkController = TextEditingController();
+
+  // Step 2 Coordinates & Maps Controllers for Leaders (Optional)
+  final _teamAddressController = TextEditingController();
+  final _teamLatitudeController = TextEditingController();
+  final _teamLongitudeController = TextEditingController();
+  final _teamMapsLinkController = TextEditingController();
+
   Future<void> _pickProfileImage() async {
     showModalBottomSheet(
       context: context,
@@ -134,6 +145,120 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
+  Future<void> _autoDetectHqCoordinates() async {
+    try {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Fetching current GPS coordinates...',
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+          ),
+          duration: const Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      final pos = await SupabaseService.instance.getCurrentDeviceLocation();
+      if (pos != null) {
+        final addressDetails = await SupabaseService.instance.fetchDetailedAddress(pos.latitude, pos.longitude);
+        final addressStr = addressDetails['location_name'] ?? '${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}';
+        if (mounted) {
+          setState(() {
+            _hqLatitudeController.text = pos.latitude.toString();
+            _hqLongitudeController.text = pos.longitude.toString();
+            _hqLocationController.text = addressStr;
+            _hqMapsLinkController.text = 'https://www.google.com/maps/search/?api=1&query=${pos.latitude},${pos.longitude}';
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'HQ Location auto-detected successfully!',
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+              ),
+              backgroundColor: const Color(0xFF00AE88),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Could not fetch GPS coordinates. Please check your location settings.',
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+              ),
+              backgroundColor: const Color(0xFFDC2626),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error auto-detecting HQ coordinates: $e');
+    }
+  }
+
+  Future<void> _autoDetectTeamCoordinates() async {
+    try {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Fetching current GPS coordinates...',
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+          ),
+          duration: const Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      final pos = await SupabaseService.instance.getCurrentDeviceLocation();
+      if (pos != null) {
+        final addressDetails = await SupabaseService.instance.fetchDetailedAddress(pos.latitude, pos.longitude);
+        final addressStr = addressDetails['location_name'] ?? '${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}';
+        if (mounted) {
+          setState(() {
+            _teamLatitudeController.text = pos.latitude.toString();
+            _teamLongitudeController.text = pos.longitude.toString();
+            _teamAddressController.text = addressStr;
+            _teamMapsLinkController.text = 'https://www.google.com/maps/search/?api=1&query=${pos.latitude},${pos.longitude}';
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Team location auto-detected successfully!',
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+              ),
+              backgroundColor: const Color(0xFF00AE88),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Could not fetch GPS coordinates. Please check your location settings.',
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+              ),
+              backgroundColor: const Color(0xFFDC2626),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error auto-detecting team coordinates: $e');
+    }
+  }
+
   // Step 3 Controllers (Workplace & Company Details)
   final _inviteCodeController = TextEditingController();
   final _workspaceNameController = TextEditingController();
@@ -153,6 +278,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _workspaceNameController.dispose();
     _hqLocationController.dispose();
     _industryController.dispose();
+    _hqLatitudeController.dispose();
+    _hqLongitudeController.dispose();
+    _hqMapsLinkController.dispose();
+    _teamAddressController.dispose();
+    _teamLatitudeController.dispose();
+    _teamLongitudeController.dispose();
+    _teamMapsLinkController.dispose();
     super.dispose();
   }
 
@@ -285,6 +417,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
           jobTitle: 'Founder & CEO',
           department: 'Executive Leadership',
           bio: bioText,
+          hqAddress: _hqLocationController.text.trim(),
+          hqLatitude: double.tryParse(_hqLatitudeController.text.trim()),
+          hqLongitude: double.tryParse(_hqLongitudeController.text.trim()),
+          hqGoogleMapsLink: _hqMapsLinkController.text.trim(),
         );
         if (authRes.user != null && _selectedAvatar.isNotEmpty && File(_selectedAvatar).existsSync()) {
           uploadedAvatarUrl = await SupabaseService.instance.uploadAvatarImage(File(_selectedAvatar));
@@ -300,6 +436,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
           jobTitle: jobTitle,
           department: _selectedDepartment,
           bio: bioText,
+          teamAddress: _isLeadershipRole ? _teamAddressController.text.trim() : null,
+          teamLatitude: _isLeadershipRole ? double.tryParse(_teamLatitudeController.text.trim()) : null,
+          teamLongitude: _isLeadershipRole ? double.tryParse(_teamLongitudeController.text.trim()) : null,
+          teamGoogleMapsLink: _isLeadershipRole ? _teamMapsLinkController.text.trim() : null,
         );
         if (authRes.user != null && _selectedAvatar.isNotEmpty && File(_selectedAvatar).existsSync()) {
           uploadedAvatarUrl = await SupabaseService.instance.uploadAvatarImage(File(_selectedAvatar));
@@ -352,7 +492,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return _jobRoleController.text.trim().isNotEmpty;
     } else if (_selectedRole == 'founder') {
       return _hqLocationController.text.trim().isNotEmpty &&
-          _industryController.text.trim().isNotEmpty;
+          _industryController.text.trim().isNotEmpty &&
+          _hqLatitudeController.text.trim().isNotEmpty &&
+          _hqLongitudeController.text.trim().isNotEmpty &&
+          _hqMapsLinkController.text.trim().isNotEmpty;
     }
     return true;
   }
@@ -1261,6 +1404,108 @@ class _SignUpScreenState extends State<SignUpScreen> {
               }).toList(),
             ),
             const SizedBox(height: 14),
+            if (_isLeadershipRole) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF9F6),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFE8E7E3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Team Branch Location (Optional)',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF524036),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: _autoDetectTeamCoordinates,
+                          child: Row(
+                            children: [
+                              const Icon(Icons.my_location_rounded, color: AppTheme.primaryRust, size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Auto-detect',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.primaryRust,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    _buildInputLabel('Branch Address'),
+                    const SizedBox(height: 6),
+                    _buildTextField(
+                      controller: _teamAddressController,
+                      hintText: 'e.g. Branch B, Cochin, India',
+                      icon: Icons.location_on_rounded,
+                      onChanged: (val) => setState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildInputLabel('Latitude'),
+                              const SizedBox(height: 6),
+                              _buildTextField(
+                                controller: _teamLatitudeController,
+                                hintText: 'e.g. 9.9312',
+                                icon: Icons.map_outlined,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                onChanged: (val) => setState(() {}),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildInputLabel('Longitude'),
+                              const SizedBox(height: 6),
+                              _buildTextField(
+                                controller: _teamLongitudeController,
+                                hintText: 'e.g. 76.2673',
+                                icon: Icons.map_outlined,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                onChanged: (val) => setState(() {}),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildInputLabel('Google Maps Link'),
+                    const SizedBox(height: 6),
+                    _buildTextField(
+                      controller: _teamMapsLinkController,
+                      hintText: 'https://maps.google.com/?q=...',
+                      icon: Icons.link_rounded,
+                      onChanged: (val) => setState(() {}),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
 
           // Short Bio / Motto
@@ -1277,12 +1522,81 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
           if (isFounder) ...[
             const SizedBox(height: 14),
-            _buildInputLabel('Main Branch'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildInputLabel('Main Branch (Full Address)'),
+                GestureDetector(
+                  onTap: _autoDetectHqCoordinates,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.my_location_rounded, color: AppTheme.primaryRust, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Auto-detect',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.primaryRust,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 6),
             _buildTextField(
               controller: _hqLocationController,
-              hintText: 'e.g. New York, USA',
-              icon: Icons.location_city_rounded,
+              hintText: 'e.g. 123 Main St, New York, USA',
+              icon: Icons.location_on_rounded,
+              onChanged: (val) => setState(() {}),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInputLabel('Latitude'),
+                      const SizedBox(height: 6),
+                      _buildTextField(
+                        controller: _hqLatitudeController,
+                        hintText: 'e.g. 40.7128',
+                        icon: Icons.map_outlined,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        onChanged: (val) => setState(() {}),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInputLabel('Longitude'),
+                      const SizedBox(height: 6),
+                      _buildTextField(
+                        controller: _hqLongitudeController,
+                        hintText: 'e.g. -74.0060',
+                        icon: Icons.map_outlined,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        onChanged: (val) => setState(() {}),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildInputLabel('Google Maps Link'),
+            const SizedBox(height: 6),
+            _buildTextField(
+              controller: _hqMapsLinkController,
+              hintText: 'https://maps.google.com/?q=...',
+              icon: Icons.link_rounded,
               onChanged: (val) => setState(() {}),
             ),
             const SizedBox(height: 12),
@@ -1720,6 +2034,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     bool obscureText = false,
     VoidCallback? onToggleVisibility,
     ValueChanged<String>? onChanged,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -1730,6 +2045,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         controller: controller,
         obscureText: obscureText,
         onChanged: onChanged,
+        keyboardType: keyboardType,
         style: GoogleFonts.plusJakartaSans(
           fontSize: 14,
           fontWeight: FontWeight.w600,

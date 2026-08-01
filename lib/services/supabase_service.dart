@@ -58,6 +58,10 @@ class SupabaseService {
     String department = 'Executive Leadership',
     String bio = '',
     String? avatarUrl,
+    String? hqAddress,
+    double? hqLatitude,
+    double? hqLongitude,
+    String? hqGoogleMapsLink,
   }) async {
     await init();
     final finalCode = (companyCode != null && companyCode.trim().isNotEmpty)
@@ -88,9 +92,13 @@ class SupabaseService {
         'name': companyName,
         'company_code': finalCode,
         'founder_id': user.id,
-        'hq_location': hqLocation ?? '',
+        'hq_location': hqLocation ?? hqAddress ?? '',
         'industry': industry ?? '',
         'company_size': companySize ?? '',
+        'hq_address': hqAddress ?? '',
+        'hq_latitude': hqLatitude,
+        'hq_longitude': hqLongitude,
+        'hq_google_maps_link': hqGoogleMapsLink ?? '',
       }).select().single();
 
       final companyId = companyRes['id'] as String;
@@ -119,7 +127,7 @@ class SupabaseService {
         'job_title': finalTitle,
         'department': finalDepartment,
         'bio': bio,
-        'avatar_url': ?avatarUrl,
+        'avatar_url': avatarUrl,
       });
 
       // Save local preferences
@@ -155,6 +163,10 @@ class SupabaseService {
     String department = 'Engineering',
     String bio = '',
     String? avatarUrl,
+    String? teamAddress,
+    double? teamLatitude,
+    double? teamLongitude,
+    String? teamGoogleMapsLink,
   }) async {
     await init();
     final cleanCode = companyCode.trim().toUpperCase();
@@ -214,7 +226,11 @@ class SupabaseService {
         'job_title': jobTitle,
         'department': department,
         'bio': bio,
-        'avatar_url': ?avatarUrl,
+        'avatar_url': avatarUrl,
+        'team_location_address': teamAddress,
+        'team_location_latitude': teamLatitude,
+        'team_location_longitude': teamLongitude,
+        'team_location_google_maps_link': teamGoogleMapsLink,
       });
 
       String? companyName = companyMatch != null ? (companyMatch['name'] as String?) : null;
