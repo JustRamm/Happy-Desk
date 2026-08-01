@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/supabase_service.dart';
 import '../services/sound_service.dart';
 import 'audio_video_call_screen.dart';
+import 'chat_settings_screen.dart';
 
 class DirectChatScreen extends StatefulWidget {
   final Map<String, dynamic> teammate;
@@ -266,68 +267,78 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               color: Color(0xFF2D3142), size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Row(
-          children: [
-            Stack(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: const Color(0xFFFFDBD0),
-                  child: (avatar.startsWith('http') || (avatar.isNotEmpty && File(avatar).existsSync()))
-                      ? ClipOval(
-                          child: avatar.startsWith('http')
-                              ? Image.network(avatar, fit: BoxFit.cover, width: 36, height: 36)
-                              : Image.file(File(avatar), fit: BoxFit.cover, width: 36, height: 36),
-                        )
-                      : Text(
-                          name.isNotEmpty ? name[0].toUpperCase() : '?',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFFAB3500),
+        title: GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatSettingsScreen(teammate: widget.teammate),
+              ),
+            );
+          },
+          child: Row(
+            children: [
+              Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: const Color(0xFFFFDBD0),
+                    child: (avatar.startsWith('http') || (avatar.isNotEmpty && File(avatar).existsSync()))
+                        ? ClipOval(
+                            child: avatar.startsWith('http')
+                                ? Image.network(avatar, fit: BoxFit.cover, width: 36, height: 36)
+                                : Image.file(File(avatar), fit: BoxFit.cover, width: 36, height: 36),
+                          )
+                        : Text(
+                            name.isNotEmpty ? name[0].toUpperCase() : '?',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFFAB3500),
+                            ),
                           ),
+                  ),
+                  if (isOnline)
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00C49A),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5),
                         ),
-                ),
-                if (isOnline)
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF00C49A),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 1.5),
                       ),
                     ),
-                  ),
-              ],
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF2D3142),
-                    ),
-                  ),
-                  Text(
-                    role,
-                    style: GoogleFonts.beVietnamPro(
-                      fontSize: 11.5,
-                      color: const Color(0xFF4A4E69),
-                    ),
-                  ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF2D3142),
+                      ),
+                    ),
+                    Text(
+                      role,
+                      style: GoogleFonts.beVietnamPro(
+                        fontSize: 11.5,
+                        color: const Color(0xFF4A4E69),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           IconButton(

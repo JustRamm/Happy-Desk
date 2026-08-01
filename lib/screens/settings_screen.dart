@@ -9,6 +9,8 @@ import 'help_faq_screen.dart';
 import 'privacy_policy_screen.dart';
 import 'terms_of_service_screen.dart';
 import 'about_screen.dart';
+import 'founder_config_screen.dart';
+import 'reset_password_screen.dart';
 import '../services/user_preferences_store.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -83,126 +85,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  void _showSecurityModal() {
-    bool twoFactor = true;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                top: 24,
-                left: 20,
-                right: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Security & Password',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.titleDark,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  Text('Current Password', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 6),
-                  TextField(
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      hintText: '••••••••',
-                      filled: true,
-                      fillColor: const Color(0xFFFAF8FF),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE4E7FE))),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  Text('New Password', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 6),
-                  TextField(
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      hintText: '••••••••',
-                      filled: true,
-                      fillColor: const Color(0xFFFAF8FF),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE4E7FE))),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Two-Factor Auth (2FA)', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700)),
-                          Text('Secure login with Google Authenticator', style: GoogleFonts.beVietnamPro(fontSize: 12, color: Colors.grey.shade600)),
-                        ],
-                      ),
-                      Switch(
-                        value: twoFactor,
-                        activeThumbColor: AppTheme.primaryRust,
-                        onChanged: (val) => setModalState(() => twoFactor = val),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Security settings updated!'),
-                            backgroundColor: const Color(0xFF006C53),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryRust,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                      ),
-                      child: Text('Update Password & Security', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700)),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
     );
   }
 
@@ -360,7 +242,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: Icons.lock_outline_rounded,
                     title: 'Security & Password',
                     subtitle: 'Change password, 2FA',
-                    onTap: _showSecurityModal,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ResetPasswordScreen(),
+                        ),
+                      );
+                    },
                   ),
                   _buildDivider(),
                   _buildListTile(
@@ -369,6 +258,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     subtitle: 'Team invite code, role settings',
                     onTap: _showWorkspaceModal,
                   ),
+                  if (UserPreferencesStore.getIsFounder()) ...[
+                    _buildDivider(),
+                    _buildListTile(
+                      icon: Icons.domain_rounded,
+                      title: 'HQ Workspace Settings',
+                      subtitle: 'Geofence coordinates, branch links',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const FounderConfigScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ],
               ),
 

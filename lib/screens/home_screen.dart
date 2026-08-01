@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../theme/app_theme.dart';
 import '../widgets/apply_leave_modal.dart';
 import '../widgets/founder_leave_approvals_modal.dart';
+import 'leave_history_screen.dart';
 import 'jar_screen.dart';
 import 'hero_screen.dart';
 import 'work_session_details_screen.dart';
@@ -1107,7 +1108,31 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
               ],
             ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 8),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LeaveHistoryScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.history_rounded, size: 16, color: Color(0xFF4A1500)),
+                    label: Text(
+                      'View Leave Balance & History Log',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF4A1500),
+                        decoration: TextDecoration.underline,
+                        decorationColor: const Color(0xFF4A1500),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
 
                 // Team Clocked-In Status Live Hub
                 Container(

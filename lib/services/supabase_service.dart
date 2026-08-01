@@ -1017,6 +1017,26 @@ class SupabaseService {
     }
   }
 
+  Future<void> deleteConversationWith(String partnerName) async {
+    await init();
+    try {
+      final myName = UserPreferencesStore.getUserName();
+      await client
+          .from('direct_messages')
+          .delete()
+          .eq('sender_name', myName)
+          .eq('receiver_name', partnerName);
+      await client
+          .from('direct_messages')
+          .delete()
+          .eq('sender_name', partnerName)
+          .eq('receiver_name', myName);
+    } catch (e) {
+      debugPrint('Error deleting conversation: $e');
+      rethrow;
+    }
+  }
+
   Future<void> updateFcmToken(String fcmToken) async {
     await init();
     final user = currentUser;
