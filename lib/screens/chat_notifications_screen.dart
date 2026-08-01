@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/brand_logo_widget.dart';
 import '../widgets/notification_bell_widget.dart';
@@ -108,70 +109,71 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top Header Bar (1:1 Pixel Alignment with HomeScreen Header)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Brand Logo SVG
-                      const BrandLogoWidget(height: 54),
+             child: Column(
+               crossAxisAlignment: CrossAxisAlignment.start,
+               children: [
+                 // Top Header Bar with Logo, Searchbar, and Notification Bell
+                 Padding(
+                   padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+                   child: Row(
+                     children: [
+                       // Brand Logo Widget
+                       const BrandLogoWidget(height: 40),
+                       const SizedBox(width: 10),
+
+                       // Header Search Bar
+                       Expanded(
+                         child: Container(
+                           height: 38,
+                           padding: const EdgeInsets.symmetric(horizontal: 10),
+                           decoration: BoxDecoration(
+                             color: Colors.white,
+                             borderRadius: BorderRadius.circular(19),
+                             border: Border.all(color: const Color(0xFFE4E7FE)),
+                           ),
+                           child: Row(
+                             children: [
+                               const Icon(
+                                 Icons.search_rounded,
+                                 color: Color(0xFFAB3500),
+                                 size: 18,
+                               ),
+                               const SizedBox(width: 6),
+                               Expanded(
+                                 child: TextField(
+                                   controller: _searchController,
+                                   onTap: () {
+                                     SystemChannels.textInput.invokeMethod('TextInput.show');
+                                   },
+                                   style: GoogleFonts.beVietnamPro(
+                                     fontSize: 12,
+                                     color: const Color(0xFF171B2B),
+                                   ),
+                                   decoration: InputDecoration(
+                                     hintText: 'Search...',
+                                     hintStyle: GoogleFonts.beVietnamPro(
+                                       fontSize: 11.5,
+                                       color: const Color(0xFF8D7168),
+                                     ),
+                                     border: InputBorder.none,
+                                     isDense: true,
+                                     contentPadding: EdgeInsets.zero,
+                                   ),
+                                 ),
+                               ),
+                             ],
+                           ),
+                         ),
+                       ),
+                       const SizedBox(width: 10),
 
                        // Right Header Action Bar (Notification Bell Icon)
                        const NotificationBellWidget(),
-                    ],
-                  ),
-                ),
+                     ],
+                   ),
+                 ),
 
-                const SizedBox(height: 8),
-
-                // Search Messages Input Bar
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Container(
-                    height: 44,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: const Color(0xFFE4E7FE)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.search_rounded,
-                          color: Color(0xFFAB3500),
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            style: GoogleFonts.beVietnamPro(
-                              fontSize: 13,
-                              color: const Color(0xFF171B2B),
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Search team messages & conversations...',
-                              hintStyle: GoogleFonts.beVietnamPro(
-                                fontSize: 12.5,
-                                color: const Color(0xFF8D7168),
-                              ),
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
+                 const SizedBox(height: 16),
 
                 if (_chats.isEmpty)
                   Padding(

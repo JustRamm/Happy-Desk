@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/supabase_service.dart';
 import '../services/sound_service.dart';
@@ -596,6 +597,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                       child: TextField(
                         controller: _messageController,
                         style: GoogleFonts.beVietnamPro(fontSize: 14),
+                        onTap: () {
+                          SystemChannels.textInput.invokeMethod('TextInput.show');
+                        },
                         decoration: InputDecoration(
                           hintText: 'Type your message...',
                           hintStyle: GoogleFonts.beVietnamPro(

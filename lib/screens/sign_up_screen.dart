@@ -2046,6 +2046,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         obscureText: obscureText,
         onChanged: onChanged,
         keyboardType: keyboardType,
+        onTap: () {
+          SystemChannels.textInput.invokeMethod('TextInput.show');
+        },
         style: GoogleFonts.plusJakartaSans(
           fontSize: 14,
           fontWeight: FontWeight.w600,

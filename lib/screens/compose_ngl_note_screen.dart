@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/supabase_service.dart';
@@ -389,6 +390,9 @@ class _ComposeNglNoteScreenState extends State<ComposeNglNoteScreen> {
                       controller: _messageController,
                       maxLines: 5,
                       maxLength: 250,
+                      onTap: () {
+                        SystemChannels.textInput.invokeMethod('TextInput.show');
+                      },
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w600,

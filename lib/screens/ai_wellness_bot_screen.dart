@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
@@ -1003,6 +1004,9 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
                       minLines: 1,
                       maxLines: 4,
                       keyboardType: TextInputType.multiline,
+                      onTap: () {
+                        SystemChannels.textInput.invokeMethod('TextInput.show');
+                      },
                       scrollPhysics: const BouncingScrollPhysics(),
                       style: GoogleFonts.beVietnamPro(
                         fontSize: 14,
