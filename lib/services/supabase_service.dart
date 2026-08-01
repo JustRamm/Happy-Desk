@@ -139,11 +139,12 @@ class SupabaseService {
         company: companyName,
       );
       await UserPreferencesStore.setRoleType('founder');
+      await UserPreferencesStore.setIsLeader(true);
       await UserPreferencesStore.setCompanyDetails(
         companyName: companyName,
-        hqLocation: hqLocation,
-        industry: industry,
-        companySize: companySize,
+        hqLocation: hqLocation ?? hqAddress ?? '',
+        industry: industry ?? '',
+        companySize: companySize ?? '',
       );
       if (avatarUrl != null) {
         await UserPreferencesStore.setUserAvatarUrl(avatarUrl);
@@ -264,11 +265,27 @@ class SupabaseService {
       // Fetch Profile Data
       final profile = await client.from('profiles').select().eq('id', user.id).maybeSingle();
       if (profile != null) {
+        final roleType = profile['role_type'] as String? ?? 'employee';
+        final isLeader = profile['is_leader'] == true;
+        final companyId = profile['company_id'] as String?;
+
+        await UserPreferencesStore.setRoleType(roleType);
+        await UserPreferencesStore.setIsLeader(isLeader);
+
         String? companyName;
-        if (profile['company_id'] != null) {
+        if (companyId != null) {
           try {
-            final comp = await client.from('companies').select('name').eq('id', profile['company_id']).maybeSingle();
-            if (comp != null) companyName = comp['name'] as String?;
+            final comp = await client.from('companies').select().eq('id', companyId).maybeSingle();
+            if (comp != null) {
+              companyName = comp['name'] as String?;
+              await UserPreferencesStore.setCompanyDetails(
+                companyName: companyName ?? '',
+                hqLocation: comp['hq_location'] ?? comp['hq_address'] ?? '',
+                industry: comp['industry'] ?? '',
+                companySize: comp['company_size'] ?? '',
+              );
+              await UserPreferencesStore.setCompanyCode(comp['company_code'] ?? '');
+            }
           } catch (_) {}
         }
 

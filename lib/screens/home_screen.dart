@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../theme/app_theme.dart';
 import '../widgets/apply_leave_modal.dart';
+import '../widgets/founder_leave_approvals_modal.dart';
 import 'jar_screen.dart';
 import 'hero_screen.dart';
 import 'work_session_details_screen.dart';
@@ -946,8 +947,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                // 3. Founder Analytics Button OR Employee Apply for Leave Button
-                if (UserPreferencesStore.getIsFounder())
+                // 3. Founder Actions OR Team Leader Actions OR Employee Apply for Leave Button
+                if (UserPreferencesStore.getIsFounder()) ...[
                   OutlinedButton.icon(
                     onPressed: () {
                       Navigator.push(
@@ -983,8 +984,98 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: const Color(0xFF4A1500),
                       ),
                     ),
-                  )
-                else
+                  ),
+                  const SizedBox(width: 4),
+                  OutlinedButton.icon(
+                    onPressed: () => FounderLeaveApprovalsModal.show(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      side: const BorderSide(
+                        color: Color(0xFF4A1500),
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.task_alt_rounded,
+                      size: 18,
+                      color: Color(0xFF4A1500),
+                    ),
+                    label: Text(
+                      'Approve Leaves',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF4A1500),
+                      ),
+                    ),
+                  ),
+                ] else if (UserPreferencesStore.getIsLeader()) ...[
+                  OutlinedButton.icon(
+                    onPressed: () => ApplyLeaveModal.show(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      side: const BorderSide(
+                        color: Color(0xFF4A1500),
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.beach_access_rounded,
+                      size: 18,
+                      color: Color(0xFF4A1500),
+                    ),
+                    label: Text(
+                      'Apply for Leave',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF4A1500),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  OutlinedButton.icon(
+                    onPressed: () => FounderLeaveApprovalsModal.show(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      side: const BorderSide(
+                        color: Color(0xFF4A1500),
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.task_alt_rounded,
+                      size: 18,
+                      color: Color(0xFF4A1500),
+                    ),
+                    label: Text(
+                      'Approve Leaves',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF4A1500),
+                      ),
+                    ),
+                  ),
+                ] else
                   OutlinedButton.icon(
                     onPressed: () => ApplyLeaveModal.show(context),
                     style: OutlinedButton.styleFrom(

@@ -378,6 +378,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final compCode = _generatedLeaderCode.isNotEmpty ? _generatedLeaderCode : _generateCode(prefix: 'COMP');
       await UserPreferencesStore.setRoleType('founder');
       await UserPreferencesStore.setUserRole('Founder & CEO');
+      await UserPreferencesStore.setIsLeader(true);
       await UserPreferencesStore.setCompanyCode(compCode);
       await UserPreferencesStore.setCompanyDetails(
         companyName: companyName,
