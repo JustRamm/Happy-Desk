@@ -18,6 +18,7 @@ import '../widgets/daily_stress_buster_card.dart';
 import '../widgets/teammate_profile_modal.dart';
 import '../services/user_preferences_store.dart';
 import '../services/sound_service.dart';
+import '../services/offline_sync_service.dart';
 import '../services/supabase_service.dart';
 import 'stress_vent_sounding_board_screen.dart';
 import 'founder_team_analytics_screen.dart';
@@ -253,8 +254,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Clocking IN: Request Location & Save GPS to Supabase
       SoundService.playClockInSound();
-      final session = await SupabaseService.instance.clockInWithLocation();
-      final locationName = session?['clock_in_location_name'] ?? 'Office HQ';
+      String locationName = 'Office HQ';
+      bool isOffline = false;
+      try {
+        final session = await SupabaseService.instance.clockInWithLocation();
+        locationName = session?['clock_in_location_name'] ?? 'Office HQ';
+      } catch (e) {
+        isOffline = true;
+        final pos = await SupabaseService.instance.getCurrentDeviceLocation();
+        await OfflineSyncService.instance.enqueueAction(
+          actionType: 'clock_in',
+          payload: {
+            'lat': pos?.latitude,
+            'lng': pos?.longitude,
+            'location_name': 'Office HQ',
+          },
+        );
+      }
 
       final now = DateTime.now();
       final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
@@ -281,25 +297,42 @@ class _HomeScreenState extends State<HomeScreen> {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.my_location_rounded, color: Colors.white, size: 20),
+              Icon(isOffline ? Icons.cloud_off_rounded : Icons.my_location_rounded, color: Colors.white, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Clocked IN with live GPS location: $locationName',
+                  isOffline
+                      ? 'Offline Mode — Clock-In cached. Will sync when back online!'
+                      : 'Clocked IN with live GPS location: $locationName',
                   style: GoogleFonts.beVietnamPro(fontSize: 13.5),
                 ),
               ),
             ],
           ),
-          backgroundColor: const Color(0xFF047857),
+          backgroundColor: isOffline ? AppTheme.primaryRust : const Color(0xFF047857),
           behavior: SnackBarBehavior.floating,
         ),
       );
     } else {
       // Clocking OUT
       SoundService.playClockOutSound();
-      final outSession = await SupabaseService.instance.clockOutWorkSession();
-      final outLocation = outSession?['clock_out_location_name'] ?? 'Work Location';
+      String outLocation = 'Work Location';
+      bool isOffline = false;
+      try {
+        final outSession = await SupabaseService.instance.clockOutWorkSession();
+        outLocation = outSession?['clock_out_location_name'] ?? 'Work Location';
+      } catch (e) {
+        isOffline = true;
+        final pos = await SupabaseService.instance.getCurrentDeviceLocation();
+        await OfflineSyncService.instance.enqueueAction(
+          actionType: 'clock_out',
+          payload: {
+            'lat': pos?.latitude,
+            'lng': pos?.longitude,
+            'location_name': 'Work Complete',
+          },
+        );
+      }
 
       setState(() {
         _isClockedIn = false;
@@ -316,11 +349,13 @@ class _HomeScreenState extends State<HomeScreen> {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.location_on_rounded, color: Colors.white, size: 20),
+              Icon(isOffline ? Icons.cloud_off_rounded : Icons.location_on_rounded, color: Colors.white, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Clocked OUT at: $outLocation',
+                  isOffline
+                      ? 'Offline Mode — Clock-Out cached. Will sync when back online!'
+                      : 'Clocked OUT at: $outLocation',
                   style: GoogleFonts.beVietnamPro(fontSize: 13.5),
                 ),
               ),

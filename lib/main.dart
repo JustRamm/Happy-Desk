@@ -8,6 +8,7 @@ import 'services/mochi_prompt_service.dart';
 import 'services/supabase_service.dart';
 import 'services/user_preferences_store.dart';
 import 'services/session_manager_service.dart';
+import 'services/offline_sync_service.dart';
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'screens/error/global_crash_screen.dart';
@@ -35,6 +36,9 @@ void main() async {
 
   // Initialize Background-to-Foreground Resume Session Manager
   SessionManagerService.instance.initialize();
+  
+  // Initialize Background Offline Caching & Sync Queue
+  OfflineSyncService.instance.initialize();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

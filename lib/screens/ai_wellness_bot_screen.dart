@@ -14,6 +14,7 @@ import '../services/mochi_memory_service.dart';
 import '../services/coffee_notification_store.dart';
 import '../services/supabase_service.dart';
 import '../services/sound_service.dart';
+import '../services/offline_sync_service.dart';
 import '../widgets/box_breathing_modal.dart';
 import '../widgets/desk_stretches_modal.dart';
 
@@ -358,6 +359,22 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       if (parsed.moodLog != null) {
         await UserPreferencesStore.appendMochiMoodLog(parsed.moodLog!);
         await UserPreferencesStore.incrementMochiCheckIns();
+        try {
+          await SupabaseService.instance.saveMochiMoodLog(
+            score: parsed.moodLog!.score,
+            label: parsed.moodLog!.label,
+            tags: parsed.moodLog!.tags,
+          );
+        } catch (_) {
+          await OfflineSyncService.instance.enqueueAction(
+            actionType: 'log_mood',
+            payload: {
+              'score': parsed.moodLog!.score,
+              'label': parsed.moodLog!.label,
+              'tags': parsed.moodLog!.tags,
+            },
+          );
+        }
       }
 
       final textToDisplay = parsed.visibleText.isNotEmpty ? parsed.visibleText : reply;

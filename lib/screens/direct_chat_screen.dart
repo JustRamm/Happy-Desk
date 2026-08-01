@@ -8,6 +8,8 @@ import '../services/supabase_service.dart';
 import '../services/sound_service.dart';
 import 'audio_video_call_screen.dart';
 import 'chat_settings_screen.dart';
+import '../services/offline_sync_service.dart';
+import '../theme/app_theme.dart';
 
 class DirectChatScreen extends StatefulWidget {
   final Map<String, dynamic> teammate;
@@ -247,7 +249,28 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           _messages.last['status'] = 'delivered';
         });
       }
-    } catch (_) {}
+    } catch (_) {
+      await OfflineSyncService.instance.enqueueAction(
+        actionType: 'send_message',
+        payload: {
+          'receiver_name': name,
+          'message': text,
+          'media_url': mediaUrl,
+        },
+      );
+      if (mounted) {
+        setState(() {
+          _messages.last['status'] = 'sent';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Offline Mode — Message queued. Will sync when back online!'),
+            backgroundColor: AppTheme.primaryRust,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   @override
