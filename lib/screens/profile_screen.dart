@@ -389,10 +389,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: Text(
                         UserPreferencesStore.getIsFounder()
-                            ? (company.isNotEmpty ? company : 'Happy Desk HQ')
+                            ? (company.isNotEmpty ? company : 'Workspace')
                             : (UserPreferencesStore.getIsLeader()
-                                ? 'Team Leader at ${company.isNotEmpty ? company : 'Happy Desk HQ'}'
-                                : 'Member of ${company.isNotEmpty ? company : 'Happy Desk HQ'}'),
+                                ? 'Team Leader at ${company.isNotEmpty ? company : 'Workspace'}'
+                                : 'Member of ${company.isNotEmpty ? company : 'Workspace'}'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,

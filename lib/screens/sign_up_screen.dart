@@ -371,7 +371,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       role: jobTitle,
       team: _selectedRole == 'founder' ? 'Executive Leadership' : _selectedDepartment,
       bio: bioText,
-      company: companyName.isNotEmpty ? companyName : 'Happy Desk HQ',
+      company: companyName.isNotEmpty ? companyName : 'Workspace',
     );
 
     if (_selectedRole == 'founder') {
