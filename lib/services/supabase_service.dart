@@ -1232,6 +1232,37 @@ class SupabaseService {
     return channel;
   }
 
+  RealtimeChannel? subscribeToDirectMessages({
+    required String partnerName,
+    required Function(Map<String, dynamic> msgData) onNewMessage,
+  }) {
+    final user = currentUser;
+    if (user == null) return null;
+
+    final myName = UserPreferencesStore.getUserName();
+
+    final channel = client
+        .channel('public:direct_messages:$partnerName')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'direct_messages',
+          callback: (payload) {
+            final newRecord = payload.newRecord;
+            final sender = newRecord['sender_name'] as String?;
+            final receiver = newRecord['receiver_name'] as String?;
+
+            if ((sender == myName && receiver == partnerName) ||
+                (sender == partnerName && receiver == myName)) {
+              onNewMessage(newRecord);
+            }
+          },
+        )
+        .subscribe();
+
+    return channel;
+  }
+
   // Sign out
   Future<void> signOut() async {
     await client.auth.signOut();

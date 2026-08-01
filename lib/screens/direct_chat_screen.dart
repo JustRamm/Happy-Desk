@@ -10,6 +10,7 @@ import 'audio_video_call_screen.dart';
 import 'chat_settings_screen.dart';
 import '../services/offline_sync_service.dart';
 import '../theme/app_theme.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DirectChatScreen extends StatefulWidget {
   final Map<String, dynamic> teammate;
@@ -29,12 +30,60 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   bool _isPlayingVoice = false;
   bool _isTeammateTyping = false;
 
+  RealtimeChannel? _chatChannel;
+
   @override
   void initState() {
     super.initState();
     SoundService.playMessageOpenSound();
     _loadSupabaseMessages();
     _startTypingSimulation();
+    _subscribeToMessages();
+  }
+
+  void _subscribeToMessages() {
+    final partnerName = widget.teammate['name'] ?? 'Teammate';
+    _chatChannel = SupabaseService.instance.subscribeToDirectMessages(
+      partnerName: partnerName,
+      onNewMessage: (msgData) {
+        if (!mounted) return;
+        final sender = msgData['sender_name'] as String?;
+        final text = msgData['message'] ?? '';
+        final isUser = sender != partnerName;
+
+        // Avoid adding duplicate messages if we already showed it locally when sending
+        final isDuplicate = _messages.any((m) =>
+            m['text'] == text &&
+            m['isUser'] == isUser &&
+            (m['time'] == 'Now' || m['time'] == (msgData['created_at'] != null ? msgData['created_at'].toString().split('T').last.substring(0, 5) : '')));
+
+        if (!isDuplicate) {
+          setState(() {
+            _messages.add({
+              'text': text,
+              'isUser': isUser,
+              'time': msgData['created_at'] != null
+                  ? msgData['created_at'].toString().split('T').last.substring(0, 5)
+                  : 'Now',
+              'status': msgData['is_read'] == true ? 'read' : 'delivered',
+              if (msgData['media_url'] != null) 'attachmentType': 'image',
+              if (msgData['media_url'] != null) 'attachmentUrl': msgData['media_url'],
+            });
+          });
+        } else {
+          // Update status of our local message to delivered/read
+          setState(() {
+            final idx = _messages.indexWhere((m) =>
+                m['text'] == text &&
+                m['isUser'] == isUser &&
+                m['status'] == 'sent');
+            if (idx != -1) {
+              _messages[idx]['status'] = msgData['is_read'] == true ? 'read' : 'delivered';
+            }
+          });
+        }
+      },
+    );
   }
 
   void _startTypingSimulation() {
@@ -85,6 +134,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
   @override
   void dispose() {
+    if (_chatChannel != null) {
+      SupabaseService.instance.client.removeChannel(_chatChannel!);
+    }
     _messageController.dispose();
     super.dispose();
   }
