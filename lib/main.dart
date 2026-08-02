@@ -31,8 +31,10 @@ void main() async {
     debugPrint('Camera initialization info: $e');
   }
 
-  await UserPreferencesStore.loadProfileData();
+  // Init Supabase first so currentUser is available for login-state validation
   await SupabaseService.instance.init();
+  // Load & validate stored user preferences (self-heals corrupt is_logged_in state)
+  await UserPreferencesStore.init();
   await MochiPromptService.instance.ensureLoaded();
 
   // Initialize Background-to-Foreground Resume Session Manager

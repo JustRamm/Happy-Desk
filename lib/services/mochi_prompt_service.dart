@@ -136,6 +136,10 @@ class MochiPromptService {
     List<String>? detectedDistortions,
     String? nglJarSummary,
     String? weeklyHeroSummary,
+    // Voice Emotion AI context
+    String? voiceEmotionAnnotation,
+    String? detectedLanguage,
+    bool isWhisperMode = false,
   }) {
     if (_basePrompt == null) {
       throw StateError('Call ensureLoaded() before building the prompt.');
@@ -196,6 +200,17 @@ class MochiPromptService {
 
     if (weeklyHeroSummary != null && weeklyHeroSummary.trim().isNotEmpty) {
       buffer.writeln('User Weekly Hero Nominations Received: $weeklyHeroSummary');
+    }
+
+    // Voice Emotion AI context
+    if (voiceEmotionAnnotation != null && voiceEmotionAnnotation.trim().isNotEmpty) {
+      buffer.writeln(voiceEmotionAnnotation);
+    }
+    if (detectedLanguage != null && detectedLanguage.trim().isNotEmpty) {
+      buffer.writeln('[LANGUAGE_DETECTED: $detectedLanguage]');
+    }
+    if (isWhisperMode) {
+      buffer.writeln('[WHISPER_MODE: true — user is in a shared/open-plan office. Keep response brief and private-feeling.]');
     }
 
     return buffer.toString();

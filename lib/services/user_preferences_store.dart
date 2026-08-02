@@ -71,12 +71,23 @@ class UserPreferencesStore {
     _teamCodeCache = prefs.getString(_keyTeamCode) ?? '';
     _isLeaderCache = prefs.getBool(_keyIsLeader) ?? false;
     _avatarUrlCache = prefs.getString(_keyUserAvatarUrl);
+    _strengthsCache = prefs.getString(_keyUserStrengths) ?? '';
+    _focusAreaCache = prefs.getString(_keyUserFocusArea) ?? '';
+    _currentChallengesCache = prefs.getString(_keyUserCurrentChallenges) ?? '';
+    _communicationPreferenceCache = prefs.getString(_keyUserCommunicationPreference) ?? '';
     _isLoggedInCache = prefs.getBool(_keyIsLoggedIn) ?? false;
     _hasCompletedOnboardingCache = prefs.getBool(_keyHasCompletedOnboarding) ?? false;
 
     if (SupabaseService.instance.currentUser != null) {
       _isLoggedInCache = true;
       _hasCompletedOnboardingCache = true;
+    } else if (_isLoggedInCache) {
+      // Self-heal: persisted flag says logged in but Supabase has no valid session.
+      // This happens when a previous sign-up failed silently and left a corrupt
+      // is_logged_in=true in SharedPreferences, causing the app to boot into
+      // MainNavigationScreen with no real auth — the black/frozen screen bug.
+      _isLoggedInCache = false;
+      await prefs.setBool(_keyIsLoggedIn, false);
     }
   }
 

@@ -6,8 +6,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_logo_widget.dart';
+import 'package:flutter/gestures.dart';
 import '../services/supabase_service.dart';
 import '../services/user_preferences_store.dart';
+import '../widgets/medical_disclaimer_modal.dart';
 
 class SignUpScreen extends StatefulWidget {
   final VoidCallback onLoginTap;
@@ -32,6 +34,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String _selectedAvatar = '';
   String _selectedDepartment = 'Design';
   bool _isLoading = false;
+  bool _termsAccepted = false;       // T&C checkbox on final step
+  bool _medicalDisclaimerAccepted = false; // Mochi medical disclaimer checkbox
   final ImagePicker _imagePicker = ImagePicker();
 
   final List<String> _departments = [
@@ -477,10 +481,34 @@ class _SignUpScreenState extends State<SignUpScreen> {
       await UserPreferencesStore.setIsLoggedIn(true);
     } catch (e) {
       debugPrint('Supabase registration note: $e');
-      await UserPreferencesStore.setIsLoggedIn(true);
+      // Only mark as logged in if Supabase actually created a valid session.
+      // Do NOT set isLoggedIn=true on a failed signup — this would cause the
+      // app to boot directly into MainNavigationScreen next launch with no
+      // real auth session, resulting in a frozen/black screen.
+      if (SupabaseService.instance.currentUser != null) {
+        await UserPreferencesStore.setIsLoggedIn(true);
+      } else {
+        // Show error to user instead of silently navigating away
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Sign up failed: ${e.toString().replaceAll('Exception: ', '')}',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: const Color(0xFFDC2626),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+          setState(() => _isLoading = false);
+        }
+        return;
+      }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
-      widget.onSignUpSuccess();
+      if (mounted) {
+        setState(() => _isLoading = false);
+        widget.onSignUpSuccess();
+      }
     }
   }
 
@@ -1889,37 +1917,273 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
           const SizedBox(height: 20),
 
-          // Create Account Button (Final Submit)
+          // ---- T&C + Medical Disclaimer Checkboxes ----
+          _buildConsentCheckbox(
+            value: _termsAccepted,
+            onToggle: () => setState(() => _termsAccepted = !_termsAccepted),
+            label: 'I have read and agree to the ',
+            linkText: 'Terms & Conditions',
+            onLinkTap: () => _showTermsDialog(),
+          ),
+          const SizedBox(height: 10),
+          _buildConsentCheckbox(
+            value: _medicalDisclaimerAccepted,
+            onToggle: () => setState(() => _medicalDisclaimerAccepted = !_medicalDisclaimerAccepted),
+            label: 'I acknowledge the ',
+            linkText: 'Mochi Medical Disclaimer',
+            onLinkTap: () {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (ctx) => MedicalDisclaimerModal(
+                  onAccepted: () {
+                    setState(() => _medicalDisclaimerAccepted = true);
+                    Navigator.pop(ctx);
+                  },
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 20),
+
+          // Create Account Button — active ONLY after both checkboxes are ticked
           SizedBox(
             width: double.infinity,
             height: 50,
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _performSupabaseRegistration,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryRust,
-                foregroundColor: Colors.white,
-                elevation: 3,
-                shadowColor: AppTheme.primaryRust.withValues(alpha: 0.35),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(26),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 250),
+              opacity: (_termsAccepted && _medicalDisclaimerAccepted) ? 1.0 : 0.45,
+              child: ElevatedButton(
+                onPressed: (_isLoading || !_termsAccepted || !_medicalDisclaimerAccepted)
+                    ? null
+                    : _performSupabaseRegistration,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryRust,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: AppTheme.primaryRust,
+                  disabledForegroundColor: Colors.white,
+                  elevation: 3,
+                  shadowColor: AppTheme.primaryRust.withValues(alpha: 0.35),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(26),
+                  ),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        isFounder ? 'Launch Company' : 'Complete Setup & Join Team',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Checkbox row with a tappable link portion in the label
+  Widget _buildConsentCheckbox({
+    required bool value,
+    required VoidCallback onToggle,
+    required String label,
+    required String linkText,
+    required VoidCallback onLinkTap,
+  }) {
+    return GestureDetector(
+      onTap: onToggle,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Custom animated checkbox
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 22,
+            height: 22,
+            margin: const EdgeInsets.only(top: 1),
+            decoration: BoxDecoration(
+              color: value ? AppTheme.primaryRust : Colors.white,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: value ? AppTheme.primaryRust : const Color(0xFFBFC3D9),
+                width: 2,
+              ),
+            ),
+            child: value
+                ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.5,
+                  color: AppTheme.textSecondary,
+                  height: 1.4,
+                ),
+                children: [
+                  TextSpan(text: label),
+                  TextSpan(
+                    text: linkText,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.primaryRust,
+                      decoration: TextDecoration.underline,
+                    ),
+                    recognizer: TapGestureRecognizer()..onTap = onLinkTap,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Terms & Conditions bottom sheet
+  void _showTermsDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.82,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        builder: (_, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0E0E0),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Colors.white,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryRust.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
                       ),
-                    )
-                  : Text(
-                      isFounder ? 'Launch Company' : 'Complete Setup & Join Team',
+                      child: Icon(Icons.gavel_rounded, color: AppTheme.primaryRust, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    Text(
+                      'Terms & Conditions',
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.w800,
+                        color: const Color(0xFF171B2B),
                       ),
                     ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                  children: [
+                    _termsSection('1. Acceptance of Terms',
+                      'By creating an account on U & ME, you agree to be bound by these Terms and Conditions. If you do not agree, please do not use this application.'),
+                    _termsSection('2. Use of the Application',
+                      'U & ME is a workplace wellness and productivity platform. You agree to use it only for lawful, professional purposes and in accordance with your organisation\'s policies.'),
+                    _termsSection('3. Mochi AI Wellness Bot',
+                      'Mochi is an AI-powered emotional wellness companion. Mochi is NOT a licensed mental health professional, therapist, or medical provider. Responses from Mochi are for general emotional support only and do not constitute medical advice, diagnosis, or treatment.'),
+                    _termsSection('4. Privacy & Data',
+                      'We collect personal information you provide during signup (name, email, role, department). Your data is stored securely and used to personalise your experience. We do not sell your data to third parties. Voice recordings processed for Mochi voice features are not stored permanently — audio is processed locally and immediately discarded.'),
+                    _termsSection('5. User Responsibilities',
+                      'You are responsible for maintaining the confidentiality of your account. You must not share your login credentials. You must not use U & ME to harass, harm, or discriminate against others.'),
+                    _termsSection('6. Intellectual Property',
+                      'All content, design, and functionality of U & ME is the intellectual property of the development team. You may not reproduce, distribute, or create derivative works without express written permission.'),
+                    _termsSection('7. Limitation of Liability',
+                      'U & ME is provided "as is" without warranties of any kind. We are not liable for any indirect, incidental, or consequential damages arising from your use of the application.'),
+                    _termsSection('8. Changes to Terms',
+                      'We may update these Terms from time to time. Continued use of U & ME after changes constitutes acceptance of the revised Terms.'),
+                    _termsSection('9. Contact',
+                      'For questions about these Terms, please contact the U & ME support team through the app\'s feedback channel.'),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() => _termsAccepted = true);
+                          Navigator.pop(ctx);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryRust,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                        ),
+                        child: Text(
+                          'I Agree & Continue',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _termsSection(String title, String body) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF171B2B),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            body,
+            style: GoogleFonts.beVietnamPro(
+              fontSize: 13,
+              color: const Color(0xFF524036),
+              height: 1.55,
             ),
           ),
         ],

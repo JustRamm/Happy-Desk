@@ -15,6 +15,7 @@ import '../services/supabase_service.dart';
 import '../services/sound_service.dart';
 import '../services/offline_sync_service.dart';
 import '../services/mochi_chat_storage_service.dart';
+import '../services/voice_emotion_service.dart';
 import 'mochi_chat_history_screen.dart';
 import 'mochi_new_chat_screen.dart';
 import '../widgets/medical_disclaimer_modal.dart';
@@ -43,6 +44,17 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
   String _coffeeHistorySummary = '';
   String _cbtTrendSummary = '';
   MochiSessionModel? _currentSession;
+
+  // ---- Voice Emotion AI state ----
+  bool _isRecording = false;
+  bool _isWhisperMode = false;
+  bool _isVoiceProcessing = false;
+  String? _vocalEmotionTag;       // e.g. "Tense", "Calm", "High Stress"
+  String? _lastVoiceAnnotation;
+  String? _lastDetectedLanguage;
+  double _liveAmplitude = 0.0;    // 0.0–1.0 drives waveform ring
+  Timer? _emotionBadgeTimer;
+  StreamSubscription<double>? _amplitudeSub;
 
   // Read API Key securely from .env file with fallback
   static String get _geminiApiKey =>
@@ -99,6 +111,9 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
   @override
   void dispose() {
     summarizeSessionIfNeeded();
+    _amplitudeSub?.cancel();
+    _emotionBadgeTimer?.cancel();
+    VoiceEmotionService.instance.cancelRecording();
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -145,39 +160,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     } else {
       _currentSession = await MochiChatStorageService.instance.createNewSession();
     }
-
-    final name = UserPreferencesStore.getUserName();
-    final firstName = name.isNotEmpty ? name.split(' ').first : '';
-    final fn = firstName.isNotEmpty ? ' $firstName' : '';
-
-    final complementaryPairs = [
-      ("Hey$fn, I'm Mochi!", "How's your day treating you so far?"),
-      ("Hi$fn! Mochi here.", "wassup"),
-      ("Aah... hey$fn!", "Taking a quick break or feeling a bit overwhelmed?"),
-      ("Hey$fn, glad you stopped by!", "How are things at work today?"),
-      ("Hi$fn!", "What's on your mind right now?"),
-      ("Hey$fn, Mochi here!", "Feeling bored or just checking in?"),
-    ];
-
-    final random = math.Random();
-    final pair = complementaryPairs[random.nextInt(complementaryPairs.length)];
-
-    // Default Initial Mochi Welcome Messages (2 separate complementary messages)
-    setState(() {
-      _messages.addAll([
-        _ChatMessage(
-          text: pair.$1,
-          isUser: false,
-          time: _formatCurrentTime(),
-        ),
-        _ChatMessage(
-          text: pair.$2,
-          isUser: false,
-          time: _formatCurrentTime(),
-        ),
-      ]);
-    });
-    _saveMessages();
+    // Leave _messages empty — the landing screen will be shown instead
   }
 
   Future<void> _saveMessages() async {
@@ -350,6 +333,13 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       }
     }
 
+    // Detect language for voice/text context
+    final detectedLang = VoiceEmotionService.detectLanguage(text);
+    final bool isManglishOrMalayalam = detectedLang == 'manglish' || detectedLang == 'malayalam';
+    if (isManglishOrMalayalam) {
+      setState(() => _lastDetectedLanguage = detectedLang);
+    }
+
     // Call Real Live Gemini API
     try {
       final String reply;
@@ -361,6 +351,9 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
           detectedDistortions: detectedDistortions,
           nglJarSummary: nglJarSummary,
           weeklyHeroSummary: weeklyHeroSummary,
+          voiceEmotionAnnotation: _lastVoiceAnnotation,
+          detectedLanguage: _lastDetectedLanguage ?? detectedLang,
+          isWhisperMode: _isWhisperMode,
         );
       }
       final parsed = _promptService.parseModelReply(reply);
@@ -751,6 +744,9 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     List<String>? detectedDistortions,
     String? nglJarSummary,
     String? weeklyHeroSummary,
+    String? voiceEmotionAnnotation,
+    String? detectedLanguage,
+    bool isWhisperMode = false,
   }) async {
     await _promptService.ensureLoaded();
     final config = _promptService.config;
@@ -777,6 +773,9 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       detectedDistortions: detectedDistortions,
       nglJarSummary: nglJarSummary,
       weeklyHeroSummary: weeklyHeroSummary,
+      voiceEmotionAnnotation: voiceEmotionAnnotation,
+      detectedLanguage: detectedLanguage,
+      isWhisperMode: isWhisperMode,
     );
 
     // Build multi-turn chat history ensuring user/model alternation AND user start
@@ -914,7 +913,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top Header — Mochi avatar, name, and online tag
+            // Top Header — Mochi avatar with waveform ring, name, status tag
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 20.0,
@@ -922,18 +921,10 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
               ),
               child: Row(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    padding: const EdgeInsets.all(2),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFFF0EB),
-                      shape: BoxShape.circle,
-                    ),
-                    child: SvgPicture.asset(
-                      'assets/brand/mochi_bot.svg',
-                      fit: BoxFit.contain,
-                    ),
+                  // Mochi avatar + live waveform ring
+                  _MochiAvatarWithRing(
+                    amplitude: _liveAmplitude,
+                    isRecording: _isRecording,
                   ),
                   const SizedBox(width: 10),
                   Text(
@@ -1025,117 +1016,262 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
 
 
 
-            // Main Conversational Chat ListView
+            // Main content: empty landing state OR chat history
             Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.only(
-                  left: 20,
-                  right: 20,
-                  top: 8,
-                  bottom: 16,
-                ),
-                itemCount: _messages.length + (_isTyping ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index < _messages.length) {
-                    final msg = _messages[index];
-                    // Render Mochi avatar ONLY on the last (latest) message of a bot group
-                    final bool isNextAlsoBot =
-                        (index + 1 < _messages.length) && !_messages[index + 1].isUser;
-                    final bool showAvatar = !msg.isUser && !isNextAlsoBot;
-
-                    final bubble = _buildMessageBubble(msg, showAvatar: showAvatar);
-                    if (msg.isNew) {
-                      return _AnimatedMessageBubble(
-                        message: msg,
-                        child: bubble,
-                      );
-                    }
-                    return bubble;
-                  } else {
-                    return _buildTypingIndicator();
-                  }
-                },
-              ),
+              child: _messages.isEmpty && !_isTyping
+                  ? _buildMochiLandingScreen()
+                  : ListView.builder(
+                      controller: _scrollController,
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.only(
+                        left: 20,
+                        right: 20,
+                        top: 8,
+                        bottom: 16,
+                      ),
+                      itemCount: _messages.length + (_isTyping ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index < _messages.length) {
+                          final msg = _messages[index];
+                          final bool isNextAlsoBot =
+                              (index + 1 < _messages.length) && !_messages[index + 1].isUser;
+                          final bool showAvatar = !msg.isUser && !isNextAlsoBot;
+                          final bubble = _buildMessageBubble(msg, showAvatar: showAvatar);
+                          if (msg.isNew) {
+                            return _AnimatedMessageBubble(
+                              message: msg,
+                              child: bubble,
+                            );
+                          }
+                          return bubble;
+                        } else {
+                          return _buildTypingIndicator();
+                        }
+                      },
+                    ),
             ),
 
 
-            // Clean Floating Conversational Input Field (Multiline, line wrap & max height)
+            // Vocal Emotion Tag badge (shown briefly after recording)
+            if (_vocalEmotionTag != null)
+              _VocalEmotionBadge(tag: _vocalEmotionTag!),
+
+            // Input bar with mic, language toggle, whisper mode, send button
+            _MochiInputBar(
+              controller: _textController,
+              isRecording: _isRecording,
+              isVoiceProcessing: _isVoiceProcessing,
+              isWhisperMode: _isWhisperMode,
+              onSend: _handleSendMessage,
+              onMicTap: _handleMicTap,
+              onWhisperToggle: () {
+                setState(() => _isWhisperMode = !_isWhisperMode);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Voice recording flow
+  // -------------------------------------------------------------------------
+  Future<void> _handleMicTap() async {
+    if (_isRecording) {
+      // Stop and send
+      setState(() {
+        _isRecording = false;
+        _isVoiceProcessing = true;
+        _liveAmplitude = 0.0;
+      });
+      _amplitudeSub?.cancel();
+
+      final result = await VoiceEmotionService.instance.stopAndAnalyze();
+
+      setState(() {
+        _isVoiceProcessing = false;
+        _lastVoiceAnnotation = result.toContextAnnotation();
+        _lastDetectedLanguage = result.detectedLanguage;
+        _vocalEmotionTag = result.emotionTag;
+      });
+
+      // Auto-dismiss emotion badge after 4 seconds
+      _emotionBadgeTimer?.cancel();
+      _emotionBadgeTimer = Timer(const Duration(seconds: 4), () {
+        if (mounted) setState(() => _vocalEmotionTag = null);
+      });
+
+      if (result.transcript.trim().isNotEmpty) {
+        _handleSendMessage(result.transcript.trim());
+      }
+    } else {
+      // Start recording
+      _amplitudeSub?.cancel();
+      _amplitudeSub = VoiceEmotionService.instance.amplitudeStream.listen((amp) {
+        if (mounted) setState(() => _liveAmplitude = amp);
+      });
+
+      final started = await VoiceEmotionService.instance.startRecording(
+        whisperMode: _isWhisperMode,
+        localeId: 'en_IN', // en_IN handles English, Manglish, and mixed Malayalam/English
+        onVadAutoStop: () {
+          if (mounted) _handleMicTap(); // VAD triggers stop
+        },
+      );
+
+      if (started && mounted) {
+        setState(() => _isRecording = true);
+      }
+    }
+  }
+
+  /// Mochi landing screen (shown when no messages yet — Gemini/ChatGPT style)
+  Widget _buildMochiLandingScreen() {
+    final name = UserPreferencesStore.getUserName();
+    final firstName = name.isNotEmpty ? name.split(' ').first : '';
+
+    final greetings = [
+      "What's on your mind, $firstName?",
+      "How's your day going, $firstName?",
+      "Hey $firstName — I'm all ears.",
+      "Tell me what's up, $firstName.",
+    ];
+    final greeting = greetings[math.Random().nextInt(greetings.length)];
+
+    final suggestions = [
+      ('😤', "I'm feeling stressed at work"),
+      ('😶', "I just need to vent"),
+      ('💼', "Team drama is getting to me"),
+      ('☕', "Need a quick reset"),
+    ];
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Mochi avatar — large, glowing
             Container(
-              margin: const EdgeInsets.fromLTRB(16, 4, 16, 6),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              width: 88,
+              height: 88,
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xFFE4E7FE), width: 1.5),
+                shape: BoxShape.circle,
+                color: const Color(0xFFFFF0EB),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF95416C).withValues(alpha: 0.08),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
+                    color: const Color(0xFFAB3500).withValues(alpha: 0.14),
+                    blurRadius: 28,
+                    spreadRadius: 4,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      minLines: 1,
-                      maxLines: 4,
-                      keyboardType: TextInputType.multiline,
-                      onTap: () {
-                        SystemChannels.textInput.invokeMethod('TextInput.show');
-                      },
-                      scrollPhysics: const BouncingScrollPhysics(),
-                      style: GoogleFonts.beVietnamPro(
-                        fontSize: 14,
-                        color: const Color(0xFF171B2B),
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Talk to Mochi about your stress...',
-                        hintStyle: GoogleFonts.beVietnamPro(
-                          fontSize: 13.5,
-                          color: const Color(0xFF8D7168),
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 10,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: GestureDetector(
-                      onTap: () => _handleSendMessage(),
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF95416C),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color(0x3395416C),
-                              blurRadius: 8,
-                              offset: Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.send_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+              padding: const EdgeInsets.all(18),
+              child: SvgPicture.asset(
+                'assets/brand/mochi_bot.svg',
+                fit: BoxFit.contain,
               ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Personalized greeting
+            Text(
+              firstName.isNotEmpty ? greeting : "What's on your mind?",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF171B2B),
+                height: 1.25,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Subtitle
+            Text(
+              'I\'m here whenever you\'re ready to talk.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.beVietnamPro(
+                fontSize: 14,
+                color: const Color(0xFF8D7168),
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+
+            const SizedBox(height: 36),
+
+            // Suggestion chips
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: suggestions.map((s) {
+                final emoji = s.$1;
+                final text = s.$2;
+                return GestureDetector(
+                  onTap: () => _handleSendMessage(text),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: const Color(0xFFE4E0FA),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF95416C).withValues(alpha: 0.06),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(emoji, style: const TextStyle(fontSize: 16)),
+                        const SizedBox(width: 8),
+                        Text(
+                          text,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF3D1F55),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+
+            const SizedBox(height: 40),
+
+            // Discrete privacy note
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.lock_outline_rounded,
+                  size: 12,
+                  color: const Color(0xFF8D7168).withValues(alpha: 0.6),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Conversations are private to you',
+                  style: GoogleFonts.beVietnamPro(
+                    fontSize: 11,
+                    color: const Color(0xFF8D7168).withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -1320,6 +1456,452 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     return const _MochiListeningIndicator();
   }
 }
+
+// ---------------------------------------------------------------------------
+// Mochi Avatar with Live Waveform Ring
+// ---------------------------------------------------------------------------
+class _MochiAvatarWithRing extends StatefulWidget {
+  final double amplitude;
+  final bool isRecording;
+  const _MochiAvatarWithRing({required this.amplitude, required this.isRecording});
+
+  @override
+  State<_MochiAvatarWithRing> createState() => _MochiAvatarWithRingState();
+}
+
+class _MochiAvatarWithRingState extends State<_MochiAvatarWithRing>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _pulseAnimation,
+      builder: (context, child) {
+        final ringSize = widget.isRecording
+            ? 44.0 + (widget.amplitude * 10.0 * _pulseAnimation.value)
+            : 44.0;
+        return SizedBox(
+          width: ringSize,
+          height: ringSize,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              if (widget.isRecording)
+                CustomPaint(
+                  size: Size(ringSize, ringSize),
+                  painter: _WaveformRingPainter(
+                    amplitude: widget.amplitude,
+                    pulseValue: _pulseAnimation.value,
+                  ),
+                ),
+              Container(
+                width: 40,
+                height: 40,
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: widget.isRecording
+                      ? const Color(0xFFFFE8E0)
+                      : const Color(0xFFFFF0EB),
+                  shape: BoxShape.circle,
+                  border: widget.isRecording
+                      ? Border.all(
+                          color: const Color(0xFF95416C).withValues(alpha: 0.4),
+                          width: 1.5,
+                        )
+                      : null,
+                ),
+                child: SvgPicture.asset(
+                  'assets/brand/mochi_bot.svg',
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _WaveformRingPainter extends CustomPainter {
+  final double amplitude;
+  final double pulseValue;
+
+  _WaveformRingPainter({required this.amplitude, required this.pulseValue});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final baseRadius = size.width / 2 - 2;
+
+    final paint = Paint()
+      ..color = const Color(0xFF95416C).withValues(alpha: 0.18 + amplitude * 0.25)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0 + amplitude * 3.0
+      ..isAntiAlias = true;
+
+    const sampleCount = 48;
+    final path = Path();
+    bool first = true;
+
+    for (int i = 0; i <= sampleCount; i++) {
+      final angle = (i / sampleCount) * 2 * math.pi;
+      final wave = math.sin(angle * 6 + pulseValue * math.pi * 2) * amplitude * 5.0;
+      final r = baseRadius + wave;
+      final x = center.dx + r * math.cos(angle);
+      final y = center.dy + r * math.sin(angle);
+      if (first) {
+        path.moveTo(x, y);
+        first = false;
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+    canvas.drawPath(path, paint);
+
+    if (amplitude > 0.1) {
+      final glowPaint = Paint()
+        ..color = const Color(0xFF95416C).withValues(alpha: amplitude * 0.12)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6.0 + amplitude * 8.0
+        ..isAntiAlias = true;
+      canvas.drawCircle(center, baseRadius + 2, glowPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _WaveformRingPainter old) =>
+      old.amplitude != amplitude || old.pulseValue != pulseValue;
+}
+
+// ---------------------------------------------------------------------------
+// Vocal Emotion Tag Badge
+// ---------------------------------------------------------------------------
+class _VocalEmotionBadge extends StatefulWidget {
+  final String tag;
+  const _VocalEmotionBadge({required this.tag});
+
+  @override
+  State<_VocalEmotionBadge> createState() => _VocalEmotionBadgeState();
+}
+
+class _VocalEmotionBadgeState extends State<_VocalEmotionBadge>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    )..forward();
+    _opacity = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacity,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF0EB),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFFFD6C7), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF95416C).withValues(alpha: 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.graphic_eq_rounded,
+              size: 13,
+              color: Color(0xFFAB3500),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Tone: ${widget.tag}',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFFAB3500),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Mochi Input Bar with voice controls
+// ---------------------------------------------------------------------------
+class _MochiInputBar extends StatelessWidget {
+  final TextEditingController controller;
+  final bool isRecording;
+  final bool isVoiceProcessing;
+  final bool isWhisperMode;
+  final VoidCallback onSend;
+  final VoidCallback onMicTap;
+  final VoidCallback onWhisperToggle;
+
+  const _MochiInputBar({
+    required this.controller,
+    required this.isRecording,
+    required this.isVoiceProcessing,
+    required this.isWhisperMode,
+    required this.onSend,
+    required this.onMicTap,
+    required this.onWhisperToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Voice control pill: Whisper Mode only
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+          child: Row(
+            children: [
+              // Whisper Mode pill
+              GestureDetector(
+                onTap: onWhisperToggle,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isWhisperMode
+                        ? const Color(0xFF95416C)
+                        : const Color(0xFFF3F2FF),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isWhisperMode
+                          ? const Color(0xFF95416C)
+                          : const Color(0xFFE4E7FE),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.hearing_rounded, size: 12,
+                        color: isWhisperMode ? Colors.white : const Color(0xFF95416C)),
+                      const SizedBox(width: 4),
+                      Text('Whisper',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11, fontWeight: FontWeight.w700,
+                          color: isWhisperMode ? Colors.white : const Color(0xFF95416C),
+                        )),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Auto-detect language indicator pill
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F2FF),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE4E7FE)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.auto_awesome_rounded, size: 11, color: Color(0xFF6B7AB5)),
+                    const SizedBox(width: 4),
+                    Text('Auto-detect',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11, fontWeight: FontWeight.w600,
+                        color: const Color(0xFF6B7AB5),
+                      )),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Main input container
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          decoration: BoxDecoration(
+            color: isRecording ? const Color(0xFFFFF0F8) : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isRecording
+                  ? const Color(0xFF95416C).withValues(alpha: 0.4)
+                  : const Color(0xFFE4E7FE),
+              width: isRecording ? 2.0 : 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF95416C).withValues(alpha: 0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: isRecording
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                        child: Text(
+                          isWhisperMode
+                              ? 'Whisper mode — listening softly...'
+                              : 'Listening — speak in any language...',
+                          style: GoogleFonts.beVietnamPro(
+                            fontSize: 13.5,
+                            color: const Color(0xFF95416C).withValues(alpha: 0.8),
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      )
+                    : TextField(
+                        controller: controller,
+                        minLines: 1,
+                        maxLines: 4,
+                        keyboardType: TextInputType.multiline,
+                        onTap: () {
+                          SystemChannels.textInput.invokeMethod('TextInput.show');
+                        },
+                        scrollPhysics: const BouncingScrollPhysics(),
+                        style: GoogleFonts.beVietnamPro(
+                          fontSize: 14,
+                          color: const Color(0xFF171B2B),
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Talk to Mochi about your stress...',
+                          hintStyle: GoogleFonts.beVietnamPro(
+                            fontSize: 13.5,
+                            color: const Color(0xFF8D7168),
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 10,
+                          ),
+                        ),
+                      ),
+              ),
+              const SizedBox(width: 6),
+              // Mic button
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: GestureDetector(
+                  onTap: isVoiceProcessing ? null : onMicTap,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isRecording
+                          ? const Color(0xFFDC2626)
+                          : isVoiceProcessing
+                              ? const Color(0xFF8D7168)
+                              : const Color(0xFFFFF0EB),
+                      shape: BoxShape.circle,
+                      boxShadow: isRecording
+                          ? [BoxShadow(
+                              color: const Color(0xFFDC2626).withValues(alpha: 0.35),
+                              blurRadius: 10, offset: const Offset(0, 3))]
+                          : [],
+                    ),
+                    child: isVoiceProcessing
+                        ? const SizedBox(
+                            width: 18, height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ))
+                        : Icon(
+                            isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                            color: isRecording ? Colors.white : const Color(0xFFAB3500),
+                            size: 18,
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              // Send button
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: GestureDetector(
+                  onTap: isRecording ? null : onSend,
+                  child: AnimatedOpacity(
+                    opacity: isRecording ? 0.3 : 1.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF95416C),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x3395416C),
+                            blurRadius: 8, offset: Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 
 class _MochiListeningIndicator extends StatefulWidget {
   const _MochiListeningIndicator();

@@ -5,7 +5,9 @@
 		<key>NSCameraUsageDescription</key>
 		<string>U and ME requires camera access for 1-on-1 video calls with teammates.</string>
 		<key>NSMicrophoneUsageDescription</key>
-		<string>U and ME requires microphone access for 1-on-1 audio calls and voice notes.</string>
+		<string>U and ME requires microphone access for 1-on-1 audio calls, voice notes, and Mochi voice input for stress support.</string>
+		<key>NSSpeechRecognitionUsageDescription</key>
+		<string>Mochi uses on-device speech recognition to transcribe your voice messages privately — supporting English and Malayalam.</string>
 		<key>CADisableMinimumFrameDurationOnPhone</key>
 		<true/>
 		<key>CFBundleDevelopmentRegion</key>
