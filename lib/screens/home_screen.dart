@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,7 +7,6 @@ import 'package:permission_handler/permission_handler.dart';
 import '../theme/app_theme.dart';
 import '../widgets/apply_leave_modal.dart';
 import '../widgets/founder_leave_approvals_modal.dart';
-import 'leave_history_screen.dart';
 import 'jar_screen.dart';
 import 'hero_screen.dart';
 import 'work_session_details_screen.dart';
@@ -184,6 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final teammates = await SupabaseService.instance.getCompanyTeammates();
       final myName = UserPreferencesStore.getUserName();
+      final myDept = UserPreferencesStore.getUserTeam();
 
       final mapped = teammates.map((t) {
         final isMe = t['name'] == myName;
@@ -195,6 +196,9 @@ class _HomeScreenState extends State<HomeScreen> {
           'isClockedIn': clocked,
           'timeText': clocked ? 'Active Now' : 'Offline',
           'isCurrentUser': isMe,
+          'roleType': t['role_type'] ?? 'employee',
+          'department': t['department'] ?? 'General',
+          'isLeader': t['is_leader'] == true,
         };
       }).toList();
 
@@ -207,12 +211,37 @@ class _HomeScreenState extends State<HomeScreen> {
           'isClockedIn': _isClockedIn,
           'timeText': _isClockedIn ? 'Active Now' : 'Offline',
           'isCurrentUser': true,
+          'roleType': UserPreferencesStore.getIsFounder() ? 'founder' : 'employee',
+          'department': myDept,
+          'isLeader': UserPreferencesStore.getIsLeader(),
         });
       }
 
+      int getPriority(Map<String, dynamic> m) {
+        if (m['isCurrentUser'] == true) return 0;
+        
+        final String roleType = m['roleType'] ?? '';
+        final String department = m['department'] ?? '';
+        final bool isLeader = m['isLeader'] == true;
+
+        if (department == myDept && roleType != 'founder') {
+          return 1;
+        }
+        if (roleType == 'founder') {
+          return 2;
+        }
+        if (isLeader && department != myDept) {
+          return 3;
+        }
+        return 4;
+      }
+
       mapped.sort((a, b) {
-        if (a['isCurrentUser'] == true) return 1;
-        if (b['isCurrentUser'] == true) return -1;
+        final pA = getPriority(a);
+        final pB = getPriority(b);
+        if (pA != pB) {
+          return pA.compareTo(pB);
+        }
         return (a['name'] as String).compareTo(b['name'] as String);
       });
 
@@ -1143,31 +1172,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
               ],
             ),
-                const SizedBox(height: 8),
-                Center(
-                  child: TextButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LeaveHistoryScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.history_rounded, size: 16, color: Color(0xFF4A1500)),
-                    label: Text(
-                      'View Leave Balance & History Log',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF4A1500),
-                        decoration: TextDecoration.underline,
-                        decorationColor: const Color(0xFF4A1500),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
+            const SizedBox(height: 10),
 
                 // Team Clocked-In Status Live Hub
                 Container(
@@ -2122,7 +2127,7 @@ class _HomeScreenState extends State<HomeScreen> {
 // ---------------------------------------------------------------------------
 // Modern Glassmorphic Clock Badge Widget & Painter
 // ---------------------------------------------------------------------------
-class _ModernClockBadge extends StatelessWidget {
+class _ModernClockBadge extends StatefulWidget {
   final bool isClockedIn;
   final bool isOnBreak;
 
@@ -2132,10 +2137,37 @@ class _ModernClockBadge extends StatelessWidget {
   });
 
   @override
+  State<_ModernClockBadge> createState() => _ModernClockBadgeState();
+}
+
+class _ModernClockBadgeState extends State<_ModernClockBadge> {
+  late Timer _timer;
+  late DateTime _currentTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTime = DateTime.now();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentTime = DateTime.now();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final Color dotColor = isOnBreak
+    final Color dotColor = widget.isOnBreak
         ? const Color(0xFFFF9F1C)
-        : (isClockedIn ? const Color(0xFF00C49A) : const Color(0xFFFF6B35));
+        : (widget.isClockedIn ? const Color(0xFF00C49A) : const Color(0xFFFF6B35));
 
     return Container(
       width: 78,
@@ -2145,7 +2177,7 @@ class _ModernClockBadge extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isClockedIn
+          colors: widget.isClockedIn
               ? [
                   Colors.white.withValues(alpha: 0.40),
                   Colors.white.withValues(alpha: 0.15),
@@ -2174,7 +2206,10 @@ class _ModernClockBadge extends StatelessWidget {
           CustomPaint(
             size: const Size(78, 78),
             painter: _ClockFacePainter(
-                isClockedIn: isClockedIn, isOnBreak: isOnBreak),
+              time: _currentTime,
+              isClockedIn: widget.isClockedIn,
+              isOnBreak: widget.isOnBreak,
+            ),
           ),
 
           // Center Live Status Indicator Dot
@@ -2199,10 +2234,15 @@ class _ModernClockBadge extends StatelessWidget {
 }
 
 class _ClockFacePainter extends CustomPainter {
+  final DateTime time;
   final bool isClockedIn;
   final bool isOnBreak;
 
-  _ClockFacePainter({required this.isClockedIn, this.isOnBreak = false});
+  _ClockFacePainter({
+    required this.time,
+    required this.isClockedIn,
+    this.isOnBreak = false,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -2235,33 +2275,54 @@ class _ClockFacePainter extends CustomPainter {
       canvas.drawLine(p1, p2, tickPaint);
     }
 
-    // 3. Hour Hand (pointing at 10 o'clock)
+    final hour = time.hour;
+    final minute = time.minute;
+    final second = time.second;
+
+    // 3. Hour Hand (smooth movement based on hours and minutes)
     final hourHandPaint = Paint()
       ..color = const Color(0xFF2D3142)
       ..strokeWidth = 3.0
       ..strokeCap = StrokeCap.round;
-    final hourAngle = -math.pi * 0.75; // 10:00 position
+    final hourAngle = ((hour % 12) + (minute / 60.0)) * (2 * math.pi / 12.0) - (math.pi / 2);
     final hourHandEnd = Offset(
       center.dx + (radius * 0.38) * math.cos(hourAngle),
       center.dy + (radius * 0.38) * math.sin(hourAngle),
     );
     canvas.drawLine(center, hourHandEnd, hourHandPaint);
 
-    // 4. Minute Hand (pointing at 2 o'clock)
+    // 4. Minute Hand (smooth movement based on minutes and seconds)
     final minuteHandPaint = Paint()
       ..color = const Color(0xFF2D3142)
       ..strokeWidth = 2.2
       ..strokeCap = StrokeCap.round;
-    final minuteAngle = -math.pi * 0.25; // 2:00 position
+    final minuteAngle = (minute + (second / 60.0)) * (2 * math.pi / 60.0) - (math.pi / 2);
     final minuteHandEnd = Offset(
       center.dx + (radius * 0.55) * math.cos(minuteAngle),
       center.dy + (radius * 0.55) * math.sin(minuteAngle),
     );
     canvas.drawLine(center, minuteHandEnd, minuteHandPaint);
+
+    // 5. Second Hand
+    final Color secondHandColor = isOnBreak
+        ? const Color(0xFFFF9F1C)
+        : (isClockedIn ? const Color(0xFF00C49A) : const Color(0xFFFF6B35));
+    final secondHandPaint = Paint()
+      ..color = secondHandColor.withValues(alpha: 0.8)
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+    final secondAngle = second * (2 * math.pi / 60.0) - (math.pi / 2);
+    final secondHandEnd = Offset(
+      center.dx + (radius * 0.65) * math.cos(secondAngle),
+      center.dy + (radius * 0.65) * math.sin(secondAngle),
+    );
+    canvas.drawLine(center, secondHandEnd, secondHandPaint);
   }
 
   @override
   bool shouldRepaint(covariant _ClockFacePainter oldDelegate) {
-    return oldDelegate.isClockedIn != isClockedIn;
+    return oldDelegate.time != time ||
+        oldDelegate.isClockedIn != isClockedIn ||
+        oldDelegate.isOnBreak != isOnBreak;
   }
 }

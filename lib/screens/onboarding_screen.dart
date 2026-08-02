@@ -419,7 +419,7 @@ class _OnboardingPageOneContentState extends State<OnboardingPageOneContent>
 
           // Subtitle Text
           Text(
-            'Share anonymous appreciation and\ncelebrate weekly heroes.',
+            'Track shift hours and stay connected\nwith live team presence.',
             textAlign: TextAlign.center,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14.5,
@@ -431,26 +431,26 @@ class _OnboardingPageOneContentState extends State<OnboardingPageOneContent>
 
           const SizedBox(height: 24),
 
-          // Feature Badges Row — Lower positioning
+          // Feature Badges Row — Option B (Value + Feature)
           Row(
             children: const [
               Expanded(
                 child: FeatureBadgeCard(
                   backgroundColor: Color(0xFFF4F4FD),
-                  iconBackgroundColor: Color(0xFFFCE7F3),
-                  iconColor: Color(0xFFEC4899),
-                  icon: Icons.volunteer_activism_rounded,
-                  title: 'Anonymous',
+                  iconBackgroundColor: Color(0xFFFFF0EB),
+                  iconColor: Color(0xFFC84B1A),
+                  icon: Icons.access_time_filled_rounded,
+                  title: 'Track Shift & Hours',
                 ),
               ),
               SizedBox(width: 12),
               Expanded(
                 child: FeatureBadgeCard(
                   backgroundColor: Color(0xFFF4F4FD),
-                  iconBackgroundColor: Color(0xFFFFEDD5),
-                  iconColor: Color(0xFFF97316),
-                  icon: Icons.emoji_events_rounded,
-                  title: 'Weekly Recognition & Awards',
+                  iconBackgroundColor: Color(0xFFE0F2FE),
+                  iconColor: Color(0xFF0284C7),
+                  icon: Icons.people_alt_rounded,
+                  title: 'Live Team Presence',
                 ),
               ),
             ],
@@ -589,7 +589,7 @@ class _OnboardingPageTwoContentState extends State<OnboardingPageTwoContent>
 
           // Subtitle Text
           Text(
-            'Send encouraging notes, celebrate daily wins,\nand keep your team inspired.',
+            'Send anonymous notes, celebrate wins,\nand recognize weekly heroes.',
             textAlign: TextAlign.center,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14.5,
@@ -601,26 +601,26 @@ class _OnboardingPageTwoContentState extends State<OnboardingPageTwoContent>
 
           const SizedBox(height: 24),
 
-          // Feature Badges Row — Lower positioning
+          // Feature Badges Row — Option B (Value + Feature)
           Row(
             children: const [
               Expanded(
                 child: FeatureBadgeCard(
                   backgroundColor: Color(0xFFF4F4FD),
-                  iconBackgroundColor: Color(0xFFFEF3C7),
-                  iconColor: Color(0xFFD97706),
-                  icon: Icons.bolt_rounded,
-                  title: 'Real-time Feed',
+                  iconBackgroundColor: Color(0xFFFCE7F3),
+                  iconColor: Color(0xFFEC4899),
+                  icon: Icons.mark_email_unread_rounded,
+                  title: 'Share Anonymous Praise',
                 ),
               ),
               SizedBox(width: 12),
               Expanded(
                 child: FeatureBadgeCard(
                   backgroundColor: Color(0xFFF4F4FD),
-                  iconBackgroundColor: Color(0xFFEDE9FE),
-                  iconColor: Color(0xFF7C3AED),
-                  icon: Icons.favorite_rounded,
-                  title: 'Boost Morale',
+                  iconBackgroundColor: Color(0xFFFEF3C7),
+                  iconColor: Color(0xFFD97706),
+                  icon: Icons.emoji_events_rounded,
+                  title: 'Celebrate Weekly Heroes',
                 ),
               ),
             ],
@@ -759,7 +759,7 @@ class _OnboardingPageThreeContentState
 
           // Subtitle Text
           Text(
-            'Create an account or sign in to start\ncelebrating your team today.',
+            'Coordinate quick breaks and get guidance\nfrom your AI Wellness Bot.',
             textAlign: TextAlign.center,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14.5,
@@ -771,26 +771,26 @@ class _OnboardingPageThreeContentState
 
           const SizedBox(height: 24),
 
-          // Feature Badges Row — Lower positioning
+          // Feature Badges Row — Option B (Value + Feature)
           Row(
             children: const [
               Expanded(
                 child: FeatureBadgeCard(
                   backgroundColor: Color(0xFFF4F4FD),
-                  iconBackgroundColor: Color(0xFFFCE7F3),
-                  iconColor: Color(0xFFEC4899),
-                  icon: Icons.stars_rounded,
-                  title: 'Easy Setup',
+                  iconBackgroundColor: Color(0xFFFEF3C7),
+                  iconColor: Color(0xFFB45309),
+                  icon: Icons.coffee_rounded,
+                  title: 'Coordinate Quick Breaks',
                 ),
               ),
               SizedBox(width: 12),
               Expanded(
                 child: FeatureBadgeCard(
                   backgroundColor: Color(0xFFF4F4FD),
-                  iconBackgroundColor: Color(0xFFD1FAE5),
-                  iconColor: Color(0xFF10B981),
-                  icon: Icons.workspace_premium_rounded,
-                  title: 'Instant Rewards',
+                  iconBackgroundColor: Color(0xFFEDE9FE),
+                  iconColor: Color(0xFF7C3AED),
+                  icon: Icons.smart_toy_rounded,
+                  title: 'AI Wellness Support',
                 ),
               ),
             ],

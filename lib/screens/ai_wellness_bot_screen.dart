@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/user_preferences_store.dart';
 import '../services/mochi_prompt_service.dart';
@@ -15,6 +14,10 @@ import '../services/coffee_notification_store.dart';
 import '../services/supabase_service.dart';
 import '../services/sound_service.dart';
 import '../services/offline_sync_service.dart';
+import '../services/mochi_chat_storage_service.dart';
+import 'mochi_chat_history_screen.dart';
+import 'mochi_new_chat_screen.dart';
+import '../widgets/medical_disclaimer_modal.dart';
 import '../widgets/box_breathing_modal.dart';
 import '../widgets/desk_stretches_modal.dart';
 
@@ -39,6 +42,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
   String _leaveSummary = '';
   String _coffeeHistorySummary = '';
   String _cbtTrendSummary = '';
+  MochiSessionModel? _currentSession;
 
   // Read API Key securely from .env file with fallback
   static String get _geminiApiKey =>
@@ -65,6 +69,11 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     _loadShiftState();
     _loadSavedMessages();
     _loadUserProfileContext();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        MedicalDisclaimerModal.showIfNeeded(context);
+      }
+    });
   }
 
   Future<void> _loadUserProfileContext() async {
@@ -120,21 +129,21 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
   }
 
   Future<void> _loadSavedMessages() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? savedJson = prefs.getString('mochi_chat_history');
-
-    if (savedJson != null && savedJson.isNotEmpty) {
-      try {
-        final List<dynamic> list = jsonDecode(savedJson);
+    final activeSession = await MochiChatStorageService.instance.getActiveSession();
+    if (activeSession != null) {
+      _currentSession = activeSession;
+      if (activeSession.messages.isNotEmpty) {
         setState(() {
           _messages.clear();
-          for (var item in list) {
+          for (var item in activeSession.messages) {
             _messages.add(_ChatMessage.fromJson(item));
           }
         });
         _scrollToBottom();
         return;
-      } catch (_) {}
+      }
+    } else {
+      _currentSession = await MochiChatStorageService.instance.createNewSession();
     }
 
     final name = UserPreferencesStore.getUserName();
@@ -168,14 +177,14 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
         ),
       ]);
     });
+    _saveMessages();
   }
 
   Future<void> _saveMessages() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<Map<String, dynamic>> jsonList = _messages
-        .map((m) => m.toJson())
-        .toList();
-    await prefs.setString('mochi_chat_history', jsonEncode(jsonList));
+    if (_currentSession == null) return;
+    _currentSession!.messages = _messages.map((m) => m.toJson()).toList();
+    _currentSession!.updatedAt = DateTime.now();
+    await MochiChatStorageService.instance.saveSession(_currentSession!);
   }
 
   String _formatCurrentTime() {
@@ -469,6 +478,68 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     final name = UserPreferencesStore.getUserName();
     final firstName = name.isNotEmpty ? name.split(' ').first : '';
 
+    // Workplace Harassment, Unwanted Staring & Physical Misconduct
+    if (lower.contains('staring') ||
+        lower.contains('looking at my body') ||
+        lower.contains('touched me') ||
+        lower.contains('inappropriate touch') ||
+        lower.contains('harass') ||
+        lower.contains('stalking') ||
+        lower.contains('uncomfortable around my manager') ||
+        lower.contains('uncomfortable around my boss')) {
+      return "You deserve to feel 100% safe, comfortable, and respected at work. What you are describing is completely unacceptable behavior, and it is not your fault.\n\nHere are steps to protect yourself:\n1. Document everything: keep a private log with dates, times, locations, and what happened.\n2. Avoid being alone in isolated rooms with them where possible.\n3. Report to HR or the Internal Complaints Committee (ICC).\n\nIf you want to take formal legal action or consult an attorney regarding your rights under harassment laws, you can contact legal counsel directly at 0000000000.";
+    }
+
+    // Substance Use & Coping
+    if (lower.contains('drink') || lower.contains('alcohol') || lower.contains('smoke') || lower.contains('substance') || lower.contains('numb the pain')) {
+      return "It makes sense why you're looking for a quick way to switch off — that level of workplace pressure is exhausting. What is the specific feeling your body is trying to step away from right now? Taking a warm shower or doing a 2-minute breath reset can help lower physical tension without judgment.";
+    }
+
+    // Neurodivergence & Accommodation (ADHD, Autism, RSD)
+    if (lower.contains('adhd') || lower.contains('autism') || lower.contains('overstimulated') || lower.contains('sensory') || lower.contains('paralysis') || lower.contains('hyperfocus')) {
+      return "Your brain processes information differently, and open-plan corporate environments aren't built for your nervous system. That doesn't mean you're broken. Let's ignore the big project for a second — what is the single smallest action we can take in the next 5 minutes?";
+    }
+
+    // Remote / Hybrid Isolation
+    if (lower.contains('wfh') || lower.contains('remote') || lower.contains('working from home') || lower.contains('cabin fever') || lower.contains('isolated at home')) {
+      return "Working remotely can quietly blur the line between resting and working until you feel like you live at the office. Try ending your day with a 'fake commute' — a 10-minute walk outside when closing your laptop to signal your brain that work is over.";
+    }
+
+    // Discrimination, Bias & Microaggressions
+    if (lower.contains('bias') || lower.contains('discrimina') || lower.contains('microaggression') || lower.contains('prejudice') || lower.contains('fairness')) {
+      return "Your experience is real. Feeling targeted, patronized, or excluded takes a massive invisible toll. Make sure to keep a private log with dates, times, and exact details, and know that you deserve a workplace built on respect.";
+    }
+
+    // Toxic Positivity & Suppression
+    if (lower.contains('fake smile') || lower.contains('pretend to be happy') || lower.contains('toxic positivity') || lower.contains('forced to be positive')) {
+      return "You don't have to perform cheerfulness here. Frustration, anger, and fatigue are completely valid responses to tough situations. Being professional doesn't mean pretending problems don't exist.";
+    }
+
+    // Rejection & Failure Recovery
+    if (lower.contains('rejected') || lower.contains('didn\'t get the job') || lower.contains('passed over') || lower.contains('failed interview') || lower.contains('proposal rejected')) {
+      return "Getting passed over hurts — especially when you put your energy and hope into it. A single decision or panel doesn't define your capability. Rejection is an outcome, not a verdict on your value.";
+    }
+
+    // People-Pleasing & Empathy Fatigue
+    if (lower.contains('can\'t say no') || lower.contains('people pleasing') || lower.contains('taking on everyone\'s') || lower.contains('saying yes to everything')) {
+      return "You are taking on emotional labor that isn't yours to carry. Being empathetic doesn't mean becoming a sponge for everyone else's stress. Saying no to extra tasks is how you protect your ability to do good work on what actually matters.";
+    }
+
+    // Career Pivot & Fear of Reset
+    if (lower.contains('wrong career') || lower.contains('career pivot') || lower.contains('starting over') || lower.contains('change my career')) {
+      return "It is completely normal for something that fit you 5 years ago to not fit you today. Changing your mind isn't starting over — it is carrying forward everything you learned.";
+    }
+
+    // Office Politics & Gossip Defense
+    if (lower.contains('office politics') || lower.contains('gossip') || lower.contains('stole my credit') || lower.contains('stolen credit') || lower.contains('backstabbing')) {
+      return "Office drama thrives on attention. The most powerful move is often strategic disengagement. For credit-stealing, establish clear paper trails by sending follow-up emails summarizing your ownership and contributions.";
+    }
+
+    // Chronic Physical Pain at Desk
+    if (lower.contains('neck pain') || lower.contains('back pain') || lower.contains('desk pain') || lower.contains('rsi') || lower.contains('wrist pain') || lower.contains('stiff neck')) {
+      return "Physical pain and emotional stress feed each other. Carrying tension in your shoulders or back makes everything feel twice as heavy. Let me walk you through a quick 2-minute desk stretch reset.";
+    }
+
     // Family Sickness, Illness & Emergency Care
     if (lower.contains('sick') ||
         lower.contains('die') ||
@@ -688,12 +759,14 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     final stylePreference = await UserPreferencesStore.getMochiStylePreference();
     final moodTrendSummary =
         await UserPreferencesStore.getMochiMoodTrendSummary();
+    final crossSessionMemory =
+        await MochiChatStorageService.instance.buildCrossSessionKnowledgeSummary();
 
     final systemInstruction = _promptService.buildSystemInstruction(
       isClockedIn: _isClockedIn,
       isOnBreak: _isOnBreak,
       clockInTime: _clockInTime,
-      sessionMemorySummary: sessionMemory,
+      sessionMemorySummary: [sessionMemory ?? '', crossSessionMemory].where((s) => s.isNotEmpty).join('\n\n'),
       userStylePreference: stylePreference,
       moodTrendSummary: moodTrendSummary,
       userProfileSummary: _userProfileSummary,
@@ -892,21 +965,18 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
                   ),
                   const Spacer(),
                   IconButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).clearSnackBars();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Upcoming feature: Chat History',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.w600,
-                            ),
+                    onPressed: () async {
+                      final selectedSessionId = await Navigator.push<String>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MochiChatHistoryScreen(
+                            activeSessionId: _currentSession?.id ?? '',
                           ),
-                          backgroundColor: const Color(0xFF171B2B),
-                          behavior: SnackBarBehavior.floating,
-                          duration: const Duration(seconds: 2),
                         ),
                       );
+                      if (selectedSessionId != null) {
+                        await _loadSavedMessages();
+                      }
                     },
                     icon: Container(
                       padding: const EdgeInsets.all(8),
@@ -915,30 +985,25 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.history_rounded,
+                        Icons.manage_search_rounded,
                         color: Color(0xFFAB3500),
                         size: 20,
                       ),
                     ),
-                    tooltip: 'History',
+                    tooltip: 'Chat History',
                   ),
-                  const SizedBox(width: 2),
+                  const SizedBox(width: 4),
                   IconButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).clearSnackBars();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Upcoming feature: Create New Chat',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          backgroundColor: const Color(0xFF171B2B),
-                          behavior: SnackBarBehavior.floating,
-                          duration: const Duration(seconds: 2),
+                    onPressed: () async {
+                      final newSessionId = await Navigator.push<String>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const MochiNewChatScreen(),
                         ),
                       );
+                      if (newSessionId != null) {
+                        await _loadSavedMessages();
+                      }
                     },
                     icon: Container(
                       padding: const EdgeInsets.all(8),
@@ -947,7 +1012,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.chat_bubble_outline_rounded,
+                        Icons.add_comment_rounded,
                         color: Color(0xFF95416C),
                         size: 20,
                       ),

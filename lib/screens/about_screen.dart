@@ -66,7 +66,7 @@ class AboutScreen extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'Version 1.0.0+49 • Happy Desk Edition',
+                'Version 1.0.0+49 • U & ME Edition',
                 style: GoogleFonts.beVietnamPro(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -102,7 +102,7 @@ class AboutScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'U & ME (Happy Desk) bridges employee workplace productivity with deep emotional destressing and psychological safety:',
+                      'U & ME bridges employee workplace productivity with deep emotional destressing and psychological safety:',
                       style: GoogleFonts.beVietnamPro(
                         fontSize: 13,
                         height: 1.55,

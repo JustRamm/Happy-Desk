@@ -31,6 +31,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String _generatedLeaderCode = '';
   String _selectedAvatar = '';
   String _selectedDepartment = 'Design';
+  bool _isLoading = false;
   final ImagePicker _imagePicker = ImagePicker();
 
   final List<String> _departments = [
@@ -288,18 +289,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  String _generateCode({String prefix = 'COMP'}) {
+  /// Generates a meaningful unique code.
+  /// For a company: uses the company name (up to 10 chars) + 4-digit random number.
+  /// For a team lead: uses their first name (up to 10 chars) + 4-digit random number.
+  /// Falls back to the generic prefix if name is empty.
+  String _generateCode({String prefix = 'COMP', String name = ''}) {
     final rand = math.Random();
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final code = List.generate(5, (_) => chars[rand.nextInt(chars.length)]).join();
-    return '$prefix-$code';
+    final digits = (1000 + rand.nextInt(9000)).toString(); // Always 4 digits
+    String cleanName = name.trim().split(' ').first; // Take first word only
+    // Strip any non-alphanumeric characters
+    cleanName = cleanName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
+    if (cleanName.length > 10) cleanName = cleanName.substring(0, 10);
+    final effectivePrefix = cleanName.isNotEmpty ? cleanName : prefix;
+    return '$effectivePrefix-$digits';
   }
 
   void _nextStep() {
     if (_currentStep == 0) {
       if (_selectedRole.isEmpty) return;
+      // For a team lead employee, generate a code using their first name
       if (_selectedRole == 'employee' && _isLeadershipRole && _generatedLeaderCode.isEmpty) {
-        _generatedLeaderCode = _generateCode();
+        _generatedLeaderCode = _generateCode(name: _nameController.text.trim());
       }
     }
     if (_currentStep < _totalSteps - 1) {
@@ -312,6 +322,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _performSupabaseRegistration() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final name = _nameController.text.trim();
@@ -375,7 +387,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
 
     if (_selectedRole == 'founder') {
-      final compCode = _generatedLeaderCode.isNotEmpty ? _generatedLeaderCode : _generateCode(prefix: 'COMP');
+      // Company code uses the actual company name as the prefix
+      final compCode = _generatedLeaderCode.isNotEmpty
+          ? _generatedLeaderCode
+          : _generateCode(name: companyName, prefix: 'COMP');
       await UserPreferencesStore.setRoleType('founder');
       await UserPreferencesStore.setUserRole('Founder & CEO');
       await UserPreferencesStore.setIsLeader(true);
@@ -392,7 +407,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       await UserPreferencesStore.setIsLeader(_isLeadershipRole);
       await UserPreferencesStore.setCompanyCode(_inviteCodeController.text.trim());
       if (_isLeadershipRole) {
-        final teamCode = _generatedLeaderCode.isNotEmpty ? _generatedLeaderCode : _generateCode(prefix: 'TEAM');
+        // Team lead code uses the team lead's first name as the prefix
+        final teamCode = _generatedLeaderCode.isNotEmpty
+            ? _generatedLeaderCode
+            : _generateCode(name: name, prefix: 'LEAD');
         await UserPreferencesStore.setTeamCode(teamCode);
       }
     }
@@ -461,6 +479,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       debugPrint('Supabase registration note: $e');
       await UserPreferencesStore.setIsLoggedIn(true);
     } finally {
+      if (mounted) setState(() => _isLoading = false);
       widget.onSignUpSuccess();
     }
   }
@@ -886,7 +905,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
           child: OutlinedButton.icon(
             onPressed: () {
               setState(() {
-                _generatedLeaderCode = _generateCode();
+                // Use the name already entered if available, else fall back to generic
+                _generatedLeaderCode = _generateCode(name: _nameController.text.trim());
               });
             },
             icon: const Icon(Icons.vpn_key_rounded, size: 18),
@@ -1874,7 +1894,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: _performSupabaseRegistration,
+              onPressed: _isLoading ? null : _performSupabaseRegistration,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryRust,
                 foregroundColor: Colors.white,
@@ -1884,13 +1904,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   borderRadius: BorderRadius.circular(26),
                 ),
               ),
-              child: Text(
-                isFounder ? 'Launch Company' : 'Complete Setup & Join Team',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      isFounder ? 'Launch Company' : 'Complete Setup & Join Team',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
             ),
           ),
         ],
@@ -1943,7 +1972,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
             _isLeadershipRole = true;
             _selectedDepartment = 'Executive';
             if (_generatedLeaderCode.isEmpty) {
-              _generatedLeaderCode = _generateCode();
+              // For founders, company code uses the company name
+              _generatedLeaderCode = _generateCode(name: _workspaceNameController.text.trim(), prefix: 'COMP');
             }
           } else {
             _isLeadershipRole = false;

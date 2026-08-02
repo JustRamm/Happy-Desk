@@ -601,6 +601,31 @@ class UserPreferencesStore {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(key, value);
   }
+
+  // Medical Disclaimer Preference
+  static const String _keyMedicalDisclaimerAccepted = 'medical_disclaimer_accepted';
+
+  static Future<bool> isMedicalDisclaimerAccepted() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyMedicalDisclaimerAccepted) ?? false;
+  }
+
+  static Future<void> setMedicalDisclaimerAccepted(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyMedicalDisclaimerAccepted, value);
+  }
+
+  /// Complete Data Wipe on Account Deletion
+  static Future<void> clearAllData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    _isLoggedInCache = false;
+    _nameCache = '';
+    _roleCache = 'Employee';
+    _roleTypeCache = 'employee';
+    _teamCache = 'General';
+    _companyCache = '';
+  }
 }
 
 class MochiFeedbackLog {

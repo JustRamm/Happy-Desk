@@ -42,8 +42,8 @@ class PushNotificationService {
     await initialize();
 
     const androidDetails = AndroidNotificationDetails(
-      'happy_desk_channel',
-      'Happy Desk Notifications',
+      'u_and_me_channel',
+      'U & ME Notifications',
       channelDescription: 'Alerts for direct messages and coffee breaks',
       importance: Importance.max,
       priority: Priority.high,

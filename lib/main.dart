@@ -15,6 +15,7 @@ import 'screens/error/global_crash_screen.dart';
 import 'screens/error/no_connectivity_screen.dart';
 import 'theme/app_theme.dart';
 import 'screens/onboarding_wrapper_screen.dart';
+import 'screens/main_navigation_screen.dart';
 
 List<CameraDescription> availableDeviceCameras = [];
 
@@ -71,17 +72,17 @@ void main() async {
     return GlobalCrashScreen(errorDetails: details);
   };
 
-  runApp(const HappyDeskApp());
+  runApp(const UAndMeApp());
 }
 
-class HappyDeskApp extends StatefulWidget {
-  const HappyDeskApp({super.key});
+class UAndMeApp extends StatefulWidget {
+  const UAndMeApp({super.key});
 
   @override
-  State<HappyDeskApp> createState() => _HappyDeskAppState();
+  State<UAndMeApp> createState() => _UAndMeAppState();
 }
 
-class _HappyDeskAppState extends State<HappyDeskApp> {
+class _UAndMeAppState extends State<UAndMeApp> {
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   bool _isOffline = false;
 
@@ -110,7 +111,11 @@ class _HappyDeskAppState extends State<HappyDeskApp> {
       title: 'U & ME',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
-      home: const OnboardingWrapperScreen(),
+      // If the user is already signed in (persisted from a previous session),
+      // go directly to MainNavigationScreen — no splash, no onboarding.
+      home: UserPreferencesStore.isLoggedIn()
+          ? const MainNavigationScreen()
+          : const OnboardingWrapperScreen(),
       builder: (context, child) {
         return Stack(
           children: [

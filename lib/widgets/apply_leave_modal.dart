@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/user_preferences_store.dart';
+import '../screens/leave_history_screen.dart';
 
 class ApplyLeaveModal extends StatefulWidget {
   const ApplyLeaveModal({super.key});
@@ -106,6 +107,34 @@ class _ApplyLeaveModalState extends State<ApplyLeaveModal> {
                       color: Color(0xFF8D7168)),
                 ),
               ],
+            ),
+            const SizedBox(height: 4),
+            TextButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const LeaveHistoryScreen(),
+                  ),
+                );
+              },
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              icon: const Icon(Icons.history_rounded, size: 15, color: Color(0xFF006C53)),
+              label: Text(
+                'View Leave Balance & History Log',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF006C53),
+                  decoration: TextDecoration.underline,
+                  decorationColor: const Color(0xFF006C53),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
 

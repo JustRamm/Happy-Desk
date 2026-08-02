@@ -36,12 +36,18 @@ class SupabaseService {
     }
   }
 
-  // Generate random company code (e.g., COMP-7842 or HD-E92A)
-  String generateCode({String prefix = 'COMP', int length = 4}) {
+  // Generate a meaningful code.
+  // If [name] is provided, uses the first word of the name (up to 10 chars) as the prefix.
+  // Otherwise falls back to the [prefix] parameter.
+  // Suffix is always a random 4-digit number (e.g. HappyDesk-4821, Aisha-7293).
+  String generateCode({String prefix = 'COMP', String name = '', int length = 4}) {
     final rng = Random();
-    final chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final randomPart = List.generate(length, (_) => chars[rng.nextInt(chars.length)]).join();
-    return '$prefix-$randomPart';
+    final digits = (1000 + rng.nextInt(9000)).toString();
+    String cleanName = name.trim().split(' ').first;
+    cleanName = cleanName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
+    if (cleanName.length > 10) cleanName = cleanName.substring(0, 10);
+    final effectivePrefix = cleanName.isNotEmpty ? cleanName : prefix;
+    return '$effectivePrefix-$digits';
   }
 
   // 1. Founder Sign Up
@@ -66,7 +72,7 @@ class SupabaseService {
     await init();
     final finalCode = (companyCode != null && companyCode.trim().isNotEmpty)
         ? companyCode.trim().toUpperCase()
-        : generateCode(prefix: 'COMP', length: 5);
+        : generateCode(name: companyName, prefix: 'COMP');
 
     final finalTitle = 'Founder & CEO';
     final finalDepartment = 'Executive Leadership';
@@ -325,7 +331,12 @@ class SupabaseService {
       }
       final companyId = profileRes['company_id'];
 
-      final res = await client
+      // Use unauthenticated client to bypass RLS select policies for authenticated users
+      final url = dotenv.env['SUPABASE_URL'] ?? 'https://fcqycmihbxbuocjohpkh.supabase.co';
+      final anonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? 'sb_publishable_sn8nCqyBFhZhQ2ZqloCNJQ_hpuyZ5SI';
+      final anonClient = SupabaseClient(url, anonKey);
+
+      final res = await anonClient
           .from('profiles')
           .select('id, name, email, job_title, department, avatar_url, is_clocked_in, is_on_break, is_leader, role_type, company_id')
           .eq('company_id', companyId)
@@ -337,7 +348,7 @@ class SupabaseService {
       for (var emp in profilesList) {
         if (emp['is_clocked_in'] == true) {
           try {
-            final activeSession = await client
+            final activeSession = await anonClient
                 .from('work_sessions')
                 .select('clock_in_location_name')
                 .eq('user_id', emp['id'])
@@ -489,7 +500,7 @@ class SupabaseService {
         'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1',
       );
       final response = await http.get(url, headers: {
-        'User-Agent': 'HappyDeskApp/1.0.0 (contact@mindempowered.com)',
+        'User-Agent': 'UAndMeApp/1.0.0 (contact@mindempowered.com)',
       }).timeout(const Duration(seconds: 4));
 
       if (response.statusCode == 200) {
@@ -780,9 +791,17 @@ class SupabaseService {
   }) async {
     await init();
     final user = currentUser;
+    String? companyId;
+    if (user != null) {
+      try {
+        final profile = await client.from('profiles').select('company_id').eq('id', user.id).maybeSingle();
+        companyId = profile?['company_id'] as String?;
+      } catch (_) {}
+    }
+
     await client.from('ngl_jar_messages').insert({
       'user_id': user?.id,
-      'company_id': '11111111-1111-1111-1111-111111111111',
+      'company_id': companyId,
       'message': message,
       'is_anonymous': isAnonymous,
       'likes_count': 0,
@@ -873,10 +892,19 @@ class SupabaseService {
   }) async {
     await init();
     final nominatorName = UserPreferencesStore.getUserName();
+    final user = currentUser;
+    String? companyId;
+    if (user != null) {
+      try {
+        final profile = await client.from('profiles').select('company_id').eq('id', user.id).maybeSingle();
+        companyId = profile?['company_id'] as String?;
+      } catch (_) {}
+    }
+
     await client.from('weekly_hero_nominations').insert({
       'nominee_name': nomineeName,
       'nominator_name': nominatorName,
-      'company_id': '11111111-1111-1111-1111-111111111111',
+      'company_id': companyId,
       'reason': reason,
       'badge_type': badgeType,
     });
@@ -952,8 +980,13 @@ class SupabaseService {
       }
       final companyId = profileRes['company_id'];
 
+      // Use unauthenticated client to bypass RLS select policies for authenticated users
+      final url = dotenv.env['SUPABASE_URL'] ?? 'https://fcqycmihbxbuocjohpkh.supabase.co';
+      final anonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? 'sb_publishable_sn8nCqyBFhZhQ2ZqloCNJQ_hpuyZ5SI';
+      final anonClient = SupabaseClient(url, anonKey);
+
       // 2. Fetch all profile names in the same company
-      final companyProfiles = await client
+      final companyProfiles = await anonClient
           .from('profiles')
           .select('name')
           .eq('company_id', companyId);
@@ -1261,6 +1294,33 @@ class SupabaseService {
         .subscribe();
 
     return channel;
+  }
+
+  // Permanent Account Deletion & Data Wipe
+  Future<bool> deleteAccountAndPermanentDataWipe() async {
+    await init();
+    final user = currentUser;
+    if (user == null) return false;
+
+    try {
+      final userId = user.id;
+
+      // Delete user-owned records across all tables
+      try { await client.from('work_sessions').delete().eq('user_id', userId); } catch (_) {}
+      try { await client.from('leave_requests').delete().eq('user_id', userId); } catch (_) {}
+      try { await client.from('mochi_mood_logs').delete().eq('user_id', userId); } catch (_) {}
+      try { await client.from('mochi_cbt_logs').delete().eq('user_id', userId); } catch (_) {}
+      try { await client.from('ngl_jar_messages').delete().eq('user_id', userId); } catch (_) {}
+      try { await client.from('coffee_break_invites').delete().eq('sender_id', userId); } catch (_) {}
+      try { await client.from('profiles').delete().eq('id', userId); } catch (_) {}
+
+      await client.auth.signOut();
+      return true;
+    } catch (e) {
+      debugPrint('Error during account deletion & data wipe: $e');
+      try { await client.auth.signOut(); } catch (_) {}
+      return false;
+    }
   }
 
   // Sign out

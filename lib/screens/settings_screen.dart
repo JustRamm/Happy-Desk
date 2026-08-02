@@ -12,6 +12,7 @@ import 'about_screen.dart';
 import 'founder_config_screen.dart';
 import 'reset_password_screen.dart';
 import '../services/user_preferences_store.dart';
+import '../services/supabase_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -78,6 +79,78 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             child: Text(
               'Log Out',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 24),
+            const SizedBox(width: 8),
+            Text(
+              'Delete Account?',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFFDC2626),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'This action is PERMANENT. All your work sessions, chat logs, leave history, and profile data will be permanently wiped.',
+          style: GoogleFonts.plusJakartaSans(
+            color: AppTheme.textSecondary,
+            fontSize: 13.5,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.plusJakartaSans(
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await SupabaseService.instance.deleteAccountAndPermanentDataWipe();
+              await UserPreferencesStore.clearAllData();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (context) => const AuthScreen(initialIsLogin: true),
+                  ),
+                  (route) => false,
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: Text(
+              'Wipe Everything & Delete',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w700,
               ),
@@ -381,6 +454,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       );
                     },
                   ),
+                  _buildDivider(),
+                  _buildListTile(
+                    icon: Icons.code_rounded,
+                    title: 'Open Source Licenses',
+                    subtitle: 'Software attributions & packages',
+                    onTap: () {
+                      showLicensePage(
+                        context: context,
+                        applicationName: 'U & ME',
+                        applicationVersion: 'v1.0.0',
+                        applicationLegalese: '© 2026 U & ME Workplace Technologies Inc. All rights reserved.',
+                      );
+                    },
+                  ),
                 ],
               ),
 
@@ -393,15 +480,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: OutlinedButton.icon(
                   onPressed: _showLogoutDialog,
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFE53E3E), width: 1.5),
+                    side: const BorderSide(color: Color(0xFFAB3500), width: 1.5),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(22),
                     ),
-                    foregroundColor: const Color(0xFFE53E3E),
+                    foregroundColor: const Color(0xFFAB3500),
                   ),
                   icon: const Icon(Icons.logout_rounded, size: 20),
                   label: Text(
                     'Log Out',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              // Account Deletion & Permanent Data Wipe Button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed: _showDeleteAccountDialog,
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFEF2F2),
+                    side: const BorderSide(color: Color(0xFFDC2626), width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    foregroundColor: const Color(0xFFDC2626),
+                  ),
+                  icon: const Icon(Icons.delete_forever_rounded, size: 20),
+                  label: Text(
+                    'Delete Account & Data Wipe',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15.5,
                       fontWeight: FontWeight.w700,
