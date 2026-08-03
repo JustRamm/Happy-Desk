@@ -330,7 +330,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<void> _performSupabaseRegistration() async {
     if (_isLoading) return;
     setState(() => _isLoading = true);
-    var _registrationSucceeded = false;
+    var registrationSucceeded = false;
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final name = _nameController.text.trim();
@@ -345,42 +345,54 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final bioText = _bioController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter your email address and password.'),
-          backgroundColor: Color(0xFFDC2626),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter your email address and password.'),
+            backgroundColor: Color(0xFFDC2626),
+          ),
+        );
+        setState(() => _isLoading = false);
+      }
       return;
     }
 
     if (_selectedAvatar.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please upload a profile photo using gallery or camera.'),
-          backgroundColor: Color(0xFFDC2626),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please upload a profile photo using gallery or camera.'),
+            backgroundColor: Color(0xFFDC2626),
+          ),
+        );
+        setState(() => _isLoading = false);
+      }
       return;
     }
 
     if (_selectedRole == 'founder' && companyName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter your Company Name.'),
-          backgroundColor: Color(0xFFDC2626),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter your Company Name.'),
+            backgroundColor: Color(0xFFDC2626),
+          ),
+        );
+        setState(() => _isLoading = false);
+      }
       return;
     }
 
     if (_selectedRole == 'employee' && _inviteCodeController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter the Company Join Code provided by your Founder.'),
-          backgroundColor: Color(0xFFDC2626),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter the Company Join Code provided by your Founder.'),
+            backgroundColor: Color(0xFFDC2626),
+          ),
+        );
+        setState(() => _isLoading = false);
+      }
       return;
     }
 
@@ -504,7 +516,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       // Only mark the user as logged in if Supabase has an active authenticated user.
       if (SupabaseService.instance.currentUser != null) {
         await UserPreferencesStore.setIsLoggedIn(true);
-        _registrationSucceeded = true;
+        registrationSucceeded = true;
       } else {
         // Web and some Supabase configurations create the user but do not
         // establish a session immediately (email verification required).
@@ -542,7 +554,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       // real auth session, resulting in a frozen/black screen.
       if (SupabaseService.instance.currentUser != null) {
         await UserPreferencesStore.setIsLoggedIn(true);
-        _registrationSucceeded = true;
+        registrationSucceeded = true;
       } else {
         // Show error to user instead of silently navigating away
         if (mounted) {
@@ -563,7 +575,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
-        if (_registrationSucceeded) {
+        if (registrationSucceeded) {
           widget.onSignUpSuccess();
         }
       }
