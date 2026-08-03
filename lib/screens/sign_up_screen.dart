@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -328,6 +330,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<void> _performSupabaseRegistration() async {
     if (_isLoading) return;
     setState(() => _isLoading = true);
+    var _registrationSucceeded = false;
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final name = _nameController.text.trim();
@@ -445,8 +448,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
           hqLongitude: double.tryParse(_hqLongitudeController.text.trim()),
           hqGoogleMapsLink: _hqMapsLinkController.text.trim(),
         );
-        if (authRes.user != null && _selectedAvatar.isNotEmpty && File(_selectedAvatar).existsSync()) {
-          uploadedAvatarUrl = await SupabaseService.instance.uploadAvatarImage(File(_selectedAvatar));
+        if (authRes.user != null && _selectedAvatar.isNotEmpty) {
+          if (kIsWeb) {
+            // Avoid synchronous upload on web during signup to prevent hangs.
+            // If avatar is a data URL or remote URL, keep it locally for now
+            // and upload later from the profile screen.
+            if (_selectedAvatar.startsWith('data:') || _selectedAvatar.startsWith('http')) {
+              uploadedAvatarUrl = _selectedAvatar;
+            }
+          } else {
+            if (File(_selectedAvatar).existsSync()) {
+              uploadedAvatarUrl = await SupabaseService.instance.uploadAvatarImage(File(_selectedAvatar));
+            }
+          }
         }
       } else {
         final code = _inviteCodeController.text.trim();
@@ -464,8 +478,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
           teamLongitude: _isLeadershipRole ? double.tryParse(_teamLongitudeController.text.trim()) : null,
           teamGoogleMapsLink: _isLeadershipRole ? _teamMapsLinkController.text.trim() : null,
         );
-        if (authRes.user != null && _selectedAvatar.isNotEmpty && File(_selectedAvatar).existsSync()) {
-          uploadedAvatarUrl = await SupabaseService.instance.uploadAvatarImage(File(_selectedAvatar));
+        if (authRes.user != null && _selectedAvatar.isNotEmpty) {
+          if (kIsWeb) {
+            if (_selectedAvatar.startsWith('data:') || _selectedAvatar.startsWith('http')) {
+              uploadedAvatarUrl = _selectedAvatar;
+            }
+          } else {
+            if (File(_selectedAvatar).existsSync()) {
+              uploadedAvatarUrl = await SupabaseService.instance.uploadAvatarImage(File(_selectedAvatar));
+            }
+          }
         }
       }
 
@@ -478,7 +500,40 @@ class _SignUpScreenState extends State<SignUpScreen> {
           }).eq('id', user.id);
         }
       }
-      await UserPreferencesStore.setIsLoggedIn(true);
+
+      // Only mark the user as logged in if Supabase has an active authenticated user.
+      if (SupabaseService.instance.currentUser != null) {
+        await UserPreferencesStore.setIsLoggedIn(true);
+        _registrationSucceeded = true;
+      } else {
+        // Web and some Supabase configurations create the user but do not
+        // establish a session immediately (email verification required).
+        // Inform the user and switch to the Login tab so they can sign in
+        // after verifying their email.
+        if (mounted) {
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Verify your email'),
+              content: const Text(
+                'We created your account. Please check your email and verify your address before logging in.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+
+          // Switch the auth view to Login so the user can log in after verification
+          widget.onLoginTap();
+        }
+      }
     } catch (e) {
       debugPrint('Supabase registration note: $e');
       // Only mark as logged in if Supabase actually created a valid session.
@@ -487,6 +542,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       // real auth session, resulting in a frozen/black screen.
       if (SupabaseService.instance.currentUser != null) {
         await UserPreferencesStore.setIsLoggedIn(true);
+        _registrationSucceeded = true;
       } else {
         // Show error to user instead of silently navigating away
         if (mounted) {
@@ -507,7 +563,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
-        widget.onSignUpSuccess();
+        if (_registrationSucceeded) {
+          widget.onSignUpSuccess();
+        }
       }
     }
   }
@@ -1350,7 +1408,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       child: GestureDetector(
                         onTap: _pickProfileImage,
-                        child: ClipRRect(
+                          child: ClipRRect(
                           borderRadius: BorderRadius.circular(43),
                           child: _selectedAvatar.isEmpty
                               ? Container(
@@ -1363,7 +1421,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 )
                               : (_selectedAvatar.startsWith('assets/')
                                   ? Image.asset(_selectedAvatar, fit: BoxFit.cover)
-                                  : Image.file(File(_selectedAvatar), fit: BoxFit.cover)),
+                                  : (kIsWeb
+                                      ? (_selectedAvatar.startsWith('data:')
+                                          ? Image.memory(
+                                              base64Decode(_selectedAvatar.split(',').last),
+                                              fit: BoxFit.cover,
+                                            )
+                                          : Image.network(_selectedAvatar, fit: BoxFit.cover))
+                                      : Image.file(File(_selectedAvatar), fit: BoxFit.cover))),
                         ),
                       ),
                     ),
@@ -1710,11 +1775,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    isFounder ? 'Next: Review Company Setup' : 'Next: Finalize Setup',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
+                  Flexible(
+                    child: Text(
+                      isFounder ? 'Next: Review Company Setup' : 'Next: Finalize Setup',
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -2341,9 +2410,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         obscureText: obscureText,
         onChanged: onChanged,
         keyboardType: keyboardType,
-        onTap: () {
-          SystemChannels.textInput.invokeMethod('TextInput.show');
-        },
+        // Use the default TextField focus behavior. Manually invoking the
+        // text input channel on web can cause null checks inside the engine.
+        // Leave onTap unset so Flutter handles focus/input normally.
         style: GoogleFonts.plusJakartaSans(
           fontSize: 14,
           fontWeight: FontWeight.w600,

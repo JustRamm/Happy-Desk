@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -1170,6 +1171,35 @@ class SupabaseService {
       return imageUrl;
     } catch (e) {
       debugPrint('Error uploading avatar image: $e');
+      return null;
+    }
+  }
+
+  /// Upload avatar image bytes (for web usage where [File] is not available)
+  Future<String?> uploadAvatarBytes(Uint8List bytes, String fileName) async {
+    await init();
+    final user = currentUser;
+    if (user == null) return null;
+
+    try {
+      // Use uploadBinary when sending raw bytes to Supabase storage.
+      await client.storage.from('avatars').uploadBinary(
+        fileName,
+        bytes,
+        fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+      );
+
+      final imageUrl = client.storage.from('avatars').getPublicUrl(fileName);
+
+      await client.from('profiles').update({
+        'avatar_url': imageUrl,
+      }).eq('id', user.id);
+
+      await UserPreferencesStore.setUserAvatarUrl(imageUrl);
+
+      return imageUrl;
+    } catch (e) {
+      debugPrint('Error uploading avatar bytes: $e');
       return null;
     }
   }
