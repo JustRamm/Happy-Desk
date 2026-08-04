@@ -35,19 +35,67 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your email and password.'),
+          backgroundColor: Color(0xFFDC2626),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
-      final email = _emailController.text.trim();
-      final password = _passwordController.text.trim();
-      if (email.isNotEmpty && password.isNotEmpty) {
-        await SupabaseService.instance.loginUser(email: email, password: password);
+      await SupabaseService.instance.loginUser(email: email, password: password);
+
+      // Verify Supabase actually established a session before navigating
+      if (SupabaseService.instance.currentUser != null) {
+        await UserPreferencesStore.setIsLoggedIn(true);
+        widget.onLoginSuccess();
+      } else {
+        // No session returned — likely email not verified or auth failed silently
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Login failed. Please check your credentials or verify your email.',
+              ),
+              backgroundColor: Color(0xFFDC2626),
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
       }
-      await UserPreferencesStore.setIsLoggedIn(true);
-      widget.onLoginSuccess();
     } catch (e) {
-      debugPrint('Supabase login note: $e');
-      await UserPreferencesStore.setIsLoggedIn(true);
-      widget.onLoginSuccess();
+      debugPrint('Login error: $e');
+      if (mounted) {
+        final msg = e.toString();
+        String userMessage = 'Login failed. Please try again.';
+        if (msg.contains('Invalid login credentials') ||
+            msg.contains('invalid_credentials')) {
+          userMessage = 'Incorrect email or password. Please try again.';
+        } else if (msg.contains('Email not confirmed') ||
+            msg.contains('email_not_confirmed')) {
+          userMessage =
+              'Please verify your email address before logging in.';
+        } else if (msg.contains('network') ||
+            msg.contains('SocketException') ||
+            msg.contains('timeout')) {
+          userMessage =
+              'Network error. Please check your connection and try again.';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(userMessage),
+            backgroundColor: const Color(0xFFDC2626),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

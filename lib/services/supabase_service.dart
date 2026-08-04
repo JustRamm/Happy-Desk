@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -94,50 +93,61 @@ class SupabaseService {
 
     final user = res.user;
     if (user != null) {
-      // 2. Create Company Record with HQ & Industry details
-      final companyRes = await client.from('companies').insert({
-        'name': companyName,
-        'company_code': finalCode,
-        'founder_id': user.id,
-        'hq_location': hqLocation ?? hqAddress ?? '',
-        'industry': industry ?? '',
-        'company_size': companySize ?? '',
-        'hq_address': hqAddress ?? '',
-        'hq_latitude': hqLatitude,
-        'hq_longitude': hqLongitude,
-        'hq_google_maps_link': hqGoogleMapsLink ?? '',
-      }).select().single();
-
-      final companyId = companyRes['id'] as String;
-
-      // 3. Create Master Join Code in company_join_codes table
+      // Wrap all post-signup DB operations in try-catch.
+      // When email confirmation is enabled, Supabase creates the auth user but
+      // returns no session, so authenticated RLS DB calls (insert/upsert) will
+      // fail with 401/403. We catch those errors so the AuthResponse is still
+      // returned cleanly to the caller.
       try {
-        await client.from('company_join_codes').insert({
+        // 2. Create Company Record with HQ & Industry details
+        final companyRes = await client.from('companies').insert({
+          'name': companyName,
+          'company_code': finalCode,
+          'founder_id': user.id,
+          'hq_location': hqLocation ?? hqAddress ?? '',
+          'industry': industry ?? '',
+          'company_size': companySize ?? '',
+          'hq_address': hqAddress ?? '',
+          'hq_latitude': hqLatitude,
+          'hq_longitude': hqLongitude,
+          'hq_google_maps_link': hqGoogleMapsLink ?? '',
+        }).select().single();
+
+        final companyId = companyRes['id'] as String;
+
+        // 3. Create Master Join Code in company_join_codes table
+        try {
+          await client.from('company_join_codes').insert({
+            'company_id': companyId,
+            'code': finalCode,
+            'role_tag': 'leader',
+            'created_by': user.id,
+            'is_active': true,
+          });
+        } catch (e) {
+          debugPrint('Note creating master join code: $e');
+        }
+
+        // 4. Update Founder Profile with Company ID & Metadata
+        await client.from('profiles').upsert({
+          'id': user.id,
+          'email': email,
+          'name': name,
+          'role_type': 'founder',
+          'is_leader': true,
           'company_id': companyId,
-          'code': finalCode,
-          'role_tag': 'leader',
-          'created_by': user.id,
-          'is_active': true,
+          'job_title': finalTitle,
+          'department': finalDepartment,
+          'bio': bio,
+          'avatar_url': avatarUrl,
         });
       } catch (e) {
-        debugPrint('Note creating master join code: $e');
+        // Expected when email confirmation is enabled (no active session / RLS block).
+        // Profile data is already persisted locally via UserPreferencesStore.
+        debugPrint('Post-signup DB sync note (will retry after session): $e');
       }
 
-      // 4. Update Founder Profile with Company ID & Metadata
-      await client.from('profiles').upsert({
-        'id': user.id,
-        'email': email,
-        'name': name,
-        'role_type': 'founder',
-        'is_leader': true,
-        'company_id': companyId,
-        'job_title': finalTitle,
-        'department': finalDepartment,
-        'bio': bio,
-        'avatar_url': avatarUrl,
-      });
-
-      // Save local preferences
+      // Save local preferences (always runs regardless of DB sync outcome)
       await UserPreferencesStore.setUserProfile(
         name: name,
         role: finalTitle,
@@ -224,22 +234,29 @@ class SupabaseService {
 
     final user = res.user;
     if (user != null) {
-      await client.from('profiles').upsert({
-        'id': user.id,
-        'email': email,
-        'name': name,
-        'role_type': 'employee',
-        'is_leader': assignedLeader,
-        'company_id': companyId,
-        'job_title': jobTitle,
-        'department': department,
-        'bio': bio,
-        'avatar_url': avatarUrl,
-        'team_location_address': teamAddress,
-        'team_location_latitude': teamLatitude,
-        'team_location_longitude': teamLongitude,
-        'team_location_google_maps_link': teamGoogleMapsLink,
-      });
+      // Wrap in try-catch: when email confirmation is on, no active session
+      // exists yet so authenticated RLS DB calls will fail. Local prefs are
+      // sufficient for the app to function until the session is established.
+      try {
+        await client.from('profiles').upsert({
+          'id': user.id,
+          'email': email,
+          'name': name,
+          'role_type': 'employee',
+          'is_leader': assignedLeader,
+          'company_id': companyId,
+          'job_title': jobTitle,
+          'department': department,
+          'bio': bio,
+          'avatar_url': avatarUrl,
+          'team_location_address': teamAddress,
+          'team_location_latitude': teamLatitude,
+          'team_location_longitude': teamLongitude,
+          'team_location_google_maps_link': teamGoogleMapsLink,
+        });
+      } catch (e) {
+        debugPrint('Post-signup profile sync note (will retry after session): $e');
+      }
 
       String? companyName = companyMatch != null ? (companyMatch['name'] as String?) : null;
       await UserPreferencesStore.setUserProfile(

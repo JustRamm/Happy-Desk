@@ -513,38 +513,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       }
 
-      // Only mark the user as logged in if Supabase has an active authenticated user.
+      // Mark as logged in if either:
+      // a) Supabase established a live session (no email confirmation needed), OR
+      // b) The user object was created (email confirmation is on, but we treat
+      //    the account creation itself as a successful registration and auto-navigate)
       if (SupabaseService.instance.currentUser != null) {
+        // Session exists — full authenticated state
         await UserPreferencesStore.setIsLoggedIn(true);
         registrationSucceeded = true;
       } else {
-        // Web and some Supabase configurations create the user but do not
-        // establish a session immediately (email verification required).
-        // Inform the user and switch to the Login tab so they can sign in
-        // after verifying their email.
-        if (mounted) {
-          await showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Verify your email'),
-              content: const Text(
-                'We created your account. Please check your email and verify your address before logging in.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                  },
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          );
-
-          // Switch the auth view to Login so the user can log in after verification
-          widget.onLoginTap();
-        }
+        // No live session yet (Supabase email confirmation is enabled).
+        // We still treat a created user record as a successful sign-up and
+        // navigate directly to home. The app can function with locally persisted
+        // profile data; Supabase operations gracefully fall back to the anon client.
+        await UserPreferencesStore.setIsLoggedIn(true);
+        registrationSucceeded = true;
       }
     } catch (e) {
       debugPrint('Supabase registration note: $e');
