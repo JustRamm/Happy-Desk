@@ -52,17 +52,18 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await SupabaseService.instance.loginUser(email: email, password: password);
 
-      // Verify Supabase actually established a session before navigating
+      // Verify Supabase actually established a session before navigating.
+      // currentUser is non-null only when a valid, confirmed session exists.
       if (SupabaseService.instance.currentUser != null) {
         await UserPreferencesStore.setIsLoggedIn(true);
-        widget.onLoginSuccess();
+        if (mounted) widget.onLoginSuccess();
       } else {
-        // No session returned — likely email not verified or auth failed silently
+        // No session returned — auth may have failed silently.
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'Login failed. Please check your credentials or verify your email.',
+                'Login failed. Please check your credentials and try again.',
               ),
               backgroundColor: Color(0xFFDC2626),
               duration: Duration(seconds: 4),
@@ -72,30 +73,53 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       debugPrint('Login error: $e');
-      if (mounted) {
-        final msg = e.toString();
-        String userMessage = 'Login failed. Please try again.';
-        if (msg.contains('Invalid login credentials') ||
-            msg.contains('invalid_credentials')) {
-          userMessage = 'Incorrect email or password. Please try again.';
-        } else if (msg.contains('Email not confirmed') ||
-            msg.contains('email_not_confirmed')) {
-          userMessage =
-              'Please verify your email address before logging in.';
-        } else if (msg.contains('network') ||
-            msg.contains('SocketException') ||
-            msg.contains('timeout')) {
-          userMessage =
-              'Network error. Please check your connection and try again.';
+      if (!mounted) return;
+      final msg = e.toString();
+
+      // Email-not-confirmed: Supabase has email verification enabled.
+      // Instead of blocking the user, attempt to auto-proceed when the
+      // Supabase project has email confirmation disabled (the intended
+      // project configuration). If confirmation IS enabled, show a clear
+      // instruction without a hard crash.
+      if (msg.contains('Email not confirmed') ||
+          msg.contains('email_not_confirmed')) {
+        // Check if a user object was returned even without a session
+        // (possible in some Supabase configurations). If so, navigate.
+        if (SupabaseService.instance.currentUser != null) {
+          await UserPreferencesStore.setIsLoggedIn(true);
+          if (mounted) widget.onLoginSuccess();
+          return;
         }
+        // Otherwise show a clear, non-blocking informational message.
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(userMessage),
-            backgroundColor: const Color(0xFFDC2626),
-            duration: const Duration(seconds: 4),
+          const SnackBar(
+            content: Text(
+              'Your account needs email verification. Please check your inbox and click the confirmation link, then try logging in again.',
+            ),
+            backgroundColor: Color(0xFFB45309),
+            duration: Duration(seconds: 6),
           ),
         );
+        return;
       }
+
+      String userMessage = 'Login failed. Please try again.';
+      if (msg.contains('Invalid login credentials') ||
+          msg.contains('invalid_credentials')) {
+        userMessage = 'Incorrect email or password. Please try again.';
+      } else if (msg.contains('network') ||
+          msg.contains('SocketException') ||
+          msg.contains('timeout')) {
+        userMessage =
+            'Network error. Please check your connection and try again.';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(userMessage),
+          backgroundColor: const Color(0xFFDC2626),
+          duration: const Duration(seconds: 4),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

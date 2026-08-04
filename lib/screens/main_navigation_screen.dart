@@ -30,7 +30,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
-    _listenForIncomingCalls();
+    // Defer Realtime subscription to after first frame so the widget tree
+    // is fully mounted before opening the WebSocket channel.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _listenForIncomingCalls();
+    });
   }
 
   void _listenForIncomingCalls() {

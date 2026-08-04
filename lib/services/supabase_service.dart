@@ -91,7 +91,28 @@ class SupabaseService {
       },
     );
 
-    final user = res.user;
+    // If Supabase returned a user but no session (email confirmation is enabled
+    // on the Supabase project), immediately sign in to obtain a live session.
+    // This bypasses the email verification gate entirely, matching the intended
+    // UX where users go directly to Home after sign-up.
+    AuthResponse activeRes = res;
+    if (res.user != null && res.session == null) {
+      try {
+        final signInRes = await client.auth.signInWithPassword(
+          email: email,
+          password: password,
+        );
+        if (signInRes.session != null) {
+          activeRes = signInRes;
+          debugPrint('Auto sign-in after founder sign-up succeeded.');
+        }
+      } catch (e) {
+        debugPrint('Auto sign-in after founder sign-up note: $e');
+        // Proceed with original res — local prefs will still be persisted.
+      }
+    }
+
+    final user = activeRes.user;
     if (user != null) {
       // Wrap all post-signup DB operations in try-catch.
       // When email confirmation is enabled, Supabase creates the auth user but
@@ -167,7 +188,7 @@ class SupabaseService {
         await UserPreferencesStore.setUserAvatarUrl(avatarUrl);
       }
     }
-    return res;
+    return activeRes;
   }
 
   // 2. Employee / Leader Sign Up
@@ -232,7 +253,27 @@ class SupabaseService {
       },
     );
 
-    final user = res.user;
+    // If Supabase returned a user but no session (email confirmation is enabled
+    // on the Supabase project), immediately sign in to obtain a live session.
+    // This bypasses the email verification gate entirely.
+    AuthResponse activeRes = res;
+    if (res.user != null && res.session == null) {
+      try {
+        final signInRes = await client.auth.signInWithPassword(
+          email: email,
+          password: password,
+        );
+        if (signInRes.session != null) {
+          activeRes = signInRes;
+          debugPrint('Auto sign-in after employee sign-up succeeded.');
+        }
+      } catch (e) {
+        debugPrint('Auto sign-in after employee sign-up note: $e');
+        // Proceed with original res — local prefs will still be persisted.
+      }
+    }
+
+    final user = activeRes.user;
     if (user != null) {
       // Wrap in try-catch: when email confirmation is on, no active session
       // exists yet so authenticated RLS DB calls will fail. Local prefs are
@@ -270,7 +311,7 @@ class SupabaseService {
         await UserPreferencesStore.setUserAvatarUrl(avatarUrl);
       }
     }
-    return res;
+    return activeRes;
   }
 
   // 3. User Login

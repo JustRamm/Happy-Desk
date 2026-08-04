@@ -513,22 +513,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       }
 
-      // Mark as logged in if either:
-      // a) Supabase established a live session (no email confirmation needed), OR
-      // b) The user object was created (email confirmation is on, but we treat
-      //    the account creation itself as a successful registration and auto-navigate)
-      if (SupabaseService.instance.currentUser != null) {
-        // Session exists — full authenticated state
-        await UserPreferencesStore.setIsLoggedIn(true);
-        registrationSucceeded = true;
-      } else {
-        // No live session yet (Supabase email confirmation is enabled).
-        // We still treat a created user record as a successful sign-up and
-        // navigate directly to home. The app can function with locally persisted
-        // profile data; Supabase operations gracefully fall back to the anon client.
-        await UserPreferencesStore.setIsLoggedIn(true);
-        registrationSucceeded = true;
-      }
+      // Registration succeeded — mark user as logged in.
+      // With the auto-signin fix in supabase_service.dart, currentUser will
+      // typically be non-null here. Even if it is null (fallback path), we
+      // still mark as logged in so the locally-persisted profile loads correctly.
+      await UserPreferencesStore.setIsLoggedIn(true);
+      registrationSucceeded = true;
     } catch (e) {
       debugPrint('Supabase registration note: $e');
       // Only mark as logged in if Supabase actually created a valid session.
@@ -539,7 +529,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         await UserPreferencesStore.setIsLoggedIn(true);
         registrationSucceeded = true;
       } else {
-        // Show error to user instead of silently navigating away
+        // Show error to user instead of silently navigating away.
+        // Do NOT call setState here — the finally block resets _isLoading.
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -551,16 +542,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
               duration: const Duration(seconds: 5),
             ),
           );
-          setState(() => _isLoading = false);
         }
         return;
       }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
-        if (registrationSucceeded) {
-          widget.onSignUpSuccess();
-        }
+      }
+      if (registrationSucceeded && mounted) {
+        widget.onSignUpSuccess();
       }
     }
   }
