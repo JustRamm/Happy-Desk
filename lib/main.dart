@@ -35,7 +35,11 @@ void main() async {
   await SupabaseService.instance.init();
   // Load & validate stored user preferences (self-heals corrupt is_logged_in state)
   await UserPreferencesStore.init();
-  await MochiPromptService.instance.ensureLoaded();
+  try {
+    await MochiPromptService.instance.ensureLoaded();
+  } catch (e) {
+    debugPrint('MochiPromptService load error (non-fatal): $e');
+  }
 
   // Initialize Background-to-Foreground Resume Session Manager
   SessionManagerService.instance.initialize();
