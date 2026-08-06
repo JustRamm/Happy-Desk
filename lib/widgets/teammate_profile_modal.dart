@@ -31,9 +31,9 @@ class TeammateProfileModal extends StatefulWidget {
 }
 
 class _TeammateProfileModalState extends State<TeammateProfileModal> {
-  int _nglNotes = 18;
-  int _heroBadges = 6;
-  String _reliability = '98%';
+  int _nglNotes = 0;
+  int _heroBadges = 0;
+  String _reliability = '100%';
   bool _loadingStats = true;
 
   @override

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -137,36 +136,9 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       } catch (_) {}
     }
 
-    final name = UserPreferencesStore.getUserName();
-    final firstName = name.isNotEmpty ? name.split(' ').first : '';
-    final fn = firstName.isNotEmpty ? ' $firstName' : '';
-
-    final complementaryPairs = [
-      ("Hey$fn, I'm Mochi!", "How's your day treating you so far?"),
-      ("Hi$fn! Mochi here.", "wassup"),
-      ("Aah... hey$fn!", "Taking a quick break or feeling a bit overwhelmed?"),
-      ("Hey$fn, glad you stopped by!", "How are things at work today?"),
-      ("Hi$fn!", "What's on your mind right now?"),
-      ("Hey$fn, Mochi here!", "Feeling bored or just checking in?"),
-    ];
-
-    final random = math.Random();
-    final pair = complementaryPairs[random.nextInt(complementaryPairs.length)];
-
-    // Default Initial Mochi Welcome Messages (2 separate complementary messages)
+    // Keep messages empty for the clean Gemini-style landing screen
     setState(() {
-      _messages.addAll([
-        _ChatMessage(
-          text: pair.$1,
-          isUser: false,
-          time: _formatCurrentTime(),
-        ),
-        _ChatMessage(
-          text: pair.$2,
-          isUser: false,
-          time: _formatCurrentTime(),
-        ),
-      ]);
+      _messages.clear();
     });
   }
 
@@ -834,6 +806,140 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     return _generateDomainFallbackResponse(userPrompt);
   }
 
+  Widget _buildGeminiStyleLandingView() {
+    final name = UserPreferencesStore.getUserName();
+    final firstName = name.isNotEmpty ? name.split(' ').first : '';
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(height: 32),
+
+            // Central Glowing Mochi Spark Icon
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFFFFF0EB),
+                    Color(0xFFF3F2FF),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFAB3500).withValues(alpha: 0.16),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFF95416C).withValues(alpha: 0.12),
+                    blurRadius: 36,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: SvgPicture.asset(
+                  'assets/brand/mochi_bot.svg',
+                  width: 46,
+                  height: 46,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Gemini-Style Welcome Headline
+            Text(
+              firstName.isNotEmpty ? "What's next, $firstName?" : "What's next today?",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF171B2B),
+                letterSpacing: -0.5,
+                height: 1.25,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            Text(
+              "I'm Mochi, your workplace companion. Ask me anything about work stress, focus, or your day.",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.beVietnamPro(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF594139),
+                height: 1.45,
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // Suggestion Prompt Chips
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: [
+                _buildSuggestionChip("⚡ De-stress Reset", "Help me de-stress after a long meeting"),
+                _buildSuggestionChip("💬 Vent about Workload", "I'm feeling overwhelmed with my tasks today"),
+                _buildSuggestionChip("☕ Coffee Break", "I need a quick 2-minute mental reset"),
+                _buildSuggestionChip("🎯 Focus & Goals", "Give me a quick action plan for my priorities"),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuggestionChip(String label, String fullPrompt) {
+    return InkWell(
+      onTap: () {
+        _textController.text = fullPrompt;
+        _handleSendMessage();
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE4E7FE), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF171B2B).withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF171B2B),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -893,52 +999,10 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
                   const Spacer(),
                   IconButton(
                     onPressed: () {
-                      ScaffoldMessenger.of(context).clearSnackBars();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Upcoming feature: Chat History',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          backgroundColor: const Color(0xFF171B2B),
-                          behavior: SnackBarBehavior.floating,
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFFF0EB),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.history_rounded,
-                        color: Color(0xFFAB3500),
-                        size: 20,
-                      ),
-                    ),
-                    tooltip: 'History',
-                  ),
-                  const SizedBox(width: 2),
-                  IconButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).clearSnackBars();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Upcoming feature: Create New Chat',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          backgroundColor: const Color(0xFF171B2B),
-                          behavior: SnackBarBehavior.floating,
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
+                      setState(() {
+                        _messages.clear();
+                      });
+                      _saveMessages();
                     },
                     icon: Container(
                       padding: const EdgeInsets.all(8),
@@ -947,7 +1011,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.chat_bubble_outline_rounded,
+                        Icons.add_rounded,
                         color: Color(0xFF95416C),
                         size: 20,
                       ),
@@ -958,41 +1022,41 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
               ),
             ),
 
-
-
-            // Main Conversational Chat ListView
+            // Main Body: Gemini-style Landing View when empty, Chat ListView when messages exist
             Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.only(
-                  left: 20,
-                  right: 20,
-                  top: 8,
-                  bottom: 16,
-                ),
-                itemCount: _messages.length + (_isTyping ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index < _messages.length) {
-                    final msg = _messages[index];
-                    // Render Mochi avatar ONLY on the last (latest) message of a bot group
-                    final bool isNextAlsoBot =
-                        (index + 1 < _messages.length) && !_messages[index + 1].isUser;
-                    final bool showAvatar = !msg.isUser && !isNextAlsoBot;
+              child: _messages.isEmpty
+                  ? _buildGeminiStyleLandingView()
+                  : ListView.builder(
+                      controller: _scrollController,
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.only(
+                        left: 20,
+                        right: 20,
+                        top: 8,
+                        bottom: 16,
+                      ),
+                      itemCount: _messages.length + (_isTyping ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index < _messages.length) {
+                          final msg = _messages[index];
+                          // Render Mochi avatar ONLY on the last (latest) message of a bot group
+                          final bool isNextAlsoBot =
+                              (index + 1 < _messages.length) && !_messages[index + 1].isUser;
+                          final bool showAvatar = !msg.isUser && !isNextAlsoBot;
 
-                    final bubble = _buildMessageBubble(msg, showAvatar: showAvatar);
-                    if (msg.isNew) {
-                      return _AnimatedMessageBubble(
-                        message: msg,
-                        child: bubble,
-                      );
-                    }
-                    return bubble;
-                  } else {
-                    return _buildTypingIndicator();
-                  }
-                },
-              ),
+                          final bubble = _buildMessageBubble(msg, showAvatar: showAvatar);
+                          if (msg.isNew) {
+                            return _AnimatedMessageBubble(
+                              message: msg,
+                              child: bubble,
+                            );
+                          }
+                          return bubble;
+                        } else {
+                          return _buildTypingIndicator();
+                        }
+                      },
+                    ),
             ),
 
 

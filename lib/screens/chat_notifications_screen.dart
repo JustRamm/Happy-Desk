@@ -118,7 +118,7 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
                    child: Row(
                      children: [
                        // Brand Logo Widget
-                       const BrandLogoWidget(height: 40),
+                       const BrandLogoWidget(height: 54),
                        const SizedBox(width: 10),
 
                        // Header Search Bar

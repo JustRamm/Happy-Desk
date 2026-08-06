@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../widgets/my_leave_stats_modal.dart';
+import 'leave_history_screen.dart';
 import '../services/supabase_service.dart';
 
 class WorkSessionDetailsScreen extends StatefulWidget {
@@ -170,7 +170,14 @@ class _WorkSessionDetailsScreenState extends State<WorkSessionDetailsScreen> {
               size: 24,
             ),
             tooltip: 'My Leave Status & History',
-            onPressed: () => MyLeaveStatsModal.show(context),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const LeaveHistoryScreen(),
+                ),
+              );
+            },
           ),
           const SizedBox(width: 8),
         ],

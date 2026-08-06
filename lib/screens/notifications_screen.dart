@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/coffee_notification_store.dart';
 import '../widgets/multi_coffee_reset_modal.dart';
+import '../widgets/brand_logo_widget.dart';
 import '../services/supabase_service.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -51,7 +52,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Header Row
+              // Top Header Row with Logo (Size 54)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -67,11 +68,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
+                      const BrandLogoWidget(height: 54),
+                      const SizedBox(width: 10),
                       Text(
-                        'Team Notifications',
+                        'Notifications',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 24,
+                          fontSize: 20,
                           fontWeight: FontWeight.w800,
                           color: AppTheme.titleDark,
                           letterSpacing: -0.4,

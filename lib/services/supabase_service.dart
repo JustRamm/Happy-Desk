@@ -361,32 +361,39 @@ class SupabaseService {
     }
   }
 
-  // Get dynamic teammate stats (NGL Notes, Hero Badges, Reliability)
+  // Get real teammate stats (NGL Notes, Hero Badges, Reliability) from backend
   Future<Map<String, dynamic>> getTeammateStats(String teammateName, String teammateId) async {
     await init();
-    int nglNotesCount = 18;
-    int heroBadgesCount = 6;
-    int reliability = 98;
+    int nglNotesCount = 0;
+    int heroBadgesCount = 0;
+    int reliability = 100;
 
     try {
-      final nglRes = await client.from('ngl_jar_messages').select('id');
-      if (nglRes.isNotEmpty) {
-        // Base starting notes plus number of real messages in the jar
-        nglNotesCount = 12 + (nglRes.length % 10);
-      }
-    } catch (_) {}
-
-    try {
-      final heroRes = await client
-          .from('weekly_hero_nominations')
-          .select('id')
-          .eq('nominee_name', teammateName);
-      if (heroRes.isNotEmpty) {
-        heroBadgesCount = heroRes.length;
+      if (teammateId.isNotEmpty) {
+        final nglRes = await client
+            .from('ngl_jar_messages')
+            .select('id')
+            .eq('user_id', teammateId);
+        nglNotesCount = nglRes.length;
       } else {
-        heroBadgesCount = 2 + (teammateName.hashCode % 5);
+        final nglRes = await client.from('ngl_jar_messages').select('id');
+        nglNotesCount = nglRes.length;
       }
-    } catch (_) {}
+    } catch (_) {
+      nglNotesCount = 0;
+    }
+
+    try {
+      if (teammateName.isNotEmpty) {
+        final heroRes = await client
+            .from('weekly_hero_nominations')
+            .select('id')
+            .eq('nominee_name', teammateName);
+        heroBadgesCount = heroRes.length;
+      }
+    } catch (_) {
+      heroBadgesCount = 0;
+    }
 
     try {
       if (teammateId.isNotEmpty) {
@@ -397,14 +404,15 @@ class SupabaseService {
         if (sessionRes.isNotEmpty) {
           final completed = sessionRes.where((s) => s['status'] == 'completed').length;
           reliability = ((completed / sessionRes.length) * 100).round();
-          if (reliability < 70) reliability = 88 + (teammateName.hashCode % 12);
         } else {
-          reliability = 92 + (teammateName.hashCode % 8);
+          reliability = 100;
         }
       } else {
-        reliability = 92 + (teammateName.hashCode % 8);
+        reliability = 100;
       }
-    } catch (_) {}
+    } catch (_) {
+      reliability = 100;
+    }
 
     return {
       'nglNotes': nglNotesCount,
