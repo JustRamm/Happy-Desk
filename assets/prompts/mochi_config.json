@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "model": "gemini-flash-latest",
+  "model": "gemini-1.5-flash",
   "generation": {
     "temperature": 0.55,
     "maxOutputTokens": 1000

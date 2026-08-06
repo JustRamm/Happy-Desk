@@ -298,7 +298,7 @@ class AboutScreen extends StatelessWidget {
               // Footer Note
               Center(
                 child: Text(
-                  'Crafted with ❤️ by Mind Empowered (ME)',
+                  'Crafted with Care by Mind Empowered (ME)',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,

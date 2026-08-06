@@ -30,8 +30,8 @@ void main() async {
     debugPrint('Camera initialization info: $e');
   }
 
-  await UserPreferencesStore.loadProfileData();
   await SupabaseService.instance.init();
+  await UserPreferencesStore.loadProfileData();
   await MochiPromptService.instance.ensureLoaded();
 
   // Initialize Background-to-Foreground Resume Session Manager

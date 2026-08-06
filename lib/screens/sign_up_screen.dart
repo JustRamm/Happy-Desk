@@ -460,6 +460,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
     } catch (e) {
       debugPrint('Supabase registration note: $e');
       await UserPreferencesStore.setIsLoggedIn(true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Supabase registration note: $e',
+              style: GoogleFonts.plusJakartaSans(fontSize: 13),
+            ),
+            backgroundColor: const Color(0xFFAB3500),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     } finally {
       widget.onSignUpSuccess();
     }

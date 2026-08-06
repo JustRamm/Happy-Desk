@@ -72,63 +72,98 @@ class SupabaseService {
     final finalDepartment = 'Executive Leadership';
 
     // 1. Auth Sign Up
-    final res = await client.auth.signUp(
-      email: email,
-      password: password,
-      data: {
-        'name': name,
-        'role_type': 'founder',
-        'is_leader': true,
-        'job_title': finalTitle,
-        'department': finalDepartment,
-        'bio': bio,
-      },
-    );
+    AuthResponse res;
+    try {
+      res = await client.auth.signUp(
+        email: email,
+        password: password,
+        data: {
+          'name': name,
+          'role_type': 'founder',
+          'is_leader': true,
+          'job_title': finalTitle,
+          'department': finalDepartment,
+          'bio': bio,
+        },
+      );
+    } catch (e) {
+      if (e.toString().toLowerCase().contains('already registered') ||
+          e.toString().toLowerCase().contains('already exists')) {
+        res = await client.auth.signInWithPassword(email: email, password: password);
+      } else {
+        rethrow;
+      }
+    }
 
-    final user = res.user;
-    if (user != null) {
-      // 2. Create Company Record with HQ & Industry details
-      final companyRes = await client.from('companies').insert({
-        'name': companyName,
-        'company_code': finalCode,
-        'founder_id': user.id,
-        'hq_location': hqLocation ?? hqAddress ?? '',
-        'industry': industry ?? '',
-        'company_size': companySize ?? '',
-        'hq_address': hqAddress ?? '',
-        'hq_latitude': hqLatitude,
-        'hq_longitude': hqLongitude,
-        'hq_google_maps_link': hqGoogleMapsLink ?? '',
-      }).select().single();
-
-      final companyId = companyRes['id'] as String;
-
-      // 3. Create Master Join Code in company_join_codes table
+    // Ensure session is active
+    if (res.session == null || client.auth.currentUser == null) {
       try {
-        await client.from('company_join_codes').insert({
-          'company_id': companyId,
-          'code': finalCode,
-          'role_tag': 'leader',
-          'created_by': user.id,
-          'is_active': true,
-        });
+        final signInRes = await client.auth.signInWithPassword(email: email, password: password);
+        if (signInRes.user != null) {
+          res = signInRes;
+        }
       } catch (e) {
-        debugPrint('Note creating master join code: $e');
+        debugPrint('Sign-in fallback note: $e');
+      }
+    }
+
+    final user = res.user ?? client.auth.currentUser;
+    if (user != null) {
+      await UserPreferencesStore.setUserId(user.id);
+
+      String? companyId;
+      try {
+        // 2. Create Company Record with HQ & Industry details
+        final companyRes = await client.from('companies').insert({
+          'name': companyName,
+          'company_code': finalCode,
+          'founder_id': user.id,
+          'hq_location': hqLocation ?? hqAddress ?? '',
+          'industry': industry ?? '',
+          'company_size': companySize ?? '',
+          'hq_address': hqAddress ?? '',
+          'hq_latitude': hqLatitude,
+          'hq_longitude': hqLongitude,
+          'hq_google_maps_link': hqGoogleMapsLink ?? '',
+        }).select().single();
+
+        companyId = companyRes['id'] as String;
+      } catch (e) {
+        debugPrint('Error inserting company record: $e');
+      }
+
+      if (companyId != null) {
+        // 3. Create Master Join Code in company_join_codes table
+        try {
+          await client.from('company_join_codes').insert({
+            'company_id': companyId,
+            'code': finalCode,
+            'role_tag': 'leader',
+            'created_by': user.id,
+            'is_active': true,
+          });
+        } catch (e) {
+          debugPrint('Note creating master join code: $e');
+        }
       }
 
       // 4. Update Founder Profile with Company ID & Metadata
-      await client.from('profiles').upsert({
-        'id': user.id,
-        'email': email,
-        'name': name,
-        'role_type': 'founder',
-        'is_leader': true,
-        'company_id': companyId,
-        'job_title': finalTitle,
-        'department': finalDepartment,
-        'bio': bio,
-        'avatar_url': avatarUrl,
-      });
+      try {
+        await client.from('profiles').upsert({
+          'id': user.id,
+          'email': email,
+          'name': name,
+          'role_type': 'founder',
+          'is_leader': true,
+          'company_id': companyId,
+          'job_title': finalTitle,
+          'department': finalDepartment,
+          'bio': bio,
+          'avatar_url': avatarUrl,
+        });
+      } catch (e) {
+        debugPrint('Error upserting founder profile: $e');
+      }
 
       // Save local preferences
       await UserPreferencesStore.setUserProfile(
@@ -175,64 +210,95 @@ class SupabaseService {
     // Validate Company Code or Join Code
     String? companyId;
     bool assignedLeader = isLeader;
+    Map<String, dynamic>? companyMatch;
 
-    // Check company_code in companies table
-    final companyMatch = await client
-        .from('companies')
-        .select('id, name')
-        .eq('company_code', cleanCode)
-        .maybeSingle();
-
-    if (companyMatch != null) {
-      companyId = companyMatch['id'] as String;
-    } else {
-      // Check company_join_codes table
-      final joinCodeMatch = await client
-          .from('company_join_codes')
-          .select('company_id, role_tag, is_active')
-          .eq('code', cleanCode)
+    try {
+      // Check company_code in companies table
+      companyMatch = await client
+          .from('companies')
+          .select('id, name')
+          .eq('company_code', cleanCode)
           .maybeSingle();
 
-      if (joinCodeMatch != null && joinCodeMatch['is_active'] == true) {
-        companyId = joinCodeMatch['company_id'] as String;
-        if (joinCodeMatch['role_tag'] == 'leader') {
-          assignedLeader = true;
+      if (companyMatch != null) {
+        companyId = companyMatch['id'] as String;
+      } else {
+        // Check company_join_codes table
+        final joinCodeMatch = await client
+            .from('company_join_codes')
+            .select('company_id, role_tag, is_active')
+            .eq('code', cleanCode)
+            .maybeSingle();
+
+        if (joinCodeMatch != null && joinCodeMatch['is_active'] == true) {
+          companyId = joinCodeMatch['company_id'] as String;
+          if (joinCodeMatch['role_tag'] == 'leader') {
+            assignedLeader = true;
+          }
         }
       }
+    } catch (e) {
+      debugPrint('Error resolving company code: $e');
     }
 
     // Auth Sign Up
-    final res = await client.auth.signUp(
-      email: email,
-      password: password,
-      data: {
-        'name': name,
-        'role_type': 'employee',
-        'is_leader': assignedLeader,
-        'job_title': jobTitle,
-        'department': department,
-        'bio': bio,
-      },
-    );
+    AuthResponse res;
+    try {
+      res = await client.auth.signUp(
+        email: email,
+        password: password,
+        data: {
+          'name': name,
+          'role_type': 'employee',
+          'is_leader': assignedLeader,
+          'job_title': jobTitle,
+          'department': department,
+          'bio': bio,
+        },
+      );
+    } catch (e) {
+      if (e.toString().toLowerCase().contains('already registered') ||
+          e.toString().toLowerCase().contains('already exists')) {
+        res = await client.auth.signInWithPassword(email: email, password: password);
+      } else {
+        rethrow;
+      }
+    }
 
-    final user = res.user;
+    if (res.session == null || client.auth.currentUser == null) {
+      try {
+        final signInRes = await client.auth.signInWithPassword(email: email, password: password);
+        if (signInRes.user != null) {
+          res = signInRes;
+        }
+      } catch (e) {
+        debugPrint('Sign-in fallback note: $e');
+      }
+    }
+
+    final user = res.user ?? client.auth.currentUser;
     if (user != null) {
-      await client.from('profiles').upsert({
-        'id': user.id,
-        'email': email,
-        'name': name,
-        'role_type': 'employee',
-        'is_leader': assignedLeader,
-        'company_id': companyId,
-        'job_title': jobTitle,
-        'department': department,
-        'bio': bio,
-        'avatar_url': avatarUrl,
-        'team_location_address': teamAddress,
-        'team_location_latitude': teamLatitude,
-        'team_location_longitude': teamLongitude,
-        'team_location_google_maps_link': teamGoogleMapsLink,
-      });
+      await UserPreferencesStore.setUserId(user.id);
+      try {
+        await client.from('profiles').upsert({
+          'id': user.id,
+          'email': email,
+          'name': name,
+          'role_type': 'employee',
+          'is_leader': assignedLeader,
+          'company_id': companyId,
+          'job_title': jobTitle,
+          'department': department,
+          'bio': bio,
+          'avatar_url': avatarUrl,
+          'team_location_address': teamAddress,
+          'team_location_latitude': teamLatitude,
+          'team_location_longitude': teamLongitude,
+          'team_location_google_maps_link': teamGoogleMapsLink,
+        });
+      } catch (e) {
+        debugPrint('Error upserting employee profile: $e');
+      }
 
       String? companyName = companyMatch != null ? (companyMatch['name'] as String?) : null;
       await UserPreferencesStore.setUserProfile(
@@ -262,6 +328,7 @@ class SupabaseService {
 
     final user = res.user;
     if (user != null) {
+      await UserPreferencesStore.setUserId(user.id);
       // Fetch Profile Data
       final profile = await client.from('profiles').select().eq('id', user.id).maybeSingle();
       if (profile != null) {
@@ -899,8 +966,10 @@ class SupabaseService {
   }) async {
     await init();
     final user = currentUser;
+    final String? userId = user?.id ?? (UserPreferencesStore.getUserId().isNotEmpty ? UserPreferencesStore.getUserId() : null);
+
     await client.from('mochi_chat_messages').insert({
-      'user_id': user?.id,
+      'user_id': userId,
       'message': message,
       'is_user': isUser,
       'action_type': actionType,
@@ -913,12 +982,13 @@ class SupabaseService {
   Future<List<Map<String, dynamic>>> getMochiChatHistory() async {
     await init();
     final user = currentUser;
-    if (user == null) return [];
+    final String uid = user?.id ?? UserPreferencesStore.getUserId();
+    if (uid.isEmpty) return [];
     try {
       final res = await client
           .from('mochi_chat_messages')
           .select()
-          .eq('user_id', user.id)
+          .eq('user_id', uid)
           .order('created_at', ascending: true);
       return List<Map<String, dynamic>>.from(res);
     } catch (e) {
@@ -1000,8 +1070,9 @@ class SupabaseService {
     await init();
     final user = currentUser;
     final senderName = UserPreferencesStore.getUserName();
+    final String? senderId = user?.id ?? (UserPreferencesStore.getUserId().isNotEmpty ? UserPreferencesStore.getUserId() : null);
     await client.from('direct_messages').insert({
-      'sender_id': user?.id,
+      'sender_id': senderId,
       'sender_name': senderName,
       'receiver_name': receiverName,
       'message': message,

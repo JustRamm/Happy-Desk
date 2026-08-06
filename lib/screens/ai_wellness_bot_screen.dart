@@ -235,26 +235,38 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
         lowerText.contains('emergency') ||
         lowerText.contains('passed away');
 
+    final bool isMetaQuestionAboutActions = lowerText.contains('why') ||
+        lowerText.contains('reset') ||
+        lowerText.contains('show') ||
+        lowerText.contains('button') ||
+        lowerText.contains('card') ||
+        lowerText.contains('explain') ||
+        lowerText.contains('what is');
+
     final bool suggestsBreathing = !isPersonalCrisis &&
-        (lowerText.contains('breath') ||
-        lowerText.contains('anxious') ||
+        !isMetaQuestionAboutActions &&
+        (lowerText.contains('anxious') ||
         lowerText.contains('panic') ||
         lowerText.contains('overwhelmed') ||
-        lowerText.contains('heart'));
+        lowerText.contains('can\'t breathe') ||
+        lowerText.contains('short of breath') ||
+        lowerText.contains('breathing exercise') ||
+        lowerText.contains('racing heart'));
 
     final bool suggestsStretches = !isPersonalCrisis &&
+        !isMetaQuestionAboutActions &&
         (lowerText.contains('neck') ||
         lowerText.contains('shoulder') ||
         lowerText.contains('back') ||
         lowerText.contains('stiff') ||
         lowerText.contains('exhausted'));
 
-    final detectedDistortions = isPersonalCrisis
+    final detectedDistortions = (isPersonalCrisis || isMetaQuestionAboutActions)
         ? <String>[]
         : _promptService.detectCognitiveDistortions(text);
 
     String? determinedAction;
-    if (isPersonalCrisis) {
+    if (isPersonalCrisis || isMetaQuestionAboutActions) {
       determinedAction = null;
     } else if (asksBoundary) {
       determinedAction = 'boundary';
@@ -441,6 +453,32 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     final name = UserPreferencesStore.getUserName();
     final firstName = name.isNotEmpty ? name.split(' ').first : '';
 
+    // Meta questions about Breathing / Action Buttons
+    if (lower.contains('breathing') ||
+        lower.contains('action') ||
+        lower.contains('button') ||
+        lower.contains('reset') ||
+        lower.contains('why did you') ||
+        lower.contains('why did u')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "I suggested the 60-second breathing reset action card earlier because I noticed keywords or cues related to stress or taking a mental break$namePart! Whenever you feel overwhelmed or just need a 1-minute reset, tapping that button guides you through a calming box-breathing exercise.";
+    }
+
+    // Fear of Getting Fired / Job Security / Layoffs / Performance Panic
+    if (lower.contains('fired') ||
+        lower.contains('lose my job') ||
+        lower.contains('losing my job') ||
+        lower.contains('layoff') ||
+        lower.contains('laid off') ||
+        lower.contains('terminated') ||
+        lower.contains('pip') ||
+        lower.contains('getting fired') ||
+        lower.contains('gonna get fired') ||
+        lower.contains('going to get fired')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "Take a slow, deep breath$namePart. Fearing that you might lose your job is extremely frightening, and it's completely natural for your mind to panic when job security feels threatened.\n\nLet's separate catastrophic thoughts from objective facts together:\n\n1. Has anyone in management given you official written feedback or warnings, or is your stress making worst-case predictions?\n2. What is 1 immediate task or project you have full control over right now?\n3. Would you like us to examine the evidence together or draft a proactive check-in message to your manager?";
+    }
+
     // Family Sickness, Illness & Emergency Care
     if (lower.contains('sick') ||
         lower.contains('die') ||
@@ -505,6 +543,21 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       return "Here's the straight answer: Do not act on romantic feelings while they are still your direct manager or boss.\n\nFalling for a manager happens, but pursuing a connection across a direct reporting line creates significant workplace and ethical risks:\n\n• Power Dynamic & Ethics: It compromises objective performance reviews, task assignments, and team credibility.\n• HR Policies: Most organizations have strict non-fraternization policies for direct reporting lines.\n\nIf the feelings are serious, either maintain strict professional boundaries or explore transferring to a different team before pursuing anything further.";
     }
 
+    // Informal boundary resolution, de-escalation, & private handling without drama
+    if (lower.contains('lawyer') ||
+        lower.contains('legal') ||
+        lower.contains('public') ||
+        lower.contains('drama') ||
+        lower.contains('complicated') ||
+        lower.contains('complected') ||
+        lower.contains('issue public') ||
+        lower.contains('don\'t want to escalate') ||
+        lower.contains('wanna make sure this stops') ||
+        lower.contains('make sure this stops')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "That makes complete sense$namePart. Wanting to resolve this quietly and safely without escalating to a public conflict or legal hassle is completely valid.\n\nHere are 3 low-profile, effective steps you can take right now to stop this privately:\n\n1. Clear, Direct Written Boundary: Send a concise message (e.g., 'Hey, I want to keep our interaction strictly professional going forward. Please respect this boundary.'). That sets an unmistakable record without drama.\n2. Keep a Quiet Log: Save screenshots and note down dates/times privately just in case.\n3. Subtle Physical Distance: Avoid 1-on-1 isolated situations with them whenever possible.\n\nYou are in full control. I'm right here if you'd like me to help you draft a calm, firm boundary text!";
+    }
+
     // Greetings
     final greetingWords = [
       'hi',
@@ -536,13 +589,60 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       return "Technical friction and tight deadlines can be mentally exhausting. Let me suggest a small next step: take a 2-minute breather away from the screen, or let's break down the next smallest action item together.";
     }
 
-    // High stress / anxiety
+    // High stress / anxiety / burnout
     if (lower.contains('anxious') ||
         lower.contains('overwhelmed') ||
         lower.contains('stress') ||
         lower.contains('burnout') ||
         lower.contains('panic')) {
       return "That sounds like a heavy weight to carry right now. I'm right here with you. Would a quick 60-second breathing exercise help clear space, or do you want to talk it through?";
+    }
+
+    // Micromanagement & Controlling Bosses (Pillar 2)
+    if (lower.contains('micromana') ||
+        lower.contains('control') ||
+        lower.contains('over my shoulder') ||
+        lower.contains('watching my every move') ||
+        lower.contains('constantly checking')) {
+      return "Dealing with micromanagement can feel suffocating and destroy trust. Here is a proven, proactive strategy to regain your autonomy:\n\n1. Over-communicate Proactively: Send a concise morning/daily summary email outlining your 3 top priorities before they ask.\n2. Scheduled Check-Ins: Propose a fixed 10-minute daily or weekly alignment instead of ad-hoc interruptions.\n3. Frame as Efficiency: Frame it as 'To protect focus time and deliver faster results, I'll update you at 4 PM daily.'";
+    }
+
+    // Imposter Syndrome & Self-Doubt (Pillar 3)
+    if (lower.contains('imposter') ||
+        lower.contains('not good enough') ||
+        lower.contains('don\'t belong') ||
+        lower.contains('fraud') ||
+        lower.contains('fooling everyone')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "Imposter syndrome is a classic sign that you care deeply about your work$namePart! High achievers almost always experience this when stepping into challenging roles.\n\nLet's reframe this together:\n• Feeling out of your depth means you are growing, not failing.\n• You were hired and trusted based on verified skills and real past performance, not luck.\n\nWould you like to review some of your real strengths or past wins together?";
+    }
+
+    // Asking for a Raise, Salary, or Promotion (Pillar 5)
+    if (lower.contains('raise') ||
+        lower.contains('salary') ||
+        lower.contains('promotion') ||
+        lower.contains('underpaid') ||
+        lower.contains('compensation')) {
+      return "Asking for what you're worth is an essential career skill! Here is a simple, structured 3-step approach:\n\n1. Gather Concrete Evidence: Note 3 major contributions or projects from the past 6-12 months and their measurable impact.\n2. Research Market Benchmark: Find the compensation range for your role and location.\n3. Schedule a Dedicated Discussion: 'I'd love to schedule 15 minutes to review my recent contributions and discuss my growth and compensation trajectory with the company.'";
+    }
+
+    // Saying No & Over-commitment Boundaries (Pillar 4)
+    if (lower.contains('say no') ||
+        lower.contains('too much work') ||
+        lower.contains('overcommitted') ||
+        lower.contains('overwhelmed by tasks') ||
+        lower.contains('can\'t take more')) {
+      return "Setting workload boundaries isn't being unhelpful — it protects the quality of your work! Here is a collaborative way to say 'No' without conflict:\n\n'I want to make sure I deliver high quality on [Current Project]. If I take on this new task, which existing priority should I pause or push back?'";
+    }
+
+    // Impulsive Anger / Resignation De-escalation (Pillar 6)
+    if (lower.contains('quit') ||
+        lower.contains('resigning') ||
+        lower.contains('walk out') ||
+        lower.contains('so angry') ||
+        lower.contains('furious') ||
+        lower.contains('screw this')) {
+      return "I can hear how angry and pushed to the limit you feel right now. That frustration is real, but please don't make permanent career decisions in an acute emotional moment.\n\nLet's take a 24-hour pause before taking any action:\n1. Step away from your computer/desk right now.\n2. Vent everything to me — draft your thoughts safely here.\n3. Re-evaluate tomorrow with a calm, clear head when you're in full control.";
     }
 
     // Vague, trailing, incomplete inputs (e.g. "I'm cool, just", "just...", "nothing, just", "hard to explain")
@@ -680,8 +780,8 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
 
     // Build multi-turn chat history ensuring user/model alternation AND user start
     final List<Map<String, dynamic>> contents = [];
-    final history = _messages.length > 10
-        ? _messages.sublist(_messages.length - 10)
+    final history = _messages.length > 8
+        ? _messages.sublist(_messages.length - 8)
         : List<_ChatMessage>.from(_messages);
 
     for (var msg in history) {
@@ -689,7 +789,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
 
       // Gemini API rule: contents must start with 'user'
       if (contents.isEmpty && role == 'model') {
-        continue; // Skip initial bot greeting in payload history
+        continue;
       }
 
       if (contents.isNotEmpty && contents.last['role'] == role) {
@@ -706,7 +806,11 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       }
     }
 
-    if (contents.isEmpty || contents.last["role"] != "user") {
+    // Always ensure userPrompt is appended as the final 'user' turn for Gemini API
+    if (contents.isNotEmpty && contents.last["role"] == "user") {
+      final existingText = (contents.last['parts'] as List)[0]['text'];
+      (contents.last['parts'] as List)[0]['text'] = '$existingText\n$userPrompt';
+    } else {
       contents.add({
         "role": "user",
         "parts": [
@@ -893,10 +997,10 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
               runSpacing: 10,
               alignment: WrapAlignment.center,
               children: [
-                _buildSuggestionChip("⚡ De-stress Reset", "Help me de-stress after a long meeting"),
-                _buildSuggestionChip("💬 Vent about Workload", "I'm feeling overwhelmed with my tasks today"),
-                _buildSuggestionChip("☕ Coffee Break", "I need a quick 2-minute mental reset"),
-                _buildSuggestionChip("🎯 Focus & Goals", "Give me a quick action plan for my priorities"),
+                _buildSuggestionChip("De-stress Reset", "Help me de-stress after a long meeting"),
+                _buildSuggestionChip("Vent about Workload", "I'm feeling overwhelmed with my tasks today"),
+                _buildSuggestionChip("Coffee Break", "I need a quick 2-minute mental reset"),
+                _buildSuggestionChip("Focus & Goals", "Give me a quick action plan for my priorities"),
               ],
             ),
 

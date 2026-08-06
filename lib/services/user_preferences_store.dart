@@ -71,6 +71,7 @@ class UserPreferencesStore {
     _teamCodeCache = prefs.getString(_keyTeamCode) ?? '';
     _isLeaderCache = prefs.getBool(_keyIsLeader) ?? false;
     _avatarUrlCache = prefs.getString(_keyUserAvatarUrl);
+    _userIdCache = prefs.getString(_keyUserId) ?? '';
     _isLoggedInCache = prefs.getBool(_keyIsLoggedIn) ?? false;
     _hasCompletedOnboardingCache = prefs.getBool(_keyHasCompletedOnboarding) ?? false;
 
@@ -204,7 +205,17 @@ class UserPreferencesStore {
   }
 
   static String? _avatarUrlCache;
+  static String _userIdCache = '';
   static const String _keyUserAvatarUrl = 'user_avatar_url';
+  static const String _keyUserId = 'user_id';
+
+  static Future<void> setUserId(String val) async {
+    _userIdCache = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUserId, val);
+  }
+
+  static String getUserId() => _userIdCache;
 
   static Future<void> setUserAvatarUrl(String val) async {
     _avatarUrlCache = val;
