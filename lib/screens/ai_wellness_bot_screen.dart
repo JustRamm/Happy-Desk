@@ -522,6 +522,18 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       return "Aah... I'm doing pretty good! A bit quiet here waiting for you, but I'm glad you stopped by$namePart. How are you holding up today?";
     }
 
+    // Poor Mentorship, Senior Guidance, & Wasting Time
+    if (lower.contains('mentor') ||
+        lower.contains('mentoring') ||
+        lower.contains('senior') ||
+        lower.contains('wasting my time') ||
+        lower.contains('wasting time') ||
+        lower.contains('no guidance') ||
+        lower.contains('unguided')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "Feeling like you're wasting time due to poor mentorship is deeply frustrating$namePart, but it's a common trap in workplace roles. Seniors are often underwater with their own deliverables, and unless you push them, mentoring usually falls to the bottom of their priority list.\n\nHere is a 3-step action plan to fix this right now:\n\n• Shift from Passive Waiting to Active Extraction: Don't wait for formal 'mentorship sessions.' Send specific, isolated questions, pull-request links with clear context, or request a 15-minute weekly code/work review.\n• Audit Your Own Skill Growth: Is the issue a lack of feedback, or low-value tasks? Focus on gaining technical or domain skills by asking for high-value tasks or building internal side projects.\n• Define Your Stay/Exit Criteria: Try managing up proactively for 2 weeks. If nothing changes, treat the role as a resume line-item while channeling your energy into self-learning or prepping for your next move.\n\nWhich side of this is bothering you more — the lack of technical learning, or feeling unguided day-to-day?";
+    }
+
     // Coworker & Team compatibility / disconnect
     if (lower.contains('coworker') ||
         lower.contains('out of touch') ||
