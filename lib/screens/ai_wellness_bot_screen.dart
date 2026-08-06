@@ -24,10 +24,14 @@ class AiWellnessBotScreen extends StatefulWidget {
   State<AiWellnessBotScreen> createState() => AiWellnessBotScreenState();
 }
 
-class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
+class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<_ChatMessage> _messages = [];
+
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
   bool _isTyping = false;
   bool _isClockedIn = false;
@@ -59,6 +63,14 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 0.94, end: 1.06).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
     SoundService.playMessageOpenSound();
     _promptService.ensureLoaded();
     _loadShiftState();
@@ -88,6 +100,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
 
   @override
   void dispose() {
+    _pulseController.dispose();
     summarizeSessionIfNeeded();
     _textController.dispose();
     _scrollController.dispose();
@@ -480,7 +493,26 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       return "I suggested the 60-second breathing reset action card earlier because I noticed keywords or cues related to stress or taking a mental break$namePart! Whenever you feel overwhelmed or just need a 1-minute reset, tapping that button guides you through a calming box-breathing exercise.";
     }
 
-    // Fear of Getting Fired / Job Security / Layoffs / Performance Panic
+    // Active CBT Evidence & Reframe Trigger (When user taps "Examine Evidence & Reframe Thought")
+    if (lower.contains('examine the evidence') ||
+        lower.contains('reframe') ||
+        lower.contains('cbt_reframe')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "Let's examine the evidence together$namePart! First, what is the exact thought in your head right now (for example: 'I'm going to get fired' or 'I'm not good enough')? What makes you feel this thought is 100% true?";
+    }
+
+    // Founder / Leader Scenario: Firing Interns / Team Members
+    if (lower.contains('fire my interns') ||
+        lower.contains('fire interns') ||
+        lower.contains('fire employee') ||
+        lower.contains('fire my employee') ||
+        lower.contains('firing interns') ||
+        lower.contains('want to fire')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "I hear that frustration$namePart — managing interns or team members when things aren't working out can be really exhausting. Before taking any action, what specifically happened with the interns that led you to this point? Tell me what's been going on.";
+    }
+
+    // Fear of Getting Fired / Job Security / Layoffs / Performance Panic (Employee)
     if (lower.contains('fired') ||
         lower.contains('lose my job') ||
         lower.contains('losing my job') ||
@@ -492,7 +524,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
         lower.contains('gonna get fired') ||
         lower.contains('going to get fired')) {
       final namePart = firstName.isNotEmpty ? ' $firstName' : '';
-      return "Take a slow, deep breath$namePart. Fearing that you might lose your job is extremely frightening, and it's completely natural for your mind to panic when job security feels threatened.\n\nLet's separate catastrophic thoughts from objective facts together:\n\n1. Has anyone in management given you official written feedback or warnings, or is your stress making worst-case predictions?\n2. What is 1 immediate task or project you have full control over right now?\n3. Would you like us to examine the evidence together or draft a proactive check-in message to your manager?";
+      return "Take a slow, deep breath$namePart. Fearing that you might lose your job is extremely frightening, and it's completely natural for your mind to panic when job security feels threatened.\n\nWhat specifically happened recently that made you feel this way? Tell me a bit more about what's going on.";
     }
 
     // Family Sickness, Illness & Emergency Care
@@ -938,6 +970,25 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     return _generateDomainFallbackResponse(userPrompt);
   }
 
+  void _showUpcomingFeatureSnackBar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Upcoming feature — Stay tuned!',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: const Color(0xFF171B2B),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
   Widget _buildGeminiStyleLandingView() {
     final name = UserPreferencesStore.getUserName();
     final firstName = name.isNotEmpty ? name.split(' ').first : '';
@@ -945,46 +996,89 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 32),
+            // Top action buttons row (Plus & History icons) for landing screen
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  onPressed: _showUpcomingFeatureSnackBar,
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF3F2FF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.history_rounded,
+                      color: Color(0xFF95416C),
+                      size: 20,
+                    ),
+                  ),
+                  tooltip: 'Chat History',
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  onPressed: _showUpcomingFeatureSnackBar,
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF3F2FF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.add_rounded,
+                      color: Color(0xFF95416C),
+                      size: 20,
+                    ),
+                  ),
+                  tooltip: 'New Chat',
+                ),
+              ],
+            ),
 
-            // Central Glowing Mochi Spark Icon
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFFFF0EB),
-                    Color(0xFFF3F2FF),
+            const SizedBox(height: 16),
+
+            // Animated Central Mochi Spark Icon
+            ScaleTransition(
+              scale: _pulseAnimation,
+              child: Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFFFFF0EB),
+                      Color(0xFFF3F2FF),
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFAB3500).withValues(alpha: 0.16),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                    BoxShadow(
+                      color: const Color(0xFF95416C).withValues(alpha: 0.12),
+                      blurRadius: 36,
+                      offset: const Offset(0, 12),
+                    ),
                   ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFAB3500).withValues(alpha: 0.16),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
+                child: Center(
+                  child: SvgPicture.asset(
+                    'assets/brand/mochi_bot.svg',
+                    width: 52,
+                    height: 52,
+                    fit: BoxFit.contain,
                   ),
-                  BoxShadow(
-                    color: const Color(0xFF95416C).withValues(alpha: 0.12),
-                    blurRadius: 36,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: SvgPicture.asset(
-                  'assets/brand/mochi_bot.svg',
-                  width: 46,
-                  height: 46,
-                  fit: BoxFit.contain,
                 ),
               ),
             ),
@@ -1019,16 +1113,16 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
 
             const SizedBox(height: 32),
 
-            // Suggestion Prompt Chips
+            // Suggestion Prompt Chips with Material Icons
             Wrap(
               spacing: 10,
               runSpacing: 10,
               alignment: WrapAlignment.center,
               children: [
-                _buildSuggestionChip("De-stress Reset", "Help me de-stress after a long meeting"),
-                _buildSuggestionChip("Vent about Workload", "I'm feeling overwhelmed with my tasks today"),
-                _buildSuggestionChip("Coffee Break", "I need a quick 2-minute mental reset"),
-                _buildSuggestionChip("Focus & Goals", "Give me a quick action plan for my priorities"),
+                _buildSuggestionChip("De-stress Reset", Icons.self_improvement_rounded, "Help me de-stress after a long meeting"),
+                _buildSuggestionChip("Vent about Workload", Icons.chat_bubble_outline_rounded, "I'm feeling overwhelmed with my tasks today"),
+                _buildSuggestionChip("Coffee Break", Icons.coffee_rounded, "I need a quick 2-minute mental reset"),
+                _buildSuggestionChip("Focus & Goals", Icons.center_focus_strong_rounded, "Give me a quick action plan for my priorities"),
               ],
             ),
 
@@ -1039,7 +1133,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     );
   }
 
-  Widget _buildSuggestionChip(String label, String fullPrompt) {
+  Widget _buildSuggestionChip(String label, IconData icon, String fullPrompt) {
     return InkWell(
       onTap: () {
         _textController.text = fullPrompt;
@@ -1060,13 +1154,20 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
             ),
           ],
         ),
-        child: Text(
-          label,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF171B2B),
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: const Color(0xFFAB3500)),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF171B2B),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1079,80 +1180,81 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top Header — Mochi avatar, name, and online tag
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20.0,
-                vertical: 10.0,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    padding: const EdgeInsets.all(2),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFFF0EB),
-                      shape: BoxShape.circle,
-                    ),
-                    child: SvgPicture.asset(
-                      'assets/brand/mochi_bot.svg',
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Mochi',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF171B2B),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD1FAE5),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      _isClockedIn ? 'OFFICE SHIFT ACTIVE' : 'ONLINE',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF006C53),
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _messages.clear();
-                      });
-                      _saveMessages();
-                    },
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
+            // Top Header — Mochi avatar, name, and online tag (Shown only when in active conversation)
+            if (_messages.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20.0,
+                  vertical: 10.0,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      padding: const EdgeInsets.all(2),
                       decoration: const BoxDecoration(
-                        color: Color(0xFFF3F2FF),
+                        color: Color(0xFFFFF0EB),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.add_rounded,
-                        color: Color(0xFF95416C),
-                        size: 20,
+                      child: SvgPicture.asset(
+                        'assets/brand/mochi_bot.svg',
+                        fit: BoxFit.contain,
                       ),
                     ),
-                    tooltip: 'New Chat',
-                  ),
-                ],
+                    const SizedBox(width: 10),
+                    Text(
+                      'Mochi',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF171B2B),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD1FAE5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _isClockedIn ? 'OFFICE SHIFT ACTIVE' : 'ONLINE',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF006C53),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _messages.clear();
+                        });
+                        _saveMessages();
+                      },
+                      icon: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF3F2FF),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.add_rounded,
+                          color: Color(0xFF95416C),
+                          size: 20,
+                        ),
+                      ),
+                      tooltip: 'New Chat',
+                    ),
+                  ],
+                ),
               ),
-            ),
 
             // Main Body: Gemini-style Landing View when empty, Chat ListView when messages exist
             Expanded(

@@ -56,6 +56,9 @@ class UserPreferencesStore {
   static bool _isLoggedInCache = false;
   static bool _hasCompletedOnboardingCache = false;
 
+  static const String _keyCompanyVision = 'company_vision';
+  static String _companyVisionCache = '';
+
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _nameCache = prefs.getString(_keyUserName) ?? '';
@@ -69,6 +72,7 @@ class UserPreferencesStore {
     _companySizeCache = prefs.getString(_keyCompanySize) ?? '';
     _companyCodeCache = prefs.getString(_keyCompanyCode) ?? '';
     _teamCodeCache = prefs.getString(_keyTeamCode) ?? '';
+    _companyVisionCache = prefs.getString(_keyCompanyVision) ?? '';
     _isLeaderCache = prefs.getBool(_keyIsLeader) ?? false;
     _avatarUrlCache = prefs.getString(_keyUserAvatarUrl);
     _userIdCache = prefs.getString(_keyUserId) ?? '';
@@ -80,6 +84,14 @@ class UserPreferencesStore {
       _hasCompletedOnboardingCache = true;
     }
   }
+
+  static Future<void> setCompanyVision(String vision) async {
+    _companyVisionCache = vision;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyCompanyVision, vision);
+  }
+
+  static String getCompanyVision() => _companyVisionCache;
 
   static Future<void> setIsLoggedIn(bool val) async {
     _isLoggedInCache = val;
