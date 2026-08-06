@@ -453,6 +453,22 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
     final name = UserPreferencesStore.getUserName();
     final firstName = name.isNotEmpty ? name.split(' ').first : '';
 
+    // Clinical Crises, Severe Depression, Self-Harm, or Professional Psychological Referral
+    if (lower.contains('psychologist') ||
+        lower.contains('psychiatrist') ||
+        lower.contains('therapist') ||
+        lower.contains('suicide') ||
+        lower.contains('self harm') ||
+        lower.contains('clinical') ||
+        lower.contains('trauma') ||
+        lower.contains('medication') ||
+        lower.contains('mental illness') ||
+        lower.contains('end it all') ||
+        lower.contains('kill myself')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "I want to be completely honest with you$namePart — what you're sharing is really heavy, and as your workplace stress companion, this is beyond what I can safely help you navigate here.\n\nYou deserve real, specialized care. I strongly encourage you to connect with a licensed psychologist or psychiatrist who can give you the deep professional support you need.\n\nIs there a doctor, crisis hotline, or trusted friend you can reach out to right now? You don't have to carry this alone.";
+    }
+
     // Meta questions about Breathing / Action Buttons
     if (lower.contains('breathing') ||
         lower.contains('action') ||
