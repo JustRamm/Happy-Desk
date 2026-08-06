@@ -133,6 +133,7 @@ class MochiPromptService {
     String? leaveSummary,
     String? coffeeHistorySummary,
     String? cbtTrendSummary,
+    MochiIntentAnalysis? intentAnalysis,
     List<String>? detectedDistortions,
     String? nglJarSummary,
     String? weeklyHeroSummary,
@@ -198,7 +199,71 @@ class MochiPromptService {
       buffer.writeln('User Weekly Hero Nominations Received: $weeklyHeroSummary');
     }
 
+    if (intentAnalysis != null) {
+      buffer.writeln();
+      buffer.writeln('## Gemini Intent Analysis Context (Step 1 LLM Classification)');
+      buffer.writeln('Primary Intent: ${intentAnalysis.primaryIntent}');
+      buffer.writeln('User Emotional State: ${intentAnalysis.emotionalState}');
+      buffer.writeln('Is Off-Topic: ${intentAnalysis.isOffTopic}');
+      buffer.writeln('User In The Wrong / Behavioral Issue: ${intentAnalysis.isUserInTheWrong}');
+      if (intentAnalysis.behavioralInsight != null && intentAnalysis.behavioralInsight!.isNotEmpty) {
+        buffer.writeln('Behavioral Insight: ${intentAnalysis.behavioralInsight}');
+      }
+      buffer.writeln('Suicidal or Extreme Crisis: ${intentAnalysis.isSuicidalOrSevereCrisis}');
+      buffer.writeln('Feels Unnoticed: ${intentAnalysis.feelsUnnoticed}');
+      if (intentAnalysis.actionTrigger != null) {
+        buffer.writeln('Suggested UI Action Trigger: ${intentAnalysis.actionTrigger}');
+      }
+      if (intentAnalysis.isGoodbye) {
+        buffer.writeln('User is Signing Off / Goodbye: true');
+      }
+    }
+
     return buffer.toString();
+  }
+
+  /// Builds a specialized prompt for Step 1 LLM Intent Analysis.
+  String buildIntentAnalysisPrompt(String userText, List<String> recentHistory) {
+    final historyContext = recentHistory.isNotEmpty
+        ? 'Recent conversation context:\n${recentHistory.join('\n')}\n\n'
+        : '';
+    return '''
+You are an expert AI Intent & Psychological Classifier for Mochi, a workplace mental wellness & stress companion.
+Analyze the user's latest sentence in full context (not just isolated keywords).
+
+$historyContext
+Latest User Message: "$userText"
+
+Perform a complete intent analysis and output ONLY valid JSON matching this exact structure:
+{
+  "isOffTopic": false,
+  "primaryIntent": "workplace_overload",
+  "emotionalState": "burnt_out",
+  "actionTrigger": null,
+  "detectedDistortions": [],
+  "feelsUnnoticed": false,
+  "isPersonalCrisis": false,
+  "isSuicidalOrSevereCrisis": false,
+  "isUserInTheWrong": false,
+  "behavioralInsight": null,
+  "isGoodbye": false,
+  "reasoning": "User is expressing workload stress."
+}
+
+Field instructions:
+- "isOffTopic": true ONLY if asking for code generation, math homework, general trivia, programming debugging, or non-emotional technical tasks. Personal emotional topics like breakups, loneliness, grief, relationship heartbreak, family issues ARE NOT off-topic (set isOffTopic: false).
+- "primaryIntent": e.g. "workplace_overload", "team_conflict", "harassment", "performance_anxiety", "feels_unnoticed", "user_behavioral_issue", "breakup_heartbreak", "loneliness", "personal_grief", "personal_crisis", "suicidal_crisis", "boundary_setting", "breathing_needed", "desk_stretches", "cbt_reframe", "time_off", "casual_chat", "farewell", "off_topic".
+- "emotionalState": "calm", "anxious", "angry", "burnt_out", "sad", "panicked".
+- "actionTrigger": "boundary", "breathing", "stretches", "cbt_reframe", or null.
+- "detectedDistortions": list of strings if present (e.g. ["Catastrophizing", "All-or-Nothing", "Mind Reading", "Should Statements", "Labeling"]).
+- "feelsUnnoticed": true if user feels ignored, unappreciated, or invisible by colleagues or boss.
+- "isPersonalCrisis": true if sick family member, hospital emergency, death, severe illness, breakup, or personal grief.
+- "isSuicidalOrSevereCrisis": true if self-harm, suicidal ideation, extreme helplessness.
+- "isUserInTheWrong": true if the user's own perspective, actions, or expectations are flawed, overly harsh, micromanaging, or unfair to colleagues/interns (e.g. wanting to fire interns without guidance/feedback).
+- "behavioralInsight": brief explanation of why the user might be in the wrong or what behavioral flaw is observed.
+- "isGoodbye": true if sign-off phrase like bye, good night, gotta go, ttyl.
+- "reasoning": 1 sentence summary of the classification.
+''';
   }
 
   /// Strips MOOD_LOG lines from model output and returns parsed mood data.
@@ -303,4 +368,60 @@ class MochiParsedReply {
   final MochiMoodLog? moodLog;
 
   const MochiParsedReply({required this.visibleText, this.moodLog});
+}
+
+class MochiIntentAnalysis {
+  final bool isOffTopic;
+  final String primaryIntent;
+  final String emotionalState;
+  final String? actionTrigger;
+  final List<String> detectedDistortions;
+  final bool feelsUnnoticed;
+  final bool isPersonalCrisis;
+  final bool isSuicidalOrSevereCrisis;
+  final bool isUserInTheWrong;
+  final String? behavioralInsight;
+  final bool isGoodbye;
+  final String reasoning;
+
+  const MochiIntentAnalysis({
+    required this.isOffTopic,
+    required this.primaryIntent,
+    this.emotionalState = 'calm',
+    this.actionTrigger,
+    this.detectedDistortions = const [],
+    this.feelsUnnoticed = false,
+    this.isPersonalCrisis = false,
+    this.isSuicidalOrSevereCrisis = false,
+    this.isUserInTheWrong = false,
+    this.behavioralInsight,
+    this.isGoodbye = false,
+    this.reasoning = '',
+  });
+
+  factory MochiIntentAnalysis.fromJson(Map<String, dynamic> json) {
+    return MochiIntentAnalysis(
+      isOffTopic: json['isOffTopic'] as bool? ?? false,
+      primaryIntent: json['primaryIntent'] as String? ?? 'general_support',
+      emotionalState: json['emotionalState'] as String? ?? 'calm',
+      actionTrigger: json['actionTrigger'] as String?,
+      detectedDistortions: List<String>.from(json['detectedDistortions'] as List? ?? []),
+      feelsUnnoticed: json['feelsUnnoticed'] as bool? ?? false,
+      isPersonalCrisis: json['isPersonalCrisis'] as bool? ?? false,
+      isSuicidalOrSevereCrisis: json['isSuicidalOrSevereCrisis'] as bool? ?? false,
+      isUserInTheWrong: json['isUserInTheWrong'] as bool? ?? false,
+      behavioralInsight: json['behavioralInsight'] as String?,
+      isGoodbye: json['isGoodbye'] as bool? ?? false,
+      reasoning: json['reasoning'] as String? ?? '',
+    );
+  }
+
+  factory MochiIntentAnalysis.fallback(String userText) {
+    return MochiIntentAnalysis(
+      isOffTopic: false,
+      primaryIntent: 'general_support',
+      emotionalState: 'calm',
+      reasoning: 'Fallback intent analysis',
+    );
+  }
 }

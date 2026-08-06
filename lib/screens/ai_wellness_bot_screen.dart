@@ -204,92 +204,11 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
 
     await _maybeCaptureStylePreference(text);
 
-    // Local domain guardrail check (keywords from mochi_config.json)
-    final lowerText = text.toLowerCase();
-    final offTopicKeywords = _promptService.offTopicKeywords;
-    final bool isOffTopic = offTopicKeywords.any(lowerText.contains);
+    // Step 1: LLM-based Intent & Psychological Classification using Gemini
+    final MochiIntentAnalysis intentAnalysis = await _analyzeIntentWithGemini(text);
 
-    if (isOffTopic) {
-      await Future.delayed(const Duration(milliseconds: 900));
-      if (!mounted) return;
-      setState(() {
-        _isTyping = false;
-        _messages.add(
-          _ChatMessage(
-            text:
-                "I'm Mochi, your workplace stress companion! I don't handle code or general trivia, but I'm right here if you need to talk through work stress or take a breath.",
-            isUser: false,
-            time: _formatCurrentTime(),
-          ),
-        );
-      });
-      _scrollToBottom();
-      _saveMessages();
-      return;
-    }
-
-    // Detect feature triggers for action buttons
-    final bool asksBoundary =
-        lowerText.contains('boundary') ||
-        lowerText.contains('script') ||
-        lowerText.contains('manager') ||
-        lowerText.contains('boss') ||
-        lowerText.contains('say to my team');
-
-    final bool isPersonalCrisis =
-        lowerText.contains('sick') ||
-        lowerText.contains('die') ||
-        lowerText.contains('hospital') ||
-        lowerText.contains('mom') ||
-        lowerText.contains('mother') ||
-        lowerText.contains('father') ||
-        lowerText.contains('dad') ||
-        lowerText.contains('family') ||
-        lowerText.contains('emergency') ||
-        lowerText.contains('passed away');
-
-    final bool isMetaQuestionAboutActions = lowerText.contains('why') ||
-        lowerText.contains('reset') ||
-        lowerText.contains('show') ||
-        lowerText.contains('button') ||
-        lowerText.contains('card') ||
-        lowerText.contains('explain') ||
-        lowerText.contains('what is');
-
-    final bool suggestsBreathing = !isPersonalCrisis &&
-        !isMetaQuestionAboutActions &&
-        (lowerText.contains('anxious') ||
-        lowerText.contains('panic') ||
-        lowerText.contains('overwhelmed') ||
-        lowerText.contains('can\'t breathe') ||
-        lowerText.contains('short of breath') ||
-        lowerText.contains('breathing exercise') ||
-        lowerText.contains('racing heart'));
-
-    final bool suggestsStretches = !isPersonalCrisis &&
-        !isMetaQuestionAboutActions &&
-        (lowerText.contains('neck') ||
-        lowerText.contains('shoulder') ||
-        lowerText.contains('back') ||
-        lowerText.contains('stiff') ||
-        lowerText.contains('exhausted'));
-
-    final detectedDistortions = (isPersonalCrisis || isMetaQuestionAboutActions)
-        ? <String>[]
-        : _promptService.detectCognitiveDistortions(text);
-
-    String? determinedAction;
-    if (isPersonalCrisis || isMetaQuestionAboutActions) {
-      determinedAction = null;
-    } else if (asksBoundary) {
-      determinedAction = 'boundary';
-    } else if (suggestsBreathing) {
-      determinedAction = 'breathing';
-    } else if (suggestsStretches) {
-      determinedAction = 'stretches';
-    } else if (detectedDistortions.isNotEmpty) {
-      determinedAction = 'cbt_reframe';
-    }
+    final List<String> detectedDistortions = intentAnalysis.detectedDistortions;
+    final String? determinedAction = intentAnalysis.actionTrigger;
 
     // Pre-fetch user's NGL Jar notes and Weekly Hero nominations
     List<Map<String, dynamic>> nglNotes = [];
@@ -310,21 +229,8 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
         ? myHeroNoms.map((n) => '- "${n['reason']}"').join('\n')
         : 'None';
 
-    final bool feelsUnnoticed = lowerText.contains('not noticed') ||
-        lowerText.contains('unnoticed') ||
-        lowerText.contains('invisible') ||
-        lowerText.contains('ignored') ||
-        lowerText.contains('unappreciated') ||
-        lowerText.contains('no one appreciates') ||
-        lowerText.contains('nobody appreciates') ||
-        lowerText.contains('nobody notices') ||
-        lowerText.contains('no one notices') ||
-        lowerText.contains('underappreciated') ||
-        lowerText.contains('unseen') ||
-        lowerText.contains('left out');
-
     String? unnoticedResponseOverride;
-    if (feelsUnnoticed && (nglNotes.isNotEmpty || myHeroNoms.isNotEmpty)) {
+    if (intentAnalysis.feelsUnnoticed && (nglNotes.isNotEmpty || myHeroNoms.isNotEmpty)) {
       if (nglNotes.isNotEmpty && myHeroNoms.isNotEmpty) {
         final nglContent = nglNotes.first['message'] ?? '';
         final heroContent = myHeroNoms.first['reason'] ?? '';
@@ -338,7 +244,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       }
     }
 
-    // Call Real Live Gemini API
+    // Step 2: Call Gemini for Mochi Personality Response Generation
     try {
       final String reply;
       if (unnoticedResponseOverride != null) {
@@ -346,6 +252,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       } else {
         reply = await _fetchGeminiResponse(
           text,
+          intentAnalysis: intentAnalysis,
           detectedDistortions: detectedDistortions,
           nglJarSummary: nglJarSummary,
           weeklyHeroSummary: weeklyHeroSummary,
@@ -426,7 +333,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       if (!mounted) return;
       final fallbackText = unnoticedResponseOverride ?? _generateDomainFallbackResponse(text);
       final chunks = _splitBotResponse(fallbackText);
-      final finalAction = determinedAction ?? (suggestsBreathing ? 'breathing' : null);
+      final finalAction = determinedAction;
 
       setState(() {
         _isTyping = false;
@@ -907,8 +814,63 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     }
   }
 
+  Future<MochiIntentAnalysis> _analyzeIntentWithGemini(String userPrompt) async {
+    await _promptService.ensureLoaded();
+    final config = _promptService.config;
+
+    final recentHistory = _messages.length > 6
+        ? _messages.sublist(_messages.length - 6).map((m) => '${m.isUser ? "User" : "Mochi"}: ${m.text}').toList()
+        : _messages.map((m) => '${m.isUser ? "User" : "Mochi"}: ${m.text}').toList();
+
+    final intentPrompt = _promptService.buildIntentAnalysisPrompt(userPrompt, recentHistory);
+
+    final url = Uri.parse(
+      'https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=$_geminiApiKey',
+    );
+
+    final payload = {
+      "contents": [
+        {
+          "role": "user",
+          "parts": [
+            {"text": intentPrompt},
+          ],
+        }
+      ],
+      "generationConfig": {
+        "temperature": 0.2,
+        "maxOutputTokens": 400,
+        "responseMimeType": "application/json",
+      },
+    };
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final String? textResponse =
+            data['candidates']?[0]?['content']?['parts']?[0]?['text'];
+        if (textResponse != null && textResponse.trim().isNotEmpty) {
+          final cleanJson = textResponse.trim();
+          final parsedJson = jsonDecode(cleanJson) as Map<String, dynamic>;
+          return MochiIntentAnalysis.fromJson(parsedJson);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error performing Step 1 Gemini intent analysis: $e');
+    }
+
+    return MochiIntentAnalysis.fallback(userPrompt);
+  }
+
   Future<String> _fetchGeminiResponse(
     String userPrompt, {
+    MochiIntentAnalysis? intentAnalysis,
     List<String>? detectedDistortions,
     String? nglJarSummary,
     String? weeklyHeroSummary,
@@ -933,7 +895,8 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       leaveSummary: _leaveSummary,
       coffeeHistorySummary: _coffeeHistorySummary,
       cbtTrendSummary: _cbtTrendSummary,
-      detectedDistortions: detectedDistortions,
+      intentAnalysis: intentAnalysis,
+      detectedDistortions: detectedDistortions ?? intentAnalysis?.detectedDistortions,
       nglJarSummary: nglJarSummary,
       weeklyHeroSummary: weeklyHeroSummary,
     );
@@ -1332,12 +1295,24 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
                     ),
                     const Spacer(),
                     IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _messages.clear();
-                        });
-                        _saveMessages();
-                      },
+                      onPressed: _showUpcomingFeatureSnackBar,
+                      icon: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF3F2FF),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.history_rounded,
+                          color: Color(0xFF95416C),
+                          size: 20,
+                        ),
+                      ),
+                      tooltip: 'Chat History',
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      onPressed: _showUpcomingFeatureSnackBar,
                       icon: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: const BoxDecoration(
