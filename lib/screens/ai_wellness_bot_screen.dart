@@ -512,6 +512,106 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       return "I hear that frustration$namePart — managing interns or team members when things aren't working out can be really exhausting. Before taking any action, what specifically happened with the interns that led you to this point? Tell me what's been going on.";
     }
 
+    // Founder Scenario 1: Co-Founder Friction & Strategic Disagreement
+    if (lower.contains('co-founder') ||
+        lower.contains('cofounder') ||
+        lower.contains('partner friction') ||
+        lower.contains('equity split') ||
+        lower.contains('disagree on direction')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "Co-founder friction is one of the hardest and most exhausting parts of building a company$namePart. When you're both poured into the mission, disagreement feels deeply personal.\n\nBefore jumping to conclusions, what specific decision or situation triggered this friction between you two? Tell me what happened.";
+    }
+
+    // Founder Scenario 2: Investor & Pitch Deck Panic / Runway Stress
+    if (lower.contains('pitch deck') ||
+        lower.contains('investor') ||
+        lower.contains('fundraising') ||
+        lower.contains('runway') ||
+        lower.contains('pitching')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "Pitching and investor stress can make your chest feel so tight$namePart. Take a slow, grounding breath with me right now.\n\nWhat is the main concern keeping you up right now — is it the narrative of the deck, or a specific metric investors pushed back on? Tell me what's on your mind.";
+    }
+
+    // Founder Scenario 3: Delegation & Micromanagement Trap
+    if (lower.contains('micromanag') ||
+        lower.contains('can\'t delegate') ||
+        lower.contains('cannot delegate') ||
+        lower.contains('check everything myself') ||
+        lower.contains('hand off')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "Founder perfectionism is real$namePart — when it's your company, handing over the steering wheel to anyone else feels risky.\n\nWhich specific task or domain feels hardest for you to delegate right now? Tell me a bit about what you're trying to hand off.";
+    }
+
+    // Team Lead Scenario 1: Peer-to-Manager Transition Awkwardness
+    if (lower.contains('peer to manager') ||
+        lower.contains('used to be my friend') ||
+        lower.contains('now their boss') ||
+        lower.contains('former peers') ||
+        lower.contains('friend to manager')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "Shifting from a peer/friend to a manager is one of the trickiest workplace transitions$namePart. It's completely normal for things to feel awkward at first.\n\nHow has your dynamic with them changed since stepping into the lead role? Tell me what's been happening.";
+    }
+
+    // Team Lead Scenario 2: Delivering Hard / Constructive Feedback (SBI Framework)
+    if (lower.contains('give negative feedback') ||
+        lower.contains('give tough feedback') ||
+        lower.contains('sensitive employee') ||
+        lower.contains('hard feedback') ||
+        lower.contains('performance review feedback')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "Delivering tough feedback gives almost every manager anxiety$namePart, but avoiding it only hurts the team in the long run.\n\nWhat specific behavior needs to change, and what reaction are you worried about? Tell me the situation and we can structure it together.";
+    }
+
+    // Team Lead Scenario 3: Inter-Department & Slack Conflict
+    if (lower.contains('arguing in slack') ||
+        lower.contains('slack drama') ||
+        lower.contains('department conflict') ||
+        lower.contains('blaming each other') ||
+        lower.contains('team conflict')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "Public team friction or Slack drama can derail team morale fast$namePart. De-escalating quickly and privately is key.\n\nDid this argument break out in a public channel or during a sync meeting? Tell me what happened.";
+    }
+
+    // Employee Scenario 1: Imposter Syndrome in Technical / New Roles
+    if (lower.contains('imposter syndrome') ||
+        lower.contains('imposter') ||
+        lower.contains('everyone is smarter') ||
+        lower.contains('not good enough') ||
+        lower.contains('fake my way')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "Take a deep breath$namePart. Imposter syndrome almost always hits high achievers who care deeply about doing great work.\n\nWhat recent project, code review, or conversation triggered this feeling of not being good enough? Tell me what happened.";
+    }
+
+    // Employee Scenario 2: Promotion & Salary Negotiation Anxiety
+    if (lower.contains('ask for a raise') ||
+        lower.contains('ask for raise') ||
+        lower.contains('salary negotiation') ||
+        lower.contains('promotion') ||
+        lower.contains('underpaid')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "Asking for what you're worth is empowering, but advocating for yourself can feel nerve-wracking$namePart!\n\nWhat key achievements or expanded responsibilities have you taken on over the past 6 months? Tell me what you've been working on.";
+    }
+
+    // Employee Scenario 3: Back-to-Back Meeting & Zoom Fatigue
+    if (lower.contains('zoom fatigue') ||
+        lower.contains('meeting fatigue') ||
+        lower.contains('back to back meetings') ||
+        lower.contains('back-to-back') ||
+        lower.contains('brain fried')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "Back-to-back meetings fry your cognitive energy fast$namePart! Let's pause and give your brain a 30-second break.\n\nDo you have any open time left today, or are you in syncs until the end of your shift? Tell me how your schedule looks.";
+    }
+
+    // Employee Scenario 4: Career Growth Plateau
+    if (lower.contains('career plateau') ||
+        lower.contains('not growing') ||
+        lower.contains('stagnant') ||
+        lower.contains('stuck in my role') ||
+        lower.contains('stuck in same role')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "Feeling stagnant in your role can make every workday feel like an uphill drag$namePart. You deserve to feel challenged and growing.\n\nIs the stagnation coming from repetitive tasks, or a lack of new stretch projects? Tell me what's going on.";
+    }
+
     // Fear of Getting Fired / Job Security / Layoffs / Performance Panic (Employee)
     if (lower.contains('fired') ||
         lower.contains('lose my job') ||
