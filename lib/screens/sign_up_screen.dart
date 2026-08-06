@@ -31,6 +31,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String _generatedLeaderCode = '';
   String _selectedAvatar = '';
   String _selectedDepartment = 'Design';
+  bool _isSubmitting = false;
+  String _loadingStatus = 'Launching Workspace...';
   final ImagePicker _imagePicker = ImagePicker();
 
   final List<String> _departments = [
@@ -312,6 +314,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _performSupabaseRegistration() async {
+    if (_isSubmitting) return;
+
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final name = _nameController.text.trim();
@@ -365,6 +369,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
+    setState(() {
+      _isSubmitting = true;
+      _loadingStatus = _selectedRole == 'founder' ? 'Creating Auth Session...' : 'Verifying Account...';
+    });
+
     // Store local profile
     await UserPreferencesStore.setUserProfile(
       name: name.isNotEmpty ? name : (_selectedRole == 'founder' ? 'Founder' : 'Employee'),
@@ -405,6 +414,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
       String? uploadedAvatarUrl;
 
       if (_selectedRole == 'founder') {
+        if (mounted) {
+          setState(() {
+            _loadingStatus = 'Building Company & Join Codes...';
+          });
+        }
         final compCode = UserPreferencesStore.getCompanyCode();
         final authRes = await SupabaseService.instance.signUpFounder(
           email: email,
@@ -424,9 +438,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
           hqGoogleMapsLink: _hqMapsLinkController.text.trim(),
         );
         if (authRes.user != null && _selectedAvatar.isNotEmpty && File(_selectedAvatar).existsSync()) {
+          if (mounted) {
+            setState(() {
+              _loadingStatus = 'Uploading Profile Avatar...';
+            });
+          }
           uploadedAvatarUrl = await SupabaseService.instance.uploadAvatarImage(File(_selectedAvatar));
         }
       } else {
+        if (mounted) {
+          setState(() {
+            _loadingStatus = 'Joining Team Workspace...';
+          });
+        }
         final code = _inviteCodeController.text.trim();
         final authRes = await SupabaseService.instance.signUpEmployee(
           email: email,
@@ -443,6 +467,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
           teamGoogleMapsLink: _isLeadershipRole ? _teamMapsLinkController.text.trim() : null,
         );
         if (authRes.user != null && _selectedAvatar.isNotEmpty && File(_selectedAvatar).existsSync()) {
+          if (mounted) {
+            setState(() {
+              _loadingStatus = 'Uploading Profile Avatar...';
+            });
+          }
           uploadedAvatarUrl = await SupabaseService.instance.uploadAvatarImage(File(_selectedAvatar));
         }
       }
@@ -456,6 +485,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
           }).eq('id', user.id);
         }
       }
+
+      if (mounted) {
+        setState(() {
+          _loadingStatus = 'Finalizing & Launching...';
+        });
+      }
+
       await UserPreferencesStore.setIsLoggedIn(true);
     } catch (e) {
       debugPrint('Supabase registration note: $e');
@@ -473,6 +509,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
       }
     } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
       widget.onSignUpSuccess();
     }
   }
@@ -1881,14 +1922,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
           const SizedBox(height: 20),
 
-          // Create Account Button (Final Submit)
+          // Create Account Button (Final Submit with Rocket Launch Pulse loading state)
           SizedBox(
             width: double.infinity,
-            height: 50,
+            height: 52,
             child: ElevatedButton(
-              onPressed: _performSupabaseRegistration,
+              onPressed: _isSubmitting ? null : _performSupabaseRegistration,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryRust,
+                disabledBackgroundColor: AppTheme.primaryRust.withValues(alpha: 0.85),
                 foregroundColor: Colors.white,
                 elevation: 3,
                 shadowColor: AppTheme.primaryRust.withValues(alpha: 0.35),
@@ -1896,13 +1938,48 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   borderRadius: BorderRadius.circular(26),
                 ),
               ),
-              child: Text(
-                isFounder ? 'Launch Company' : 'Complete Setup & Join Team',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              child: _isSubmitting
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          _loadingStatus,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          isFounder ? Icons.rocket_launch_rounded : Icons.check_circle_rounded,
+                          size: 20,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          isFounder ? 'Launch Company' : 'Complete Setup & Join Team',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
             ),
           ),
         ],
