@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -102,7 +104,17 @@ class _FounderConfigScreenState extends State<FounderConfigScreen> {
       }
 
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: Platform.isAndroid
+            ? AndroidSettings(
+                accuracy: LocationAccuracy.best,
+                timeLimit: const Duration(seconds: 30),
+                forceLocationManager: false,
+              )
+            : AppleSettings(
+                accuracy: LocationAccuracy.best,
+                activityType: ActivityType.other,
+                timeLimit: const Duration(seconds: 30),
+              ),
       );
       if (!mounted) return;
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -540,19 +541,37 @@ class SupabaseService {
 
     try {
       return await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 5),
-        ),
+        locationSettings: Platform.isAndroid
+            ? AndroidSettings(
+                accuracy: LocationAccuracy.best,
+                // 30 seconds gives the GPS chip enough time to acquire satellites.
+                // The old 5-second limit forced Android to use WiFi/cell-tower
+                // positioning, which is only accurate to 1-2 km.
+                timeLimit: const Duration(seconds: 30),
+                // false = use FusedLocationProvider (GPS + sensor fusion), not
+                // the legacy LocationManager, for the best accuracy.
+                forceLocationManager: false,
+              )
+            : AppleSettings(
+                accuracy: LocationAccuracy.best,
+                activityType: ActivityType.other,
+                timeLimit: const Duration(seconds: 30),
+                pauseLocationUpdatesAutomatically: false,
+              ),
       );
-    } catch (e) {
-      debugPrint('Error getting location position: $e');
+    } on TimeoutException {
+      debugPrint('[Location] GPS timed out after 30 s, trying last known position.');
       try {
         final lastPos = await Geolocator.getLastKnownPosition();
         if (lastPos != null) return lastPos;
-      } catch (ex) {
-        debugPrint('Error getting last known position: $ex');
-      }
+      } catch (_) {}
+      return null;
+    } catch (e) {
+      debugPrint('[Location] Error getting position: $e');
+      try {
+        final lastPos = await Geolocator.getLastKnownPosition();
+        if (lastPos != null) return lastPos;
+      } catch (_) {}
       return null;
     }
   }

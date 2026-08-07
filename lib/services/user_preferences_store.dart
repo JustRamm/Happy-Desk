@@ -25,6 +25,8 @@ class UserPreferencesStore {
   static const String _keyHeroNominations = 'hero_nominations';
   static const String _keyMochiContextSummary = 'mochi_context_summary';
   static const String _keyMochiFeedbackHistory = 'mochi_feedback_history';
+  static const String _keyMochiLifeContext = 'mochi_life_context';
+  static const String _keyMochiOpenThreads = 'mochi_open_threads';
 
   static const String _keyRoleType = 'user_role_type';
   static const String _keyCompanyHq = 'company_hq_location';
@@ -35,9 +37,13 @@ class UserPreferencesStore {
   static const String _keyIsLeader = 'is_leader';
   static const String _keyIsLoggedIn = 'is_logged_in';
   static const String _keyHasCompletedOnboarding = 'has_completed_onboarding';
+  static const String _keyUserNickname = 'user_nickname';
+  static const String _keyHasAskedNickname = 'has_asked_nickname';
 
   // In-memory sync fallback cache
   static String _nameCache = '';
+  static String _nicknameCache = '';
+  static bool _hasAskedNicknameCache = false;
   static String _roleCache = 'Employee';
   static String _roleTypeCache = 'employee';
   static String _teamCache = 'General';
@@ -62,6 +68,8 @@ class UserPreferencesStore {
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _nameCache = prefs.getString(_keyUserName) ?? '';
+    _nicknameCache = prefs.getString(_keyUserNickname) ?? '';
+    _hasAskedNicknameCache = prefs.getBool(_keyHasAskedNickname) ?? false;
     _roleCache = prefs.getString(_keyUserRole) ?? 'Employee';
     _roleTypeCache = prefs.getString(_keyRoleType) ?? 'employee';
     _teamCache = prefs.getString(_keyUserTeam) ?? 'General';
@@ -513,9 +521,29 @@ class UserPreferencesStore {
     return 'Casual Leave balance: 8 days remaining; Sick Leave balance: 5 days remaining. Recent leave requests: ${requests.take(2).join("; ")}.';
   }
 
+  static String getUserNickname() => _nicknameCache;
+
+  static Future<void> setUserNickname(String nickname) async {
+    _nicknameCache = nickname;
+    _hasAskedNicknameCache = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUserNickname, nickname);
+    await prefs.setBool(_keyHasAskedNickname, true);
+  }
+
+  static bool hasAskedForNickname() => _hasAskedNicknameCache;
+
+  static Future<void> setHasAskedForNickname(bool asked) async {
+    _hasAskedNicknameCache = asked;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyHasAskedNickname, asked);
+  }
+
   static String getFullUserProfileSummary() {
     final parts = <String>[];
     if (getUserName().isNotEmpty) parts.add('Name: ${getUserName()}');
+    if (getUserNickname().isNotEmpty) parts.add('User Nickname / Pet Name: ${getUserNickname()}');
+    parts.add('Has Asked Nickname Before: ${_hasAskedNicknameCache ? "Yes" : "No"}');
     if (getUserRole().isNotEmpty) parts.add('Role: ${getUserRole()}');
     if (getUserTeam().isNotEmpty) parts.add('Team: ${getUserTeam()}');
     if (getCompany().isNotEmpty) parts.add('Company: ${getCompany()}');
@@ -624,7 +652,85 @@ class UserPreferencesStore {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(key, value);
   }
+
+  // ── Mochi Cross-Session Life Context Memory ─────────────────────────────
+  // Stores key life facts (relationship status, ongoing struggles, etc.) as a
+  // JSON map so Mochi can reference them across app sessions.
+
+  /// Persist a single life-context entry, e.g.:
+  ///   key = 'relationship', value = 'going through a breakup'
+  ///   key = 'family', value = 'parents pressuring about career'
+  static Future<void> setMochiLifeContextEntry(String key, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    final existing = prefs.getString(_keyMochiLifeContext) ?? '{}';
+    try {
+      final map = Map<String, dynamic>.from(jsonDecode(existing) as Map);
+      if (value.trim().isEmpty) {
+        map.remove(key);
+      } else {
+        map[key] = value.trim();
+      }
+      await prefs.setString(_keyMochiLifeContext, jsonEncode(map));
+    } catch (_) {
+      await prefs.setString(_keyMochiLifeContext, jsonEncode({key: value}));
+    }
+  }
+
+  /// Returns all life-context entries as a formatted plain-English string
+  /// ready to inject into the system instruction, e.g.:
+  ///   "relationship: going through a breakup; family: parents pressuring about career"
+  static Future<String> getMochiLifeContextSummary() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyMochiLifeContext);
+    if (raw == null || raw.isEmpty) return '';
+    try {
+      final map = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+      if (map.isEmpty) return '';
+      return map.entries
+          .map((e) => '${e.key}: ${e.value}')
+          .join('; ');
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /// Clears all life-context entries (e.g. on logout or full reset).
+  static Future<void> clearMochiLifeContext() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyMochiLifeContext);
+  }
+
+  // ── Mochi Open Threads ───────────────────────────────────────────────────
+  // Tracks unresolved conversational threads so Mochi can follow up naturally.
+
+  static Future<List<String>> getMochiOpenThreads() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_keyMochiOpenThreads) ?? [];
+  }
+
+  /// Add a new open thread for future follow-up, e.g.:
+  ///   "User mentioned mom is in hospital — check how it went"
+  static Future<void> addMochiOpenThread(String thread) async {
+    final prefs = await SharedPreferences.getInstance();
+    final threads = prefs.getStringList(_keyMochiOpenThreads) ?? [];
+    threads.add(thread);
+    // Keep only the 5 most recent threads to avoid bloating the system prompt
+    final trimmed = threads.length > 5 ? threads.sublist(threads.length - 5) : threads;
+    await prefs.setStringList(_keyMochiOpenThreads, trimmed);
+  }
+
+  static Future<void> clearMochiOpenThreads() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyMochiOpenThreads);
+  }
+
+  static Future<String> getMochiOpenThreadsSummary() async {
+    final threads = await getMochiOpenThreads();
+    if (threads.isEmpty) return '';
+    return threads.map((t) => '- $t').join('\n');
+  }
 }
+
 
 class MochiFeedbackLog {
   final bool helpful;

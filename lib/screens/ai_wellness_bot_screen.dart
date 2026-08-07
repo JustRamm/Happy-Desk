@@ -42,6 +42,8 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
   String _leaveSummary = '';
   String _coffeeHistorySummary = '';
   String _cbtTrendSummary = '';
+  String _lifeContextSummary = '';
+  String _openThreadsSummary = '';
 
   // Read API Key securely from .env file with fallback
   static String get _geminiApiKey =>
@@ -49,16 +51,6 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       ['AQ.Ab8RN6JqYApi2S_', 'KG2DS0-cLBDdHMiSA9pct2qT66ykUGWJkVg'].join('');
 
   final MochiPromptService _promptService = MochiPromptService.instance;
-
-  final List<String> _fallbackResponses = [
-    "I hear you. Navigating work dynamics and personal feelings can take a lot of mental energy. What part of this feels most important to sort out right now?",
-    "Whether you're looking for a practical action plan or just need a safe space to unpack what's on your mind, I'm right here with you.",
-    "If you're feeling stuck or uncertain, we can break it down step-by-step. Tell me a bit more about what's going on.",
-    "I'm here to help with workplace relationships, stress, or tough conversations. What would feel most helpful for you in this moment?",
-    "Let's focus on what gives you clarity and peace of mind. What's the main thing on your mind right now?",
-  ];
-
-  int _fallbackIndex = 0;
 
   @override
   void initState() {
@@ -96,6 +88,16 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       _cbtTrendSummary = cbtTrend ?? '';
       _roleKnowledgeHint = _promptService.buildRoleKnowledgeHint(role);
     });
+
+    // Load persistent cross-session life context and open threads
+    final lifeCtx = await UserPreferencesStore.getMochiLifeContextSummary();
+    final openThreads = await UserPreferencesStore.getMochiOpenThreadsSummary();
+    if (mounted) {
+      setState(() {
+        _lifeContextSummary = lifeCtx;
+        _openThreadsSummary = openThreads;
+      });
+    }
   }
 
   @override
@@ -204,23 +206,41 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
 
     await _maybeCaptureStylePreference(text);
 
-    // Step 1: LLM-based Intent & Psychological Classification using Gemini
-    final MochiIntentAnalysis intentAnalysis = await _analyzeIntentWithGemini(text);
-
-    final List<String> detectedDistortions = intentAnalysis.detectedDistortions;
-    final String? determinedAction = intentAnalysis.actionTrigger;
-
-    // Pre-fetch user's NGL Jar notes and Weekly Hero nominations
+    // Parallelize Step 1 Intent Analysis and Supabase pre-fetches for minimal latency
+    MochiIntentAnalysis intentAnalysis = MochiIntentAnalysis.fallback(text);
     List<Map<String, dynamic>> nglNotes = [];
     List<Map<String, dynamic>> myHeroNoms = [];
+
+    final isEarlyCrisis = _promptService.isCrisisOrSelfHarmText(text);
+
     try {
-      nglNotes = await SupabaseService.instance.getNglJarMessages();
-      final allHero = await SupabaseService.instance.getWeeklyHeroNominations();
+      final results = await Future.wait([
+        _analyzeIntentWithGemini(text),
+        SupabaseService.instance.getNglJarMessages().catchError((_) => <Map<String, dynamic>>[]),
+        SupabaseService.instance.getWeeklyHeroNominations().catchError((_) => <Map<String, dynamic>>[]),
+      ]);
+
+      intentAnalysis = results[0] as MochiIntentAnalysis;
+      nglNotes = results[1] as List<Map<String, dynamic>>;
+      final allHero = results[2] as List<Map<String, dynamic>>;
       final myName = UserPreferencesStore.getUserName();
       myHeroNoms = allHero.where((n) => n['nominee_name'] == myName).toList();
     } catch (e) {
-      debugPrint('Error pre-fetching feature data for Mochi: $e');
+      debugPrint('Error in parallel pre-fetch: $e');
     }
+
+    if (isEarlyCrisis) {
+      intentAnalysis = MochiIntentAnalysis(
+        isOffTopic: false,
+        primaryIntent: 'suicidal_crisis',
+        emotionalState: 'panicked',
+        isSuicidalOrSevereCrisis: true,
+        reasoning: 'Self-harm or crisis detected in input.',
+      );
+    }
+
+    final List<String> detectedDistortions = intentAnalysis.detectedDistortions;
+    final String? determinedAction = intentAnalysis.actionTrigger;
 
     final String nglJarSummary = nglNotes.isNotEmpty
         ? nglNotes.map((n) => '- "${n['message']}"').join('\n')
@@ -229,36 +249,45 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
         ? myHeroNoms.map((n) => '- "${n['reason']}"').join('\n')
         : 'None';
 
-    String? unnoticedResponseOverride;
-    if (intentAnalysis.feelsUnnoticed && (nglNotes.isNotEmpty || myHeroNoms.isNotEmpty)) {
-      if (nglNotes.isNotEmpty && myHeroNoms.isNotEmpty) {
-        final nglContent = nglNotes.first['message'] ?? '';
-        final heroContent = myHeroNoms.first['reason'] ?? '';
-        unnoticedResponseOverride = 'I\'m sure you\'re wrong since one coworker said this "$nglContent" or you were one coworker hero of this week because u did "$heroContent"';
-      } else if (nglNotes.isNotEmpty) {
-        final nglContent = nglNotes.first['message'] ?? '';
-        unnoticedResponseOverride = 'I\'m sure you\'re wrong since one coworker said this in your NGL Jar: "$nglContent"';
-      } else {
-        final heroContent = myHeroNoms.first['reason'] ?? '';
-        unnoticedResponseOverride = 'I\'m sure you\'re wrong since you were one coworker hero of this week because u did "$heroContent"';
+    // Step 2: Call Gemini for Mochi Personality Response Generation.
+    // NGL Jar & Weekly Hero data is already injected into the system instruction context
+    // via nglJarSummary / weeklyHeroSummary — let Gemini phrase it warmly and naturally
+    // instead of using a hardcoded override string.
+    final userExtractedNick = _promptService.maybeExtractNicknameFromUserText(text);
+    if (userExtractedNick != null && userExtractedNick.isNotEmpty) {
+      await UserPreferencesStore.setUserNickname(userExtractedNick);
+      if (mounted) {
+        setState(() {
+          _userProfileSummary = UserPreferencesStore.getFullUserProfileSummary();
+        });
       }
     }
 
-    // Step 2: Call Gemini for Mochi Personality Response Generation
     try {
-      final String reply;
-      if (unnoticedResponseOverride != null) {
-        reply = unnoticedResponseOverride;
-      } else {
-        reply = await _fetchGeminiResponse(
-          text,
-          intentAnalysis: intentAnalysis,
-          detectedDistortions: detectedDistortions,
-          nglJarSummary: nglJarSummary,
-          weeklyHeroSummary: weeklyHeroSummary,
-        );
-      }
+      final String reply = await _fetchGeminiResponse(
+        text,
+        intentAnalysis: intentAnalysis,
+        detectedDistortions: detectedDistortions,
+        nglJarSummary: nglJarSummary,
+        weeklyHeroSummary: weeklyHeroSummary,
+      );
       final parsed = _promptService.parseModelReply(reply);
+
+      if (parsed.extractedNickname != null && parsed.extractedNickname!.isNotEmpty) {
+        await UserPreferencesStore.setUserNickname(parsed.extractedNickname!);
+        if (mounted) {
+          setState(() {
+            _userProfileSummary = UserPreferencesStore.getFullUserProfileSummary();
+          });
+        }
+      } else if (parsed.nicknameDeclined) {
+        await UserPreferencesStore.setHasAskedForNickname(true);
+        if (mounted) {
+          setState(() {
+            _userProfileSummary = UserPreferencesStore.getFullUserProfileSummary();
+          });
+        }
+      }
 
       if (parsed.moodLog != null) {
         await UserPreferencesStore.appendMochiMoodLog(parsed.moodLog!);
@@ -328,10 +357,13 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
         }
       }
 
+      // Always run the session summarizer so memory captures each turn.
+      // The summarizer internally checks message count and only compresses
+      // when the session is long enough to be worth summarizing.
       summarizeSessionIfNeeded();
     } catch (e) {
       if (!mounted) return;
-      final fallbackText = unnoticedResponseOverride ?? _generateDomainFallbackResponse(text);
+      final fallbackText = _generateDomainFallbackResponse(text);
       final chunks = _splitBotResponse(fallbackText);
       final finalAction = determinedAction;
 
@@ -374,7 +406,8 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     final firstName = name.isNotEmpty ? name.split(' ').first : '';
 
     // Clinical Crises, Severe Depression, Self-Harm, or Professional Psychological Referral
-    if (lower.contains('psychologist') ||
+    if (_promptService.isCrisisOrSelfHarmText(userText) ||
+        lower.contains('psychologist') ||
         lower.contains('psychiatrist') ||
         lower.contains('therapist') ||
         lower.contains('suicide') ||
@@ -386,7 +419,16 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
         lower.contains('end it all') ||
         lower.contains('kill myself')) {
       final namePart = firstName.isNotEmpty ? ' $firstName' : '';
-      return "I want to be completely honest with you$namePart — what you're sharing is really heavy, and as your workplace stress companion, this is beyond what I can safely help you navigate here.\n\nYou deserve real, specialized care. I strongly encourage you to connect with a licensed psychologist or psychiatrist who can give you the deep professional support you need.\n\nIs there a doctor, crisis hotline, or trusted friend you can reach out to right now? You don't have to carry this alone.";
+      return "I want to be completely honest with you$namePart — what you're sharing is really heavy, and your life and safety matter so much. As your companion, this goes beyond what I can safely help you navigate here.\n\nYou deserve real, specialized care right now. Please reach out to a licensed professional or emergency crisis helpline immediately (Helpline: 0000000000) or connect with a trusted person close to you right this second. You don't have to carry this alone.";
+    }
+
+    // Boredom & Casual downtime state
+    if (lower.contains('bored') ||
+        lower.contains('boredom') ||
+        lower.contains('nothing to do') ||
+        lower.contains('just bored')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "Boredom strikes us all sometimes$namePart! I'm right here with you — whether you want to chat about something fun, take a 1-minute desk stretch, or just vent, I've got your back. What's on your mind today?";
     }
 
     // Meta questions about Breathing / Action Buttons
@@ -535,30 +577,37 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     }
 
     // Family Sickness, Illness & Emergency Care
-    if (lower.contains('sick') ||
-        lower.contains('die') ||
-        lower.contains('hospital') ||
-        lower.contains('mom') ||
-        lower.contains('mother') ||
-        lower.contains('father') ||
-        lower.contains('dad') ||
-        lower.contains('family') ||
-        lower.contains('emergency') ||
-        lower.contains('passed away')) {
+    // Require BOTH a family-member word AND a crisis word to avoid triggering on normal
+    // sentences that happen to contain 'mom', 'dad', 'sick', 'family', etc.
+    final hasFamilyMember = lower.contains('mom') || lower.contains('mother') ||
+        lower.contains('dad') || lower.contains('father') || lower.contains('parent') ||
+        lower.contains('sibling') || lower.contains('brother') || lower.contains('sister');
+    final hasCrisisWord = lower.contains('hospital') || lower.contains('cancer') ||
+        lower.contains('accident') || lower.contains('surgery') ||
+        (lower.contains('sick') && (lower.contains('really') || lower.contains('very') || lower.contains('seriously')));
+    if ((hasFamilyMember && hasCrisisWord) ||
+        lower.contains('passed away') ||
+        lower.contains('funeral')) {
       return "Oh no... I am so sorry to hear that. Hearing that someone close to you is sick or in danger is terrifying and overwhelming. Please don't worry about work right now — take a deep breath and focus on being there for your family. I'm right here with you if you need a safe space to talk or vent.";
     }
 
     // Leave, Vacation, Day Off & Off-Duty
-    if (lower.contains('leave') ||
-        lower.contains('vacation') ||
-        lower.contains('day off') ||
+    // Use specific phrases only — bare 'leave' is too common ("I need to leave this toxic job",
+    // "should I leave the meeting?") and would fire the vacation reply incorrectly.
+    if (lower.contains('day off') ||
         lower.contains('days off') ||
-        lower.contains('holiday') ||
-        lower.contains('no work') ||
-        lower.contains('not working') ||
+        lower.contains('time off') ||
+        lower.contains('on vacation') ||
+        lower.contains('going on vacation') ||
+        lower.contains('annual leave') ||
+        lower.contains('on leave') ||
+        lower.contains('holiday tomorrow') ||
         lower.contains('off tomorrow') ||
         lower.contains('off today') ||
-        lower.contains('off-duty')) {
+        lower.contains('off-duty') ||
+        lower.contains('no work tomorrow') ||
+        lower.contains('not working today') ||
+        lower.contains('not working tomorrow')) {
       final namePart = firstName.isNotEmpty ? ' $firstName' : '';
       return "That sounds wonderful$namePart! Taking time off is so important to recharge and reset. Make sure to fully disconnect, mute your work notifications, and enjoy your time off. You've earned it!";
     }
@@ -598,15 +647,18 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       return "Feeling out of sync with your team can make everyday work feel way more exhausting than it needs to be. Often, this disconnect comes down to different communication styles rather than a true lack of compatibility.\n\nHere is a simple, low-pressure approach: try starting with small 1-on-1 micro-connections over coffee or quick check-ins, rather than trying to fix the whole team dynamic at once.";
     }
 
-    // Workplace relationship / Manager romance dynamics
+    // Workplace relationship / Romance dynamics
+    // Removed 'boss' and 'manager' — far too common in normal complaints.
+    // Only trigger on explicit romantic context signals.
     if (lower.contains('crush') ||
-        lower.contains('boss') ||
         lower.contains('in love') ||
-        lower.contains('unethical') ||
-        lower.contains('manager') ||
-        lower.contains('dating') ||
+        lower.contains('romantic feelings') ||
+        lower.contains('dating coworker') ||
+        lower.contains('dating my boss') ||
+        lower.contains('dating my manager') ||
         lower.contains('romance') ||
-        lower.contains('feelings for')) {
+        lower.contains('feelings for') ||
+        (lower.contains('unethical') && (lower.contains('relationship') || lower.contains('dating')))) {
       return "Here's the straight answer: Do not act on romantic feelings while they are still your direct manager or boss.\n\nFalling for a manager happens, but pursuing a connection across a direct reporting line creates significant workplace and ethical risks:\n\n• Power Dynamic & Ethics: It compromises objective performance reviews, task assignments, and team credibility.\n• HR Policies: Most organizations have strict non-fraternization policies for direct reporting lines.\n\nIf the feelings are serious, either maintain strict professional boundaries or explore transferring to a different team before pursuing anything further.";
     }
 
@@ -732,9 +784,8 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       return "I'm right here with you. You don't have to explain it right now, and we don't have to talk about anything specific. Just know that I'm standing by your side whenever you feel like sharing.";
     }
 
-    final text = _fallbackResponses[_fallbackIndex % _fallbackResponses.length];
-    _fallbackIndex++;
-    return text;
+    final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+    return "I'm right here with you$namePart. Tell me a bit more about what's going on or how you're feeling right now, and we can unpack it together.";
   }
 
   List<String> _splitBotResponse(String fullText) {
@@ -758,14 +809,29 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       return [chunk1, chunk2, chunk3];
     }
 
-    // If text is short (< 160 chars), keep it in 1 message bubble
-    if (trimmed.length < 160) {
+    // If text is moderate (< 220 chars), keep it in 1 single clean message bubble
+    if (trimmed.length < 220) {
       return [trimmed];
     }
 
-    // Split single long text into sentences (. ! ?)
-    final sentenceMatches = RegExp(r'[^.!?]+[.!?]+').allMatches(trimmed);
-    final sentences = sentenceMatches.map((m) => m.group(0)!.trim()).toList();
+    // Split single long text into sentences while preserving 100% of fullText
+    final sentences = <String>[];
+    int lastEnd = 0;
+    for (final match in RegExp(r'[^.!?]+[.!?]+').allMatches(trimmed)) {
+      sentences.add(match.group(0)!.trim());
+      lastEnd = match.end;
+    }
+    // Append any trailing text after the last punctuation so NO text is ever lost/cut!
+    if (lastEnd < trimmed.length) {
+      final remainder = trimmed.substring(lastEnd).trim();
+      if (remainder.isNotEmpty) {
+        if (sentences.isNotEmpty) {
+          sentences[sentences.length - 1] = '${sentences.last} $remainder';
+        } else {
+          sentences.add(remainder);
+        }
+      }
+    }
 
     if (sentences.length <= 1) {
       return [trimmed];
@@ -845,11 +911,13 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     };
 
     try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(payload),
-      );
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -899,18 +967,22 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       detectedDistortions: detectedDistortions ?? intentAnalysis?.detectedDistortions,
       nglJarSummary: nglJarSummary,
       weeklyHeroSummary: weeklyHeroSummary,
+      lifeContextSummary: _lifeContextSummary.isNotEmpty ? _lifeContextSummary : null,
+      openThreadsSummary: _openThreadsSummary.isNotEmpty ? _openThreadsSummary : null,
     );
 
-    // Build multi-turn chat history ensuring user/model alternation AND user start
+    // Build multi-turn chat history.
     final List<Map<String, dynamic>> contents = [];
-    final history = _messages.length > 8
-        ? _messages.sublist(_messages.length - 8)
-        : List<_ChatMessage>.from(_messages);
+    final allPriorMessages = _messages.length > 1
+        ? _messages.sublist(0, _messages.length - 1)
+        : <_ChatMessage>[];
+    final history = allPriorMessages.length > 8
+        ? allPriorMessages.sublist(allPriorMessages.length - 8)
+        : List<_ChatMessage>.from(allPriorMessages);
 
     for (var msg in history) {
       final role = msg.isUser ? 'user' : 'model';
 
-      // Gemini API rule: contents must start with 'user'
       if (contents.isEmpty && role == 'model') {
         continue;
       }
@@ -918,7 +990,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       if (contents.isNotEmpty && contents.last['role'] == role) {
         final existingText = (contents.last['parts'] as List)[0]['text'];
         (contents.last['parts'] as List)[0]['text'] =
-            '$existingText\n${msg.text}';
+            '$existingText\n\n${msg.text}';
       } else {
         contents.add({
           'role': role,
@@ -929,18 +1001,12 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       }
     }
 
-    // Always ensure userPrompt is appended as the final 'user' turn for Gemini API
-    if (contents.isNotEmpty && contents.last["role"] == "user") {
-      final existingText = (contents.last['parts'] as List)[0]['text'];
-      (contents.last['parts'] as List)[0]['text'] = '$existingText\n$userPrompt';
-    } else {
-      contents.add({
-        "role": "user",
-        "parts": [
-          {"text": userPrompt},
-        ],
-      });
-    }
+    contents.add({
+      'role': 'user',
+      'parts': [
+        {'text': userPrompt},
+      ],
+    });
 
     final primaryUrl = Uri.parse(
       'https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=$_geminiApiKey',
@@ -960,11 +1026,13 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     };
 
     try {
-      var response = await http.post(
-        primaryUrl,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(payload),
-      );
+      var response = await http
+          .post(
+            primaryUrl,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -993,11 +1061,13 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
         },
       };
 
-      response = await http.post(
-        primaryUrl,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(singleTurnPayload),
-      );
+      response = await http
+          .post(
+            primaryUrl,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(singleTurnPayload),
+          )
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -1008,15 +1078,17 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
         }
       }
 
-      // Fallback 2: Try gemini-1.5-pro endpoint
+      // Fallback 2: Try gemini-3.5-flash endpoint
       final altUrl = Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=$_geminiApiKey',
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$_geminiApiKey',
       );
-      response = await http.post(
-        altUrl,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(singleTurnPayload),
-      );
+      response = await http
+          .post(
+            altUrl,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(singleTurnPayload),
+          )
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

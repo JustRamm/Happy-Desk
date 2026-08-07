@@ -106,9 +106,16 @@ class MochiPromptService {
       distortions.add('Mind Reading');
     }
 
-    if (lower.contains('should') ||
-        lower.contains('must') ||
-        lower.contains('ought to')) {
+    if (lower.contains('i should be') ||
+        lower.contains('i should have') ||
+        lower.contains('i should never') ||
+        lower.contains('should always') ||
+        lower.contains('must always') ||
+        lower.contains('i must be') ||
+        lower.contains('i must have') ||
+        lower.contains('ought to be') ||
+        lower.contains('should be perfect') ||
+        lower.contains('should never feel')) {
       distortions.add('Should Statements');
     }
 
@@ -119,6 +126,39 @@ class MochiPromptService {
     }
 
     return distortions;
+  }
+
+  /// High-confidence crisis & self-harm detection (including typos like 'chock', 'chocked', 'holing to die').
+  bool isCrisisOrSelfHarmText(String userText) {
+    final lower = userText.toLowerCase().trim();
+
+    if (lower.contains('suicide') ||
+        lower.contains('suicid') ||
+        lower.contains('self harm') ||
+        lower.contains('self-harm') ||
+        lower.contains('kill myself') ||
+        lower.contains('end it all') ||
+        lower.contains('end my life') ||
+        lower.contains('hurt myself') ||
+        lower.contains('harming myself') ||
+        lower.contains('want to die') ||
+        lower.contains('wanna die') ||
+        lower.contains('hoping to die') ||
+        lower.contains('holing to die') ||
+        lower.contains('chock') ||
+        lower.contains('choked') ||
+        lower.contains('chocking') ||
+        lower.contains('choking') ||
+        lower.contains('hanging myself') ||
+        lower.contains('overdose') ||
+        lower.contains('cut myself') ||
+        lower.contains('dont want to live') ||
+        lower.contains('don\'t want to live') ||
+        lower.contains('no reason to live') ||
+        lower.contains('better off dead')) {
+      return true;
+    }
+    return false;
   }
 
   String buildSystemInstruction({
@@ -137,6 +177,8 @@ class MochiPromptService {
     List<String>? detectedDistortions,
     String? nglJarSummary,
     String? weeklyHeroSummary,
+    String? lifeContextSummary,
+    String? openThreadsSummary,
   }) {
     if (_basePrompt == null) {
       throw StateError('Call ensureLoaded() before building the prompt.');
@@ -197,6 +239,18 @@ class MochiPromptService {
 
     if (weeklyHeroSummary != null && weeklyHeroSummary.trim().isNotEmpty) {
       buffer.writeln('User Weekly Hero Nominations Received: $weeklyHeroSummary');
+    }
+
+    if (lifeContextSummary != null && lifeContextSummary.trim().isNotEmpty) {
+      buffer.writeln(
+        'User Life Context (remembered from past sessions — reference naturally as a friend who remembers): $lifeContextSummary',
+      );
+    }
+
+    if (openThreadsSummary != null && openThreadsSummary.trim().isNotEmpty) {
+      buffer.writeln(
+        'Open Conversational Threads (follow up naturally when it fits the conversation):\n$openThreadsSummary',
+      );
     }
 
     if (intentAnalysis != null) {
@@ -266,11 +320,33 @@ Field instructions:
 ''';
   }
 
-  /// Strips MOOD_LOG lines from model output and returns parsed mood data.
+  /// Extracts user nickname assignments or refusals if user typed e.g. "you can call me Abi if u like".
+  String? maybeExtractNicknameFromUserText(String userText) {
+    final patterns = [
+      RegExp(r'(?:you|u)\s+can\s+call\s+me\s+([a-zA-Z0-9_\-]+)', caseSensitive: false),
+      RegExp(r'call\s+me\s+([a-zA-Z0-9_\-]+)', caseSensitive: false),
+      RegExp(r'my\s+nickname\s+is\s+([a-zA-Z0-9_\-]+)', caseSensitive: false),
+    ];
+    for (final p in patterns) {
+      final match = p.firstMatch(userText);
+      if (match != null && match.groupCount >= 1) {
+        final extracted = match.group(1)!.trim();
+        final lower = extracted.toLowerCase();
+        if (extracted.isNotEmpty && lower != 'if' && lower != 'you' && lower != 'a' && lower != 'please') {
+          return extracted;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Strips MOOD_LOG, SET_NICKNAME lines from model output and returns parsed data.
   MochiParsedReply parseModelReply(String rawReply) {
     final lines = rawReply.split('\n');
     final visibleLines = <String>[];
     MochiMoodLog? moodLog;
+    String? extractedNickname;
+    bool nicknameDeclined = false;
 
     for (final line in lines) {
       final trimmed = line.trim();
@@ -283,14 +359,51 @@ Field instructions:
         } catch (_) {}
         continue;
       }
+
+      if (trimmed.contains('SET_NICKNAME:')) {
+        final parts = trimmed.split('SET_NICKNAME:');
+        if (parts.length > 1) {
+          final nick = parts[1].replaceAll(']', '').trim();
+          if (nick.isNotEmpty) {
+            extractedNickname = nick;
+          }
+        }
+        final cleanLine = trimmed.replaceAll(RegExp(r'\[?SET_NICKNAME:[^\]\n]+\]?'), '').trim();
+        if (cleanLine.isNotEmpty) visibleLines.add(cleanLine);
+        continue;
+      }
+
+      if (trimmed.contains('SET_NICKNAME_DECLINED:')) {
+        nicknameDeclined = true;
+        final cleanLine = trimmed.replaceAll(RegExp(r'\[?SET_NICKNAME_DECLINED:[^\]\n]+\]?'), '').trim();
+        if (cleanLine.isNotEmpty) visibleLines.add(cleanLine);
+        continue;
+      }
+
       visibleLines.add(line);
     }
 
     return MochiParsedReply(
       visibleText: visibleLines.join('\n').trim(),
       moodLog: moodLog,
+      extractedNickname: extractedNickname,
+      nicknameDeclined: nicknameDeclined,
     );
   }
+}
+
+class MochiParsedReply {
+  final String visibleText;
+  final MochiMoodLog? moodLog;
+  final String? extractedNickname;
+  final bool nicknameDeclined;
+
+  const MochiParsedReply({
+    required this.visibleText,
+    this.moodLog,
+    this.extractedNickname,
+    this.nicknameDeclined = false,
+  });
 }
 
 class MochiConfig {
@@ -318,7 +431,7 @@ class MochiConfig {
     final generation = json['generation'] as Map<String, dynamic>? ?? {};
     return MochiConfig(
       version: json['version'] as String? ?? '1.0',
-      model: json['model'] as String? ?? 'gemini-1.5-flash',
+      model: json['model'] as String? ?? 'gemini-flash-latest',
       temperature: (generation['temperature'] as num?)?.toDouble() ?? 0.7,
       maxOutputTokens: generation['maxOutputTokens'] as int? ?? 300,
       moodTags: List<String>.from(json['moodTags'] as List? ?? []),
@@ -361,13 +474,6 @@ class MochiMoodLog {
           : null,
     );
   }
-}
-
-class MochiParsedReply {
-  final String visibleText;
-  final MochiMoodLog? moodLog;
-
-  const MochiParsedReply({required this.visibleText, this.moodLog});
 }
 
 class MochiIntentAnalysis {

@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'user_preferences_store.dart';
@@ -64,7 +66,17 @@ class SessionManagerService with WidgetsBindingObserver {
           final permission = await Geolocator.checkPermission();
           if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
             final pos = await Geolocator.getCurrentPosition(
-              locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+              locationSettings: Platform.isAndroid
+                  ? AndroidSettings(
+                      accuracy: LocationAccuracy.best,
+                      timeLimit: const Duration(seconds: 20),
+                      forceLocationManager: false,
+                    )
+                  : AppleSettings(
+                      accuracy: LocationAccuracy.best,
+                      activityType: ActivityType.other,
+                      timeLimit: const Duration(seconds: 20),
+                    ),
             );
             await UserPreferencesStore.setLastClockInLocation(
               '${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}',
