@@ -253,25 +253,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
 
-      // Clocking IN: Request Location & Save GPS to Supabase
+      // Clocking IN: Instant Optimistic UI Update (0ms delay)
       SoundService.playClockInSound();
-      String locationName = 'Office HQ';
-      bool isOffline = false;
-      try {
-        final session = await SupabaseService.instance.clockInWithLocation();
-        locationName = session?['clock_in_location_name'] ?? 'Office HQ';
-      } catch (e) {
-        isOffline = true;
-        final pos = await SupabaseService.instance.getCurrentDeviceLocation();
-        await OfflineSyncService.instance.enqueueAction(
-          actionType: 'clock_in',
-          payload: {
-            'lat': pos?.latitude,
-            'lng': pos?.longitude,
-            'location_name': 'Office HQ',
-          },
-        );
-      }
 
       final now = DateTime.now();
       final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
@@ -283,14 +266,56 @@ class _HomeScreenState extends State<HomeScreen> {
         _isClockedIn = true;
         _isOnBreak = false;
         _lastClockInTime = formattedTime;
-        _lastClockInLocation = locationName;
+        _lastClockInLocation = 'Locating...';
       });
 
       await UserPreferencesStore.setClockedIn(true);
       await UserPreferencesStore.setOnBreak(false);
       await UserPreferencesStore.setLastClockInTime(formattedTime);
-      await UserPreferencesStore.setLastClockInLocation(locationName);
 
+      // Async background GPS & Supabase location fetch
+      _asyncBackgroundClockIn(formattedTime);
+    } else {
+      // Clocking OUT: Instant Optimistic UI Update (0ms delay)
+      SoundService.playClockOutSound();
+
+      setState(() {
+        _isClockedIn = false;
+        _isOnBreak = false;
+      });
+
+      await UserPreferencesStore.setClockedIn(false);
+      await UserPreferencesStore.setOnBreak(false);
+
+      // Async background GPS & Supabase clock out sync
+      _asyncBackgroundClockOut();
+    }
+  }
+
+  Future<void> _asyncBackgroundClockIn(String formattedTime) async {
+    String locationName = 'Office HQ';
+    bool isOffline = false;
+    try {
+      final session = await SupabaseService.instance.clockInWithLocation();
+      locationName = session?['clock_in_location_name'] ?? 'Office HQ';
+    } catch (e) {
+      isOffline = true;
+      final pos = await SupabaseService.instance.getCurrentDeviceLocation();
+      await OfflineSyncService.instance.enqueueAction(
+        actionType: 'clock_in',
+        payload: {
+          'lat': pos?.latitude,
+          'lng': pos?.longitude,
+          'location_name': 'Office HQ',
+        },
+      );
+    }
+
+    if (mounted && _isClockedIn) {
+      setState(() {
+        _lastClockInLocation = locationName;
+      });
+      await UserPreferencesStore.setLastClockInLocation(locationName);
       await _loadTeamStatus();
 
       if (!mounted) return;
@@ -314,35 +339,29 @@ class _HomeScreenState extends State<HomeScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
-    } else {
-      // Clocking OUT
-      SoundService.playClockOutSound();
-      String outLocation = 'Work Location';
-      bool isOffline = false;
-      try {
-        final outSession = await SupabaseService.instance.clockOutWorkSession();
-        outLocation = outSession?['clock_out_location_name'] ?? 'Work Location';
-      } catch (e) {
-        isOffline = true;
-        final pos = await SupabaseService.instance.getCurrentDeviceLocation();
-        await OfflineSyncService.instance.enqueueAction(
-          actionType: 'clock_out',
-          payload: {
-            'lat': pos?.latitude,
-            'lng': pos?.longitude,
-            'location_name': 'Work Complete',
-          },
-        );
-      }
+    }
+  }
 
-      setState(() {
-        _isClockedIn = false;
-        _isOnBreak = false;
-      });
+  Future<void> _asyncBackgroundClockOut() async {
+    String outLocation = 'Work Location';
+    bool isOffline = false;
+    try {
+      final outSession = await SupabaseService.instance.clockOutWorkSession();
+      outLocation = outSession?['clock_out_location_name'] ?? 'Work Location';
+    } catch (e) {
+      isOffline = true;
+      final pos = await SupabaseService.instance.getCurrentDeviceLocation();
+      await OfflineSyncService.instance.enqueueAction(
+        actionType: 'clock_out',
+        payload: {
+          'lat': pos?.latitude,
+          'lng': pos?.longitude,
+          'location_name': 'Work Complete',
+        },
+      );
+    }
 
-      await UserPreferencesStore.setClockedIn(false);
-      await UserPreferencesStore.setOnBreak(false);
-
+    if (mounted) {
       await _loadTeamStatus();
 
       if (!mounted) return;
@@ -579,11 +598,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Card 3: Weekly Hero Card (Teal/Emerald with Hashtags)
               _buildWeeklyHeroCard(),
-
-              const SizedBox(height: 20),
-
-              // Card 4: Your Week Summary Card (Productivity & Vibe Check)
-              _buildYourWeekCard(),
 
               const SizedBox(height: 90),
             ],
@@ -1946,177 +1960,6 @@ class _HomeScreenState extends State<HomeScreen> {
           fontWeight: FontWeight.w700,
           color: Colors.white,
         ),
-      ),
-    );
-  }
-
-  // Card 4: Your Week Summary Card
-  Widget _buildYourWeekCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFFFFF0F5), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Your Week',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF524036),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Productivity Row & Bar
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Productivity',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.titleDark,
-                ),
-              ),
-              Text(
-                '88%',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.brandTitleOrange,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Stack(
-            children: [
-              Container(
-                height: 8,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEAEFFF),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              FractionallySizedBox(
-                widthFactor: 0.88,
-                child: Container(
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryRust,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 18),
-
-          // Vibe Check Row & Bar
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Vibe Check',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.titleDark,
-                ),
-              ),
-              Text(
-                'High',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF8C436E),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Stack(
-            children: [
-              Container(
-                height: 8,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEAEFFF),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              FractionallySizedBox(
-                widthFactor: 0.70,
-                child: Container(
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF8C436E),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 20),
-
-          // View Full Report Outlined Button
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: OutlinedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Opening Weekly Analytics Report'),
-                  ),
-                );
-              },
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFF524036), width: 1.2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-              ),
-              child: RichText(
-                text: TextSpan(
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13.5,
-                    color: const Color(0xFF524036),
-                    fontWeight: FontWeight.w500,
-                  ),
-                  children: [
-                    const TextSpan(text: 'View '),
-                    TextSpan(
-                      text: 'Full ',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const TextSpan(text: 'Report'),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

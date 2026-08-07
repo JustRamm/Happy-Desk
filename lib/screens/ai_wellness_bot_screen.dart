@@ -784,8 +784,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       return "I'm right here with you. You don't have to explain it right now, and we don't have to talk about anything specific. Just know that I'm standing by your side whenever you feel like sharing.";
     }
 
-    final namePart = firstName.isNotEmpty ? ' $firstName' : '';
-    return "I'm right here with you$namePart. Tell me a bit more about what's going on or how you're feeling right now, and we can unpack it together.";
+    return _getDomainFallbackResponse(userText, firstName, lower);
   }
 
   List<String> _splitBotResponse(String fullText) {
@@ -870,9 +869,6 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     } else if (lower.contains('talk less') ||
         lower.contains('more sparse') ||
         lower.contains('shorter replies')) {
-      await UserPreferencesStore.setMochiStylePreference(
-        'Keep replies sparse and minimal.',
-      );
     } else if (lower.contains('talk more') || lower.contains('more talkative')) {
       await UserPreferencesStore.setMochiStylePreference(
         'Be slightly more talkative and expansive.',
@@ -880,19 +876,98 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     }
   }
 
+  // Meta complaint / repetition check
+  String _getDomainFallbackResponse(String userText, String firstName, String lower) {
+    final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+    if (lower.contains('just said that') ||
+        lower.contains('already said that') ||
+        lower.contains('repeating') ||
+        lower.contains('said that didn\'t u') ||
+        lower.contains('said that didnt u') ||
+        lower.contains('same thing')) {
+      return "Aah sorry about that$namePart! I got a bit caught in a loop there. What's on your mind right now?";
+    }
+
+    // State / recovery updates (e.g. "rn I'm ok, it was bad yesterday. now it's good I'm good")
+    if (lower.contains('i\'m ok') ||
+        lower.contains('im ok') ||
+        lower.contains('i\'m good') ||
+        lower.contains('im good') ||
+        lower.contains('doing good') ||
+        lower.contains('now it\'s good') ||
+        lower.contains('feeling better')) {
+      return "I'm really glad to hear that you're feeling okay right now! Yesterday sounded super heavy, so please treat yourself with kindness today. What's helping you feel better right now?";
+    }
+
+    // Gen Z Slang / Short inputs
+    if (lower == 'hmm' || lower == 'hmm...') {
+      return "Deep thoughts, or just staring into the screen void? 👀 What's on your mind?";
+    }
+    if (lower == 'ugh' || lower == 'ugh...') {
+      return "Feel that. What's going on?";
+    }
+    if (lower == 'bruh' || lower == 'bro') {
+      return "What happened now? 💀 Spill it.";
+    }
+    if (lower == 'k') {
+      return "Wait, is that a relaxed 'k' or a suspicious 'k'? 👀";
+    }
+
+    // Dynamic varied general fallbacks so no duplicate sentences occur
+    final fallbacks = [
+      "I'm right here with you$namePart. What's on your mind today?",
+      "I'm all ears$namePart. How are things going with you right now?",
+      "I'm standing by$namePart — take your time and tell me what's going on.",
+      "I'm here for you$namePart. How are you holding up today?",
+    ];
+
+    final index = (userText.hashCode.abs()) % fallbacks.length;
+    return fallbacks[index];
+  }
+
+  Future<http.Response?> _postGeminiWithFailover(
+    Map<String, dynamic> payload, {
+    Duration timeout = const Duration(seconds: 12),
+  }) async {
+    await _promptService.ensureLoaded();
+    final models = _promptService.config.failoverModels;
+
+    for (final modelName in models) {
+      final url = Uri.parse(
+        'https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$_geminiApiKey',
+      );
+      try {
+        final response = await http
+            .post(
+              url,
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode(payload),
+            )
+            .timeout(timeout);
+
+        if (response.statusCode == 200) {
+          return response;
+        } else if (response.statusCode == 429) {
+          debugPrint('Gemini model $modelName hit 429 Quota Exceeded. Instantly failing over to next candidate...');
+          continue;
+        } else {
+          debugPrint('Gemini model $modelName status ${response.statusCode}, failing over to next model candidate...');
+        }
+      } catch (e) {
+        debugPrint('Gemini model $modelName call failed ($e), trying next candidate...');
+      }
+    }
+    return null;
+  }
+
   Future<MochiIntentAnalysis> _analyzeIntentWithGemini(String userPrompt) async {
     await _promptService.ensureLoaded();
-    final config = _promptService.config;
 
     final recentHistory = _messages.length > 6
         ? _messages.sublist(_messages.length - 6).map((m) => '${m.isUser ? "User" : "Mochi"}: ${m.text}').toList()
         : _messages.map((m) => '${m.isUser ? "User" : "Mochi"}: ${m.text}').toList();
 
     final intentPrompt = _promptService.buildIntentAnalysisPrompt(userPrompt, recentHistory);
-
-    final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=$_geminiApiKey',
-    );
 
     final payload = {
       "contents": [
@@ -911,15 +986,9 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     };
 
     try {
-      final response = await http
-          .post(
-            url,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(payload),
-          )
-          .timeout(const Duration(seconds: 5));
+      final response = await _postGeminiWithFailover(payload, timeout: const Duration(seconds: 6));
 
-      if (response.statusCode == 200) {
+      if (response != null && response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final String? textResponse =
             data['candidates']?[0]?['content']?['parts']?[0]?['text'];
@@ -1008,10 +1077,6 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       ],
     });
 
-    final primaryUrl = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=$_geminiApiKey',
-    );
-
     final payload = {
       "system_instruction": {
         "parts": [
@@ -1026,15 +1091,9 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     };
 
     try {
-      var response = await http
-          .post(
-            primaryUrl,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(payload),
-          )
-          .timeout(const Duration(seconds: 8));
+      var response = await _postGeminiWithFailover(payload, timeout: const Duration(seconds: 12));
 
-      if (response.statusCode == 200) {
+      if (response != null && response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final String? textResponse =
             data['candidates']?[0]?['content']?['parts']?[0]?['text'];
@@ -1043,9 +1102,9 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
         }
       }
 
-      debugPrint('Mochi primary API status ${response.statusCode}, trying single-turn prompt with embedded system instruction...');
+      debugPrint('Mochi primary failover exhausted, trying single-turn prompt...');
 
-      // Fallback 1: Embedded System Instruction + Single User Turn
+      // Fallback 1: Single Turn Failover across models
       final singleTurnPayload = {
         "contents": [
           {
@@ -1061,36 +1120,9 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
         },
       };
 
-      response = await http
-          .post(
-            primaryUrl,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(singleTurnPayload),
-          )
-          .timeout(const Duration(seconds: 5));
+      response = await _postGeminiWithFailover(singleTurnPayload, timeout: const Duration(seconds: 8));
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final String? textResponse =
-            data['candidates']?[0]?['content']?['parts']?[0]?['text'];
-        if (textResponse != null && textResponse.trim().isNotEmpty) {
-          return textResponse.trim();
-        }
-      }
-
-      // Fallback 2: Try gemini-3.5-flash endpoint
-      final altUrl = Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$_geminiApiKey',
-      );
-      response = await http
-          .post(
-            altUrl,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(singleTurnPayload),
-          )
-          .timeout(const Duration(seconds: 5));
-
-      if (response.statusCode == 200) {
+      if (response != null && response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final String? textResponse =
             data['candidates']?[0]?['content']?['parts']?[0]?['text'];

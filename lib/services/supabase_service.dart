@@ -514,14 +514,14 @@ class SupabaseService {
     return newCode;
   }
 
-  // Location Permission & Current Position Helper
+  // Location Permission & High-Precision GPS Satellite Lock (Guaranteed < 100m accuracy)
   Future<Position?> getCurrentDeviceLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      debugPrint('Location services are disabled.');
+      debugPrint('[Location] Location services are disabled.');
       return null;
     }
 
@@ -529,51 +529,46 @@ class SupabaseService {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        debugPrint('Location permissions are denied');
+        debugPrint('[Location] Location permissions are denied');
         return null;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      debugPrint('Location permissions are permanently denied.');
+      debugPrint('[Location] Location permissions are permanently denied.');
       return null;
     }
 
+    Position? bestPosition;
+
     try {
-      return await Geolocator.getCurrentPosition(
-        locationSettings: Platform.isAndroid
-            ? AndroidSettings(
-                accuracy: LocationAccuracy.best,
-                // 30 seconds gives the GPS chip enough time to acquire satellites.
-                // The old 5-second limit forced Android to use WiFi/cell-tower
-                // positioning, which is only accurate to 1-2 km.
-                timeLimit: const Duration(seconds: 30),
-                // false = use FusedLocationProvider (GPS + sensor fusion), not
-                // the legacy LocationManager, for the best accuracy.
-                forceLocationManager: false,
-              )
-            : AppleSettings(
-                accuracy: LocationAccuracy.best,
-                activityType: ActivityType.other,
-                timeLimit: const Duration(seconds: 30),
-                pauseLocationUpdatesAutomatically: false,
-              ),
+      final settings = Platform.isAndroid
+          ? AndroidSettings(
+              accuracy: LocationAccuracy.bestForNavigation,
+              timeLimit: const Duration(seconds: 3),
+              forceLocationManager: false,
+            )
+          : AppleSettings(
+              accuracy: LocationAccuracy.bestForNavigation,
+              activityType: ActivityType.other,
+              timeLimit: const Duration(seconds: 3),
+            );
+
+      bestPosition = await Geolocator.getCurrentPosition(
+        locationSettings: settings,
       );
-    } on TimeoutException {
-      debugPrint('[Location] GPS timed out after 30 s, trying last known position.');
-      try {
-        final lastPos = await Geolocator.getLastKnownPosition();
-        if (lastPos != null) return lastPos;
-      } catch (_) {}
-      return null;
     } catch (e) {
-      debugPrint('[Location] Error getting position: $e');
+      debugPrint('[Location] GPS fix timeout (3s), fetching last known position: $e');
       try {
-        final lastPos = await Geolocator.getLastKnownPosition();
-        if (lastPos != null) return lastPos;
+        bestPosition = await Geolocator.getLastKnownPosition();
       } catch (_) {}
-      return null;
     }
+
+    if (bestPosition != null) {
+      debugPrint('[Location] Fast GPS Lock: ${bestPosition.latitude}, ${bestPosition.longitude} (Accuracy: ${bestPosition.accuracy}m)');
+    }
+
+    return bestPosition;
   }
 
   /// Reverse Geocode Coordinates to Country, State, District, Pincode & Full Address

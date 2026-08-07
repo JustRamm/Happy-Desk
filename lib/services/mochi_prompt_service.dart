@@ -416,6 +416,13 @@ class MochiConfig {
   final List<String> offTopicKeywords;
   final String moodLogPrefix;
 
+  List<String> get failoverModels => [
+        if (model.isNotEmpty) model,
+        'gemini-3.5-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-3.1-flash-lite',
+      ];
+
   const MochiConfig({
     required this.version,
     required this.model,
