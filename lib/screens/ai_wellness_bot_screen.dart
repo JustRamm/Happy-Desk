@@ -32,6 +32,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+  Timer? _messageDebounceTimer;
 
   bool _isTyping = false;
   bool _isClockedIn = false;
@@ -66,11 +67,35 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
+    _textController.addListener(_onTextChanged);
     SoundService.playMessageOpenSound();
     _promptService.ensureLoaded();
     _loadShiftState();
     _loadSavedMessages();
     _loadUserProfileContext();
+  }
+
+  void _onTextChanged() {
+    if (_textController.text.trim().isNotEmpty) {
+      if (_messageDebounceTimer != null && _messageDebounceTimer!.isActive) {
+        _messageDebounceTimer?.cancel();
+        _messageDebounceTimer = Timer(
+          const Duration(milliseconds: 3000),
+          _processCombinedUserBurst,
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _messageDebounceTimer?.cancel();
+    _textController.removeListener(_onTextChanged);
+    summarizeSessionIfNeeded();
+    _textController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserProfileContext() async {
@@ -103,14 +128,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     }
   }
 
-  @override
-  void dispose() {
-    _pulseController.dispose();
-    summarizeSessionIfNeeded();
-    _textController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
+
 
   void summarizeSessionIfNeeded() {
     if (_messages.length < 4) return;
@@ -222,6 +240,37 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       );
     }
 
+    // Cancel existing debounce timer if active, and restart 2.6s pause window
+    _messageDebounceTimer?.cancel();
+    _messageDebounceTimer = Timer(
+      const Duration(milliseconds: 2600),
+      _processCombinedUserBurst,
+    );
+  }
+
+  Future<void> _processCombinedUserBurst() async {
+    if (!mounted || _messages.isEmpty) return;
+
+    // Collect all consecutive un-responded trailing user messages
+    final userBurst = <_ChatMessage>[];
+    for (int i = _messages.length - 1; i >= 0; i--) {
+      if (_messages[i].isUser) {
+        userBurst.insert(0, _messages[i]);
+      } else {
+        break;
+      }
+    }
+
+    if (userBurst.isEmpty) {
+      if (mounted) setState(() => _isTyping = false);
+      return;
+    }
+
+    final combinedText = userBurst.map((m) => m.text.trim()).join('\n');
+    await _processBotResponse(combinedText);
+  }
+
+  Future<void> _processBotResponse(String text) async {
     await _maybeCaptureStylePreference(text);
 
     // Parallelize Step 1 Intent Analysis and Supabase pre-fetches for minimal latency
@@ -267,10 +316,6 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
         ? myHeroNoms.map((n) => '- "${n['reason']}"').join('\n')
         : 'None';
 
-    // Step 2: Call Gemini for Mochi Personality Response Generation.
-    // NGL Jar & Weekly Hero data is already injected into the system instruction context
-    // via nglJarSummary / weeklyHeroSummary — let Gemini phrase it warmly and naturally
-    // instead of using a hardcoded override string.
     final userExtractedNick = _promptService.maybeExtractNicknameFromUserText(text);
     if (userExtractedNick != null && userExtractedNick.isNotEmpty) {
       await UserPreferencesStore.setUserNickname(userExtractedNick);
@@ -377,9 +422,6 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
         }
       }
 
-      // Always run the session summarizer so memory captures each turn.
-      // The summarizer internally checks message count and only compresses
-      // when the session is long enough to be worth summarizing.
       summarizeSessionIfNeeded();
     } catch (e) {
       if (!mounted) return;
