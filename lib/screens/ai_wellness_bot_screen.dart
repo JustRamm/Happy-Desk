@@ -1748,6 +1748,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
               child: const MochiAnimatedVideoWidget(
                 size: 110,
                 showVideoBadge: false,
+                showCircleBackground: false,
                 cycleDuration: Duration(milliseconds: 2800),
               ),
             ),

@@ -1116,7 +1116,7 @@ class SupabaseService {
   Future<List<Map<String, dynamic>>> getDirectMessages() async {
     await init();
     try {
-      final currentUserName = UserPreferencesStore.getUserName();
+      final currentUserName = UserPreferencesStore.getUserName().trim().toLowerCase();
       final user = currentUser;
 
       final res = await client
@@ -1127,10 +1127,10 @@ class SupabaseService {
       final List<Map<String, dynamic>> allMsgs = List<Map<String, dynamic>>.from(res);
 
       return allMsgs.where((msg) {
-        final sender = msg['sender_name'] as String? ?? '';
-        final receiver = msg['receiver_name'] as String? ?? '';
-        final sId = msg['sender_id'] as String? ?? '';
-        final rId = msg['receiver_id'] as String? ?? '';
+        final sender = (msg['sender_name'] as String? ?? '').trim().toLowerCase();
+        final receiver = (msg['receiver_name'] as String? ?? '').trim().toLowerCase();
+        final sId = (msg['sender_id'] as String? ?? '').trim();
+        final rId = (msg['receiver_id'] as String? ?? '').trim();
 
         return (currentUserName.isNotEmpty &&
                 (sender == currentUserName || receiver == currentUserName)) ||
@@ -1149,7 +1149,7 @@ class SupabaseService {
   }) async {
     await init();
     final user = currentUser;
-    final senderName = UserPreferencesStore.getUserName();
+    final senderName = UserPreferencesStore.getUserName().trim();
     final String rawSenderId = user?.id ?? UserPreferencesStore.getUserId();
 
     final uuidRegex = RegExp(
@@ -1161,8 +1161,8 @@ class SupabaseService {
     try {
       final receiverRes = await client
           .from('profiles')
-          .select('id')
-          .eq('name', receiverName)
+          .select('id, name')
+          .ilike('name', receiverName.trim())
           .maybeSingle();
       if (receiverRes != null && receiverRes['id'] != null) {
         final String rId = receiverRes['id'].toString();
@@ -1172,38 +1172,59 @@ class SupabaseService {
       }
     } catch (_) {}
 
+    final effectiveSenderName = senderName.isNotEmpty
+        ? senderName
+        : (user?.email?.split('@').first ?? 'Teammate');
+
+    final Map<String, dynamic> payload = {
+      'sender_name': effectiveSenderName,
+      'receiver_name': receiverName.trim(),
+      'message': message,
+      'media_url': mediaUrl,
+      'is_read': false,
+    };
+
+    if (validSenderId != null) {
+      payload['sender_id'] = validSenderId;
+    }
+    if (validReceiverId != null) {
+      payload['receiver_id'] = validReceiverId;
+    }
+
     try {
-      final Map<String, dynamic> payload = {
-        'sender_name': senderName.isNotEmpty ? senderName : 'User',
-        'receiver_name': receiverName,
-        'message': message,
-        'media_url': mediaUrl,
-        'is_read': false,
-      };
-
-      if (validSenderId != null) {
-        payload['sender_id'] = validSenderId;
-      }
-      if (validReceiverId != null) {
-        payload['receiver_id'] = validReceiverId;
-      }
-
       await client.from('direct_messages').insert(payload);
     } catch (e) {
-      debugPrint('Error inserting into direct_messages: $e');
-      rethrow;
+      debugPrint('[DirectChat] Primary insert attempt error: $e');
+      try {
+        final fallbackPayload = Map<String, dynamic>.from(payload)..remove('receiver_id');
+        await client.from('direct_messages').insert(fallbackPayload);
+      } catch (e2) {
+        debugPrint('[DirectChat] Fallback 1 insert error: $e2');
+        try {
+          await client.from('direct_messages').insert({
+            'sender_name': effectiveSenderName,
+            'receiver_name': receiverName.trim(),
+            'message': message,
+            'media_url': mediaUrl,
+            'is_read': false,
+          });
+        } catch (innerE) {
+          debugPrint('[DirectChat] Fallback 2 insert failed: $innerE');
+          rethrow;
+        }
+      }
     }
   }
 
   Future<void> markDirectMessagesAsRead(String senderName) async {
     await init();
     try {
-      final currentUserName = UserPreferencesStore.getUserName();
+      final currentUserName = UserPreferencesStore.getUserName().trim();
       await client
           .from('direct_messages')
           .update({'is_read': true})
-          .eq('sender_name', senderName)
-          .eq('receiver_name', currentUserName)
+          .ilike('sender_name', senderName.trim())
+          .ilike('receiver_name', currentUserName)
           .eq('is_read', false);
     } catch (e) {
       debugPrint('Error marking direct messages as read: $e');
@@ -1213,17 +1234,18 @@ class SupabaseService {
   Future<void> deleteConversationWith(String partnerName) async {
     await init();
     try {
-      final myName = UserPreferencesStore.getUserName();
+      final myName = UserPreferencesStore.getUserName().trim();
+      final partner = partnerName.trim();
       await client
           .from('direct_messages')
           .delete()
-          .eq('sender_name', myName)
-          .eq('receiver_name', partnerName);
+          .ilike('sender_name', myName)
+          .ilike('receiver_name', partner);
       await client
           .from('direct_messages')
           .delete()
-          .eq('sender_name', partnerName)
-          .eq('receiver_name', myName);
+          .ilike('sender_name', partner)
+          .ilike('receiver_name', myName);
     } catch (e) {
       debugPrint('Error deleting conversation: $e');
       rethrow;
@@ -1361,24 +1383,70 @@ class SupabaseService {
   Future<Map<String, dynamic>?> createCallInvite({
     required String receiverId,
     required bool isVideo,
+    String? receiverName,
   }) async {
     await init();
     final user = currentUser;
-    if (user == null) return null;
+    final callerName = UserPreferencesStore.getUserName().trim();
+    final effectiveCallerName = callerName.isNotEmpty
+        ? callerName
+        : (user?.email?.split('@').first ?? 'Teammate');
 
-    final callerName = UserPreferencesStore.getUserName();
+    final uuidRegex = RegExp(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+    final String? validCallerId =
+        (user != null && uuidRegex.hasMatch(user.id)) ? user.id : null;
+
+    String? validReceiverId =
+        (receiverId.isNotEmpty && uuidRegex.hasMatch(receiverId)) ? receiverId : null;
+
+    if (validReceiverId == null && receiverName != null && receiverName.trim().isNotEmpty) {
+      try {
+        final profileRes = await client
+            .from('profiles')
+            .select('id')
+            .ilike('name', receiverName.trim())
+            .maybeSingle();
+        if (profileRes != null && profileRes['id'] != null) {
+          final String pId = profileRes['id'].toString();
+          if (uuidRegex.hasMatch(pId)) {
+            validReceiverId = pId;
+          }
+        }
+      } catch (_) {}
+    }
+
+    final Map<String, dynamic> payload = {
+      'caller_name': effectiveCallerName,
+      'is_video': isVideo,
+      'status': 'ringing',
+    };
+    if (validCallerId != null) payload['caller_id'] = validCallerId;
+    if (validReceiverId != null) payload['receiver_id'] = validReceiverId;
+
     try {
-      final res = await client.from('call_invites').insert({
-        'caller_id': user.id,
-        'receiver_id': receiverId,
-        'caller_name': callerName,
-        'is_video': isVideo,
-        'status': 'ringing',
-      }).select().single();
+      final res = await client.from('call_invites').insert(payload).select().single();
       return res;
     } catch (e) {
-      debugPrint('Error creating call invite: $e');
-      return null;
+      debugPrint('[CallInvite] Primary insert error: $e');
+      try {
+        final fallbackPayload = Map<String, dynamic>.from(payload)..remove('receiver_id');
+        final res = await client.from('call_invites').insert(fallbackPayload).select().single();
+        return res;
+      } catch (e2) {
+        debugPrint('[CallInvite] Fallback 1 error: $e2');
+        try {
+          final res = await client.from('call_invites').insert({
+            'caller_name': effectiveCallerName,
+            'is_video': isVideo,
+            'status': 'ringing',
+          }).select().single();
+          return res;
+        } catch (innerE) {
+          debugPrint('[CallInvite] Fallback 2 failed: $innerE');
+          rethrow;
+        }
+      }
     }
   }
 
@@ -1396,27 +1464,52 @@ class SupabaseService {
     }
   }
 
-  RealtimeChannel? subscribeToIncomingCalls({
-    required Function(Map<String, dynamic> callData) onIncomingCall,
+  RealtimeChannel? subscribeToCallStatus({
+    required String callId,
+    required Function(String status) onStatusChange,
   }) {
-    final user = currentUser;
-    if (user == null) return null;
-
     final channel = client
-        .channel('public:call_invites:${user.id}')
+        .channel('public:call_invites:$callId')
         .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
+          event: PostgresChangeEvent.update,
           schema: 'public',
           table: 'call_invites',
           filter: PostgresChangeFilter(
             type: PostgresChangeFilterType.eq,
-            column: 'receiver_id',
-            value: user.id,
+            column: 'id',
+            value: callId,
           ),
           callback: (payload) {
+            final status = payload.newRecord['status'] as String?;
+            if (status != null) {
+              onStatusChange(status);
+            }
+          },
+        )
+        .subscribe();
+
+    return channel;
+  }
+
+  RealtimeChannel? subscribeToIncomingCalls({
+    required Function(Map<String, dynamic> callData) onIncomingCall,
+  }) {
+    final user = currentUser;
+
+    final channel = client
+        .channel('public:call_invites_global_${user?.id ?? DateTime.now().millisecondsSinceEpoch}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'call_invites',
+          callback: (payload) {
             final newRecord = payload.newRecord;
-            if (newRecord['status'] == 'ringing') {
-              onIncomingCall(newRecord);
+            final rId = newRecord['receiver_id'] as String?;
+            final status = newRecord['status'] as String?;
+            if (status == 'ringing') {
+              if ((user != null && rId == user.id) || user == null || rId == null) {
+                onIncomingCall(newRecord);
+              }
             }
           },
         )
@@ -1429,26 +1522,126 @@ class SupabaseService {
     required String partnerName,
     required Function(Map<String, dynamic> msgData) onNewMessage,
   }) {
-    final user = currentUser;
-    if (user == null) return null;
-
-    final myName = UserPreferencesStore.getUserName();
+    final myName = UserPreferencesStore.getUserName().trim();
+    final cleanPartner = partnerName.trim();
 
     final channel = client
-        .channel('public:direct_messages:$partnerName')
+        .channel('public:direct_messages:${cleanPartner.toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}')
         .onPostgresChanges(
           event: PostgresChangeEvent.insert,
           schema: 'public',
           table: 'direct_messages',
           callback: (payload) {
             final newRecord = payload.newRecord;
-            final sender = newRecord['sender_name'] as String?;
-            final receiver = newRecord['receiver_name'] as String?;
+            final sender = (newRecord['sender_name'] as String? ?? '').trim().toLowerCase();
+            final receiver = (newRecord['receiver_name'] as String? ?? '').trim().toLowerCase();
+            final myNameLower = myName.toLowerCase();
+            final partnerLower = cleanPartner.toLowerCase();
 
-            if ((sender == myName && receiver == partnerName) ||
-                (sender == partnerName && receiver == myName)) {
+            if ((sender == myNameLower && receiver == partnerLower) ||
+                (sender == partnerLower && receiver == myNameLower) ||
+                partnerLower.isEmpty ||
+                myNameLower.isEmpty) {
               onNewMessage(newRecord);
             }
+          },
+        )
+        .subscribe();
+
+    return channel;
+  }
+
+  Future<List<Map<String, dynamic>>> getCallHistory() async {
+    await init();
+    try {
+      final user = currentUser;
+      final currentUserName = UserPreferencesStore.getUserName().trim();
+      final cleanMyName = currentUserName.toLowerCase();
+
+      final res = await client
+          .from('call_invites')
+          .select('*')
+          .order('created_at', ascending: false)
+          .limit(50);
+
+      final List<Map<String, dynamic>> allCalls = List<Map<String, dynamic>>.from(res);
+
+      final List<Map<String, dynamic>> userCalls = allCalls.where((call) {
+        final cId = call['caller_id'] as String?;
+        final rId = call['receiver_id'] as String?;
+        final cName = (call['caller_name'] as String? ?? '').trim().toLowerCase();
+
+        if (user != null) {
+          if (cId == user.id || rId == user.id) return true;
+        }
+        if (cleanMyName.isNotEmpty) {
+          if (cName == cleanMyName) return true;
+        }
+        if (cId == null && rId == null) return true;
+        return false;
+      }).toList();
+
+      final teammates = await getCompanyTeammates();
+      final Map<String, Map<String, dynamic>> teammateByName = {};
+      final Map<String, Map<String, dynamic>> teammateById = {};
+
+      for (var t in teammates) {
+        final tName = (t['name'] as String? ?? '').trim().toLowerCase();
+        final tId = t['id'] as String?;
+        if (tName.isNotEmpty) teammateByName[tName] = t;
+        if (tId != null && tId.isNotEmpty) teammateById[tId] = t;
+      }
+
+      for (var call in userCalls) {
+        final callerId = call['caller_id'] as String?;
+        final receiverId = call['receiver_id'] as String?;
+        final callerName = (call['caller_name'] as String? ?? 'Unknown').trim();
+
+        final bool isOutgoing = (user != null && callerId == user.id) ||
+            (callerName.toLowerCase() == cleanMyName);
+
+        call['is_outgoing'] = isOutgoing;
+
+        Map<String, dynamic>? partnerProfile;
+        if (isOutgoing) {
+          if (receiverId != null && teammateById.containsKey(receiverId)) {
+            partnerProfile = teammateById[receiverId];
+          }
+        } else {
+          if (callerId != null && teammateById.containsKey(callerId)) {
+            partnerProfile = teammateById[callerId];
+          } else if (teammateByName.containsKey(callerName.toLowerCase())) {
+            partnerProfile = teammateByName[callerName.toLowerCase()];
+          }
+        }
+
+        call['partner_name'] = isOutgoing
+            ? (partnerProfile?['name'] ?? 'Teammate')
+            : callerName;
+        call['partner_avatar'] = partnerProfile?['avatar_url'] ?? '';
+        call['partner_role'] = partnerProfile?['job_title'] ?? 'Teammate';
+        call['partner_id'] = isOutgoing ? receiverId : callerId;
+        call['partner_is_clocked_in'] = partnerProfile?['is_clocked_in'] == true;
+      }
+
+      return userCalls;
+    } catch (e) {
+      debugPrint('Error fetching call history: $e');
+      return [];
+    }
+  }
+
+  RealtimeChannel? subscribeToCallHistory({
+    required Function() onHistoryChanged,
+  }) {
+    final channel = client
+        .channel('public:call_invites_history_${DateTime.now().millisecondsSinceEpoch}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'call_invites',
+          callback: (_) {
+            onHistoryChanged();
           },
         )
         .subscribe();

@@ -53,30 +53,46 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
 
   Future<void> _loadLiveChats() async {
     final dbMessages = await SupabaseService.instance.getDirectMessages();
-    final currentUserName = UserPreferencesStore.getUserName();
+    final currentUserName = UserPreferencesStore.getUserName().trim();
+    final cleanMyName = currentUserName.toLowerCase();
+
+    final teammates = await SupabaseService.instance.getCompanyTeammates();
+    final Map<String, Map<String, dynamic>> teammateByName = {};
+    for (var t in teammates) {
+      final tName = (t['name'] as String? ?? '').trim().toLowerCase();
+      if (tName.isNotEmpty) {
+        teammateByName[tName] = t;
+      }
+    }
+
     final Map<String, Map<String, dynamic>> latestByPerson = {};
 
     if (dbMessages.isNotEmpty) {
       for (var msg in dbMessages) {
-        final sender = msg['sender_name'] as String? ?? 'Unknown';
-        final receiver = msg['receiver_name'] as String? ?? 'Unknown';
-        final isMeSender = (sender == currentUserName);
+        final sender = (msg['sender_name'] as String? ?? 'Unknown').trim();
+        final receiver = (msg['receiver_name'] as String? ?? 'Unknown').trim();
+        final isMeSender = (sender.toLowerCase() == cleanMyName);
         final otherPerson = isMeSender ? receiver : sender;
 
-        if (otherPerson.isEmpty || otherPerson == currentUserName) continue;
+        if (otherPerson.isEmpty || otherPerson.toLowerCase() == cleanMyName) continue;
 
         final isUnread = !isMeSender && (msg['is_read'] == false);
         final timeRaw = msg['created_at']?.toString() ?? '';
         final timeStr = timeRaw.isNotEmpty ? timeRaw.split('T').last.substring(0, 5) : 'Now';
 
+        final teammateData = teammateByName[otherPerson.toLowerCase()];
+        final bool isOnline = teammateData != null && (teammateData['is_clocked_in'] == true);
+
         latestByPerson[otherPerson] = {
+          'id': teammateData?['id'],
           'name': otherPerson,
-          'role': 'Teammate',
+          'role': teammateData?['job_title'] ?? 'Teammate',
           'lastMessage': msg['message'] ?? '',
           'time': timeStr,
           'unread': isUnread,
-          'isOnline': true,
-          'avatar': msg['avatar_url'] as String? ?? '',
+          'isOnline': isOnline,
+          'is_clocked_in': isOnline,
+          'avatar': teammateData?['avatar_url'] ?? msg['avatar_url'] ?? '',
         };
       }
     }
@@ -282,8 +298,38 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
                                               ((chat['avatar'] as String? ?? '').isNotEmpty && File(chat['avatar']).existsSync()))
                                           ? ClipOval(
                                               child: (chat['avatar'] as String).startsWith('http')
-                                                  ? Image.network(chat['avatar'], fit: BoxFit.cover, width: 44, height: 44)
-                                                  : Image.file(File(chat['avatar']), fit: BoxFit.cover, width: 44, height: 44),
+                                                  ? Image.network(
+                                                      chat['avatar'],
+                                                      fit: BoxFit.cover,
+                                                      width: 44,
+                                                      height: 44,
+                                                      errorBuilder: (context, error, stackTrace) => Text(
+                                                        (chat['name'] as String? ?? '?').isNotEmpty
+                                                            ? (chat['name'] as String)[0].toUpperCase()
+                                                            : '?',
+                                                        style: GoogleFonts.plusJakartaSans(
+                                                          fontSize: 16,
+                                                          fontWeight: FontWeight.w800,
+                                                          color: const Color(0xFFAB3500),
+                                                        ),
+                                                      ),
+                                                    )
+                                                  : Image.file(
+                                                      File(chat['avatar']),
+                                                      fit: BoxFit.cover,
+                                                      width: 44,
+                                                      height: 44,
+                                                      errorBuilder: (context, error, stackTrace) => Text(
+                                                        (chat['name'] as String? ?? '?').isNotEmpty
+                                                            ? (chat['name'] as String)[0].toUpperCase()
+                                                            : '?',
+                                                        style: GoogleFonts.plusJakartaSans(
+                                                          fontSize: 16,
+                                                          fontWeight: FontWeight.w800,
+                                                          color: const Color(0xFFAB3500),
+                                                        ),
+                                                      ),
+                                                    ),
                                             )
                                           : Text(
                                               (chat['name'] as String? ?? '?').isNotEmpty

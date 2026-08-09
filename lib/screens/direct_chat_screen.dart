@@ -29,6 +29,8 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   Map<String, dynamic>? _stagedAttachment;
   bool _isPlayingVoice = false;
   final bool _isTeammateTyping = false;
+  bool _isPartnerClockedIn = false;
+  String? _partnerAvatarUrl;
 
   RealtimeChannel? _chatChannel;
 
@@ -41,14 +43,14 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   }
 
   void _subscribeToMessages() {
-    final partnerName = widget.teammate['name'] ?? 'Teammate';
+    final partnerName = (widget.teammate['name'] ?? 'Teammate').toString().trim();
     _chatChannel = SupabaseService.instance.subscribeToDirectMessages(
       partnerName: partnerName,
       onNewMessage: (msgData) {
         if (!mounted) return;
-        final sender = msgData['sender_name'] as String?;
+        final sender = (msgData['sender_name'] as String? ?? '').trim();
         final text = msgData['message'] ?? '';
-        final isUser = sender != partnerName;
+        final isUser = sender.toLowerCase() != partnerName.toLowerCase();
 
         // Avoid adding duplicate messages if we already showed it locally when sending
         final isDuplicate = _messages.any((m) =>
@@ -86,22 +88,44 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   }
 
   Future<void> _loadSupabaseMessages() async {
-    final name = widget.teammate['name'] ?? 'Teammate';
+    final name = (widget.teammate['name'] ?? 'Teammate').toString().trim();
     await SupabaseService.instance.markDirectMessagesAsRead(name);
+
+    final cleanName = name.toLowerCase();
+    try {
+      final teammates = await SupabaseService.instance.getCompanyTeammates();
+      final partnerProfile = teammates.firstWhere(
+        (t) => (t['name'] as String? ?? '').trim().toLowerCase() == cleanName,
+        orElse: () => {},
+      );
+      if (partnerProfile.isNotEmpty && mounted) {
+        setState(() {
+          _isPartnerClockedIn = partnerProfile['is_clocked_in'] == true;
+          final av = (partnerProfile['avatar_url'] as String? ?? '').trim();
+          if (av.isNotEmpty) {
+            _partnerAvatarUrl = av;
+          }
+        });
+      }
+    } catch (_) {}
+
     final dbMessages = await SupabaseService.instance.getDirectMessages();
     if (dbMessages.isNotEmpty) {
-      final filtered = dbMessages.where((m) =>
-        m['sender_name'] == name || m['receiver_name'] == name
-      ).toList();
+      final filtered = dbMessages.where((m) {
+        final sender = (m['sender_name'] as String? ?? '').trim().toLowerCase();
+        final receiver = (m['receiver_name'] as String? ?? '').trim().toLowerCase();
+        return sender == cleanName || receiver == cleanName;
+      }).toList();
 
       if (filtered.isNotEmpty && mounted) {
         setState(() {
           _messages.clear();
           for (var m in filtered) {
             final isRead = m['is_read'] == true;
+            final sender = (m['sender_name'] as String? ?? '').trim().toLowerCase();
             _messages.add({
               'text': m['message'] ?? '',
-              'isUser': m['receiver_name'] == name,
+              'isUser': sender != cleanName,
               'time': m['created_at'] != null ? m['created_at'].toString().split('T').last.substring(0, 5) : 'Now',
               'status': isRead ? 'read' : 'delivered',
               if (m['media_url'] != null) 'attachmentType': 'image',
@@ -283,7 +307,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         });
       }
     } catch (e, stack) {
-      debugPrint('Error sending direct message: $e\n$stack');
+      final String errorDetails = '$e\n\nStacktrace:\n$stack';
+      debugPrint('[DirectChatScreen] Error sending direct message: $errorDetails');
+
       await OfflineSyncService.instance.enqueueAction(
         actionType: 'send_message',
         payload: {
@@ -292,27 +318,180 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           'media_url': mediaUrl,
         },
       );
+
       if (mounted) {
         setState(() {
           _messages.last['status'] = 'sent';
         });
+
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Offline Mode — Message queued. Will sync when back online!'),
-            backgroundColor: AppTheme.primaryRust,
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Failed to send message live',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFFDC2626), // Error Red
             behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 7),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            action: SnackBarAction(
+              label: 'View More',
+              textColor: const Color(0xFFFFD8CC),
+              onPressed: () => _showErrorDiagnosticsModal(context, e.toString(), errorDetails),
+            ),
           ),
         );
       }
     }
   }
 
+  void _showErrorDiagnosticsModal(BuildContext context, String shortErr, String fullDetails, {String title = 'Message Delivery Error'}) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (modalContext) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(modalContext).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.bug_report_rounded, color: Color(0xFFDC2626), size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        title,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF171B2B),
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.grey),
+                    onPressed: () => Navigator.pop(modalContext),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Diagnostic Details:',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                constraints: const BoxConstraints(maxHeight: 220),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B), // Dark terminal blue
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: SingleChildScrollView(
+                  child: SelectableText(
+                    fullDetails,
+                    style: GoogleFonts.firaCode(
+                      fontSize: 11.5,
+                      color: const Color(0xFFF8FAFC),
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: fullDetails));
+                    Navigator.pop(modalContext);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Error details copied to clipboard!',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        backgroundColor: const Color(0xFF10B981),
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFC84B1A),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  icon: const Icon(Icons.copy_rounded, size: 18),
+                  label: Text(
+                    'Copy Diagnostics',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final name = widget.teammate['name'] ?? 'David Kim';
     final role = widget.teammate['role'] ?? 'Frontend Architect';
-    final avatar = widget.teammate['avatar'] as String? ?? '';
-    final isOnline = widget.teammate['isOnline'] == true;
+    final avatar = (_partnerAvatarUrl != null && _partnerAvatarUrl!.isNotEmpty)
+        ? _partnerAvatarUrl!
+        : (widget.teammate['avatar'] as String? ?? widget.teammate['avatar_url'] as String? ?? '');
+    final isOnline = _isPartnerClockedIn || (widget.teammate['is_clocked_in'] == true);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8FF),
@@ -343,8 +522,34 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     child: (avatar.startsWith('http') || (avatar.isNotEmpty && File(avatar).existsSync()))
                         ? ClipOval(
                             child: avatar.startsWith('http')
-                                ? Image.network(avatar, fit: BoxFit.cover, width: 36, height: 36)
-                                : Image.file(File(avatar), fit: BoxFit.cover, width: 36, height: 36),
+                                ? Image.network(
+                                    avatar,
+                                    fit: BoxFit.cover,
+                                    width: 36,
+                                    height: 36,
+                                    errorBuilder: (context, error, stackTrace) => Text(
+                                      name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFFAB3500),
+                                      ),
+                                    ),
+                                  )
+                                : Image.file(
+                                    File(avatar),
+                                    fit: BoxFit.cover,
+                                    width: 36,
+                                    height: 36,
+                                    errorBuilder: (context, error, stackTrace) => Text(
+                                      name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFFAB3500),
+                                      ),
+                                    ),
+                                  ),
                           )
                         : Text(
                             name.isNotEmpty ? name[0].toUpperCase() : '?',
@@ -402,22 +607,67 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
             tooltip: 'Audio Call',
             onPressed: () async {
               final receiverId = widget.teammate['id']?.toString() ?? '';
-              if (receiverId.isNotEmpty) {
-                await SupabaseService.instance.createCallInvite(
+              final partnerName = widget.teammate['name']?.toString() ?? 'Teammate';
+              Map<String, dynamic>? callRes;
+              try {
+                callRes = await SupabaseService.instance.createCallInvite(
                   receiverId: receiverId,
                   isVideo: false,
+                  receiverName: partnerName,
                 );
-              }
-              if (!context.mounted) return;
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AudioVideoCallScreen(
-                    teammate: widget.teammate,
-                    isVideoCall: false,
+                if (!context.mounted) return;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AudioVideoCallScreen(
+                      teammate: widget.teammate,
+                      isVideoCall: false,
+                      callInviteData: callRes,
+                    ),
                   ),
-                ),
-              );
+                );
+              } catch (e, stack) {
+                final String errorDetails = '$e\n\nStacktrace:\n$stack';
+                debugPrint('[DirectChatScreen] Error starting voice call: $errorDetails');
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Failed to initiate voice call',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFFDC2626),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 7),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      action: SnackBarAction(
+                        label: 'View More',
+                        textColor: const Color(0xFFFFD8CC),
+                        onPressed: () => _showErrorDiagnosticsModal(
+                          context,
+                          e.toString(),
+                          errorDetails,
+                          title: 'Voice Call Error',
+                        ),
+                      ),
+                    ),
+                  );
+                }
+              }
             },
             icon: Container(
               padding: const EdgeInsets.all(8),
@@ -436,22 +686,67 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
             tooltip: 'Video Call',
             onPressed: () async {
               final receiverId = widget.teammate['id']?.toString() ?? '';
-              if (receiverId.isNotEmpty) {
-                await SupabaseService.instance.createCallInvite(
+              final partnerName = widget.teammate['name']?.toString() ?? 'Teammate';
+              Map<String, dynamic>? callRes;
+              try {
+                callRes = await SupabaseService.instance.createCallInvite(
                   receiverId: receiverId,
                   isVideo: true,
+                  receiverName: partnerName,
                 );
-              }
-              if (!context.mounted) return;
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AudioVideoCallScreen(
-                    teammate: widget.teammate,
-                    isVideoCall: true,
+                if (!context.mounted) return;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AudioVideoCallScreen(
+                      teammate: widget.teammate,
+                      isVideoCall: true,
+                      callInviteData: callRes,
+                    ),
                   ),
-                ),
-              );
+                );
+              } catch (e, stack) {
+                final String errorDetails = '$e\n\nStacktrace:\n$stack';
+                debugPrint('[DirectChatScreen] Error starting video call: $errorDetails');
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Failed to initiate video call',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFFDC2626),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 7),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      action: SnackBarAction(
+                        label: 'View More',
+                        textColor: const Color(0xFFFFD8CC),
+                        onPressed: () => _showErrorDiagnosticsModal(
+                          context,
+                          e.toString(),
+                          errorDetails,
+                          title: 'Video Call Error',
+                        ),
+                      ),
+                    ),
+                  );
+                }
+              }
             },
             icon: Container(
               padding: const EdgeInsets.all(8),

@@ -5,16 +5,22 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../main.dart';
+import '../services/supabase_service.dart';
 
 class AudioVideoCallScreen extends StatefulWidget {
   final Map<String, dynamic> teammate;
   final bool isVideoCall;
+  final Map<String, dynamic>? callInviteData;
+  final bool isIncoming;
 
   const AudioVideoCallScreen({
     super.key,
     required this.teammate,
     this.isVideoCall = false,
+    this.callInviteData,
+    this.isIncoming = false,
   });
 
   @override
@@ -33,7 +39,9 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
   int _secondsElapsed = 0;
   Timer? _callTimer;
   bool _isConnected = false;
+  bool _isDeclined = false;
   final AudioPlayer _ringtonePlayer = AudioPlayer();
+  RealtimeChannel? _callStatusChannel;
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -52,11 +60,61 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    _startRinging();
+    if (widget.isIncoming) {
+      _isConnected = true;
+      _startCallTimer();
+    } else {
+      _startRinging();
+      _listenToCallStatus();
+    }
 
     if (_isVideoEnabled) {
       _initCamera();
     }
+  }
+
+  void _listenToCallStatus() {
+    final callId = widget.callInviteData?['id']?.toString();
+    if (callId == null || callId.isEmpty) return;
+
+    _callStatusChannel = SupabaseService.instance.subscribeToCallStatus(
+      callId: callId,
+      onStatusChange: (status) async {
+        if (!mounted) return;
+        if (status == 'accepted') {
+          await _ringtonePlayer.stop();
+          try {
+            final beepPlayer = AudioPlayer();
+            await beepPlayer.play(UrlSource('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'));
+          } catch (_) {}
+
+          setState(() {
+            _isConnected = true;
+            _secondsElapsed = 0;
+          });
+          _startCallTimer();
+        } else if (status == 'rejected') {
+          await _ringtonePlayer.stop();
+          setState(() {
+            _isDeclined = true;
+          });
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) Navigator.pop(context);
+          });
+        }
+      },
+    );
+  }
+
+  void _startCallTimer() {
+    _callTimer?.cancel();
+    _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _secondsElapsed++;
+        });
+      }
+    });
   }
 
   Future<void> _startRinging() async {
@@ -66,29 +124,19 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
     } catch (e) {
       debugPrint('Error playing calling ringtone: $e');
     }
+  }
 
-    Timer(const Duration(milliseconds: 4500), () async {
-      if (mounted) {
-        try {
-          await _ringtonePlayer.stop();
-          final beepPlayer = AudioPlayer();
-          await beepPlayer.play(UrlSource('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'));
-        } catch (_) {}
-
-        setState(() {
-          _isConnected = true;
-          _secondsElapsed = 0;
-        });
-
-        _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-          if (mounted) {
-            setState(() {
-              _secondsElapsed++;
-            });
-          }
-        });
-      }
-    });
+  @override
+  void dispose() {
+    _ringtonePlayer.stop();
+    _ringtonePlayer.dispose();
+    _callTimer?.cancel();
+    _pulseController.dispose();
+    _cameraController?.dispose();
+    if (_callStatusChannel != null) {
+      SupabaseService.instance.client.removeChannel(_callStatusChannel!);
+    }
+    super.dispose();
   }
 
   Future<void> _initCamera() async {
@@ -158,15 +206,6 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
         _isCameraInitialized = false;
       });
     }
-  }
-
-  @override
-  void dispose() {
-    _callTimer?.cancel();
-    _ringtonePlayer.dispose();
-    _pulseController.dispose();
-    _cameraController?.dispose();
-    super.dispose();
   }
 
   String _formatDuration(int seconds) {
@@ -280,13 +319,17 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color: _isConnected ? const Color(0xFF10B981) : Colors.orangeAccent,
+                            color: _isConnected
+                                ? const Color(0xFF10B981)
+                                : (_isDeclined ? Colors.redAccent : Colors.orangeAccent),
                             shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          _isConnected ? _formatDuration(_secondsElapsed) : 'Ringing...',
+                          _isConnected
+                              ? _formatDuration(_secondsElapsed)
+                              : (_isDeclined ? 'Call Declined' : 'Ringing...'),
                           style: GoogleFonts.beVietnamPro(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,

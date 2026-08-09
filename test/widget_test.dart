@@ -9,7 +9,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
 
-    await tester.pumpWidget(const HappyDeskApp());
+    await tester.pumpWidget(const UAndMeApp());
     expect(find.byType(SplashLoadingScreen), findsOneWidget);
   });
 }

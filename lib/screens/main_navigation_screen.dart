@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'home_screen.dart';
 import 'ai_wellness_bot_screen.dart';
 import 'chat_notifications_screen.dart';
@@ -33,13 +34,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   void initState() {
     super.initState();
-    // Scenario 4 & 8: Restore last active tab.
-    // -1 means caller didn't specify → use what's persisted in SharedPreferences.
-    _currentIndex = widget.initialIndex >= 0
-        ? widget.initialIndex
-        : UserPreferencesStore.getLastActiveTabIndex();
-    _listenForIncomingCalls();
+    _currentIndex = widget.initialIndex >= 0 ? widget.initialIndex : 0;
     _checkShiftRestoredBanner();
+    _listenForIncomingCalls();
   }
 
   /// Scenario 8: If user was clocked in before a force-kill, greet them
@@ -63,49 +60,127 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         final isVideo = callData['is_video'] ?? true;
         final callId = callData['id'];
 
-        showDialog(
+        final ringtonePlayer = AudioPlayer();
+        try {
+          ringtonePlayer.setReleaseMode(ReleaseMode.loop);
+          ringtonePlayer.play(UrlSource('https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3'));
+        } catch (e) {
+          debugPrint('Error playing incoming call ringtone: $e');
+        }
+
+        showModalBottomSheet(
           context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: const Color(0xFF1F2438),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            title: Text(
-              isVideo ? 'Incoming Video Call' : 'Incoming Voice Call',
-              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-            content: Text(
-              '$callerName is calling you...',
-              style: GoogleFonts.beVietnamPro(color: Colors.white70),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  SupabaseService.instance.updateCallStatus(callId: callId, status: 'rejected');
-                  Navigator.pop(ctx);
-                },
-                child: const Text('Decline', style: TextStyle(color: Colors.redAccent)),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  SupabaseService.instance.updateCallStatus(callId: callId, status: 'accepted');
-                  Navigator.pop(ctx);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AudioVideoCallScreen(
-                        teammate: {
-                          'name': callerName,
-                          'role': 'Teammate',
-                        },
-                        isVideoCall: isVideo,
+          isDismissible: false,
+          enableDrag: false,
+          backgroundColor: const Color(0xFF171B2B),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          builder: (ctx) => Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: (isVideo ? const Color(0xFF95416C) : const Color(0xFFAB3500)).withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isVideo ? Icons.videocam_rounded : Icons.phone_in_talk_rounded,
+                    color: isVideo ? const Color(0xFFFF99C8) : const Color(0xFFFF9E7A),
+                    size: 36,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  isVideo ? 'Incoming Video Call' : 'Incoming Voice Call',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF9CA3AF),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  callerName,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        ringtonePlayer.stop();
+                        ringtonePlayer.dispose();
+                        SupabaseService.instance.updateCallStatus(callId: callId, status: 'rejected');
+                        Navigator.pop(ctx);
+                      },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 64,
+                            height: 64,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFDC2626),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.call_end_rounded, color: Colors.white, size: 30),
+                          ),
+                          const SizedBox(height: 8),
+                          Text('Decline', style: GoogleFonts.plusJakartaSans(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.w700)),
+                        ],
                       ),
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
-                child: const Text('Accept', style: TextStyle(color: Colors.white)),
-              ),
-            ],
+                    GestureDetector(
+                      onTap: () {
+                        ringtonePlayer.stop();
+                        ringtonePlayer.dispose();
+                        SupabaseService.instance.updateCallStatus(callId: callId, status: 'accepted');
+                        Navigator.pop(ctx);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AudioVideoCallScreen(
+                              teammate: {
+                                'name': callerName,
+                                'role': 'Teammate',
+                              },
+                              isVideoCall: isVideo,
+                              isIncoming: true,
+                              callInviteData: callData,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 64,
+                            height: 64,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF10B981),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(isVideo ? Icons.videocam_rounded : Icons.call_rounded, color: Colors.white, size: 30),
+                          ),
+                          const SizedBox(height: 8),
+                          Text('Accept', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF10B981), fontSize: 13, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       },

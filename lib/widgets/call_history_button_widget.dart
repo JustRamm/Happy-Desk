@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../screens/call_history_screen.dart';
 
-class NotificationBellWidget extends StatelessWidget {
-  const NotificationBellWidget({super.key});
+class CallHistoryButtonWidget extends StatelessWidget {
+  const CallHistoryButtonWidget({super.key});
 
   @override
   Widget build(BuildContext context) {

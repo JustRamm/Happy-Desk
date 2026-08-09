@@ -15,12 +15,14 @@ class MochiAnimatedVideoWidget extends StatefulWidget {
   final double size;
   final bool showVideoBadge;
   final Duration cycleDuration;
+  final bool showCircleBackground;
 
   const MochiAnimatedVideoWidget({
     super.key,
     this.size = 240,
     this.showVideoBadge = true,
     this.cycleDuration = const Duration(milliseconds: 6500),
+    this.showCircleBackground = true,
   });
 
   @override
@@ -127,6 +129,46 @@ class _MochiAnimatedVideoWidgetState extends State<MochiAnimatedVideoWidget>
                 final currentFrame = _frames[currentIndex];
                 final nextFrame = _frames[nextIndex];
 
+                final svgContent = Transform.rotate(
+                  angle: tiltAngle,
+                  child: Transform.scale(
+                    scaleX: squishX,
+                    scaleY: squishY,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Current frame SVG
+                        SvgPicture.asset(
+                          currentFrame['path']!,
+                          width: widget.size,
+                          height: widget.size,
+                          fit: BoxFit.contain,
+                        ),
+
+                        // Cross-fade next frame — only on large sizes
+                        if (_useCrossFade && blend > 0.0)
+                          Opacity(
+                            opacity: blend.clamp(0.0, 1.0),
+                            child: SvgPicture.asset(
+                              nextFrame['path']!,
+                              width: widget.size,
+                              height: widget.size,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+
+                if (!widget.showCircleBackground) {
+                  return SizedBox(
+                    width: widget.size,
+                    height: widget.size,
+                    child: svgContent,
+                  );
+                }
+
                 return Container(
                   width: widget.size,
                   height: widget.size,
@@ -157,37 +199,7 @@ class _MochiAnimatedVideoWidgetState extends State<MochiAnimatedVideoWidget>
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(widget.size / 2),
-                    child: Transform.rotate(
-                      angle: tiltAngle,
-                      child: Transform.scale(
-                        scaleX: squishX,
-                        scaleY: squishY,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            // Current frame SVG
-                            SvgPicture.asset(
-                              currentFrame['path']!,
-                              width: widget.size,
-                              height: widget.size,
-                              fit: BoxFit.contain,
-                            ),
-
-                            // Cross-fade next frame — only on large sizes
-                            if (_useCrossFade && blend > 0.0)
-                              Opacity(
-                                opacity: blend.clamp(0.0, 1.0),
-                                child: SvgPicture.asset(
-                                  nextFrame['path']!,
-                                  width: widget.size,
-                                  height: widget.size,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    child: svgContent,
                   ),
                 );
               },

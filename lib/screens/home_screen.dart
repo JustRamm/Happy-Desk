@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/app_theme.dart';
 import '../widgets/apply_leave_modal.dart';
 import '../widgets/founder_leave_approvals_modal.dart';
@@ -49,7 +50,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _realTeamMembers = [];
   bool _isLoadingTeam = false;
 
-  final List<Map<String, String>> _quests = const [
+  // Pool 1: General Workplace Wellness Quests (For general rotation)
+  static final List<Map<String, String>> _generalQuestsPool = [
     {
       'title': 'Thank a teammate for their help this week',
       'description':
@@ -60,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'title': 'Take a 5-minute hydration and stretch break',
       'description':
           'Step away from your desk, stretch your shoulders, and drink a glass of water.',
-      'reward': '+5% Reliability',
+      'reward': '+5% Energy',
     },
     {
       'title': 'Share a win in the NGL Jar',
@@ -68,18 +70,133 @@ class _HomeScreenState extends State<HomeScreen> {
           'Drop a positive workplace accomplishment into the team appreciation jar.',
       'reward': '+1 NGL Note',
     },
+    {
+      'title': 'Invite a colleague for a 10-minute coffee sync',
+      'description':
+          'Connect with a teammate for a casual, non-work catch-up to foster team warmth.',
+      'reward': '+5% Team Bond',
+    },
+    {
+      'title': 'Do a 60-second breathing reset',
+      'description':
+          'Pause, take 4 slow deep breaths, and clear your mind before your next meeting.',
+      'reward': '+5% Wellness',
+    },
   ];
 
+  // Pool 2: Mochi-Personalized Quests (Tailored to user's conversation themes)
+  static final List<Map<String, String>> _workloadStressQuests = [
+    {
+      'title': 'Set a 25-minute focus sprint',
+      'description':
+          'Block 25 minutes with notifications muted to complete one key priority task.',
+      'reward': '+10% Focus',
+    },
+    {
+      'title': 'Do a 3-minute neck & shoulder desk stretch',
+      'description':
+          'Relieve physical tension built up from heavy work sessions.',
+      'reward': '+5% Reset',
+    },
+  ];
+
+  static final List<Map<String, String>> _teamRelationshipQuests = [
+    {
+      'title': 'Send a private check-in note to clear the air',
+      'description':
+          'Reach out privately to a teammate to appreciate their work and maintain healthy team harmony.',
+      'reward': '+1 NGL Note',
+    },
+    {
+      'title': 'Schedule a quick 1-on-1 alignment chat',
+      'description':
+          'Realign on deliverables and expectations with open, friendly communication.',
+      'reward': '+5% Team Harmony',
+    },
+  ];
+
+  static final List<Map<String, String>> _growthConfidenceQuests = [
+    {
+      'title': 'Log 2 recent achievements from this week',
+      'description':
+          'Recognize your own impact and build confidence in your professional role.',
+      'reward': '+5% Self Confidence',
+    },
+    {
+      'title': 'Ask a colleague for quick constructive input',
+      'description':
+          'Seek mentorship and feedback on a recent deliverable to accelerate your growth.',
+      'reward': '+5% Growth Focus',
+    },
+  ];
+
+  List<Map<String, String>> _quests = [];
+
+  Future<void> _loadDynamicQuests() async {
+    final List<Map<String, String>> result = [];
+    try {
+      final String lifeCtx =
+          (await UserPreferencesStore.getMochiLifeContextSummary()).toLowerCase();
+      final String openThreads =
+          (await UserPreferencesStore.getMochiOpenThreadsSummary()).toLowerCase();
+      final String fullContext = '$lifeCtx $openThreads';
+
+      if (fullContext.contains('stress') ||
+          fullContext.contains('workload') ||
+          fullContext.contains('tired') ||
+          fullContext.contains('overwhelmed') ||
+          fullContext.contains('meeting')) {
+        result.addAll(_workloadStressQuests);
+      }
+      if (fullContext.contains('conflict') ||
+          fullContext.contains('argument') ||
+          fullContext.contains('coworker') ||
+          fullContext.contains('team') ||
+          fullContext.contains('friction')) {
+        result.addAll(_teamRelationshipQuests);
+      }
+      if (fullContext.contains('imposter') ||
+          fullContext.contains('raise') ||
+          fullContext.contains('promotion') ||
+          fullContext.contains('plateau') ||
+          fullContext.contains('confidence')) {
+        result.addAll(_growthConfidenceQuests);
+      }
+
+      final daySeed = DateTime.now().day;
+      final rotatedGeneral = List<Map<String, String>>.from(_generalQuestsPool);
+      rotatedGeneral.shuffle(math.Random(daySeed));
+
+      for (var q in rotatedGeneral) {
+        if (result.length >= 4) break;
+        if (!result.any((existing) => existing['title'] == q['title'])) {
+          result.add(q);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error generating dynamic quests: $e');
+    }
+
+    if (mounted) {
+      setState(() {
+        _quests = result.isNotEmpty ? result : List.from(_generalQuestsPool);
+        _currentQuestIndex = 0;
+      });
+    }
+  }
+
   void _completeQuest() {
+    if (_quests.isEmpty) return;
     setState(() {
       _isQuestCompleted = true;
       _nglEntries++;
     });
 
+    final questReward = _quests[_currentQuestIndex % _quests.length]['reward'] ?? '+1 NGL Note';
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Quest completed! Reward claimed: ${_quests[_currentQuestIndex]['reward']}',
+          'Quest completed! Reward claimed: $questReward',
           style: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w700,
             color: Colors.white,
@@ -91,6 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _nextQuest() {
+    if (_quests.isEmpty) return;
     setState(() {
       _currentQuestIndex = (_currentQuestIndex + 1) % _quests.length;
       _isQuestCompleted = false;
@@ -102,6 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadPreferences();
     _loadTeamStatus();
+    _loadDynamicQuests();
     _requestNeededPermissions();
   }
 
@@ -462,9 +581,21 @@ class _HomeScreenState extends State<HomeScreen> {
               // Top Header Bar
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // Brand Logo SVG
                   const BrandLogoWidget(height: 54),
+
+                  // Centered "u and me.svg" logo
+                  Expanded(
+                    child: Center(
+                      child: SvgPicture.asset(
+                        'assets/brand/u and me.svg',
+                        height: 38,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
 
                   // Notifications Bell Icon with live unread superscript count
                   const NotificationBellWidget(),
@@ -1344,7 +1475,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Card 2: Daily Joy Quest Card
   Widget _buildDailyJoyQuestCard() {
-    final currentQuest = _quests[_currentQuestIndex];
+    final questList = _quests.isNotEmpty ? _quests : _generalQuestsPool;
+    final currentQuest = questList[_currentQuestIndex % questList.length];
 
     return Container(
       width: double.infinity,
