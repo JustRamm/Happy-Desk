@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../screens/chat/call_history_screen.dart';
+import '../screens/system/notifications_screen.dart';
 
 class NotificationBellWidget extends StatelessWidget {
   const NotificationBellWidget({super.key});
@@ -11,7 +11,7 @@ class NotificationBellWidget extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const CallHistoryScreen(),
+            builder: (context) => const NotificationsScreen(),
           ),
         );
       },
@@ -22,12 +22,12 @@ class NotificationBellWidget extends StatelessWidget {
           shape: BoxShape.circle,
         ),
         child: const Icon(
-          Icons.phone_outlined,
+          Icons.notifications_outlined,
           color: Color(0xFFAB3500),
           size: 22,
         ),
       ),
-      tooltip: 'Call History',
+      tooltip: 'Notifications',
     );
   }
 }
