@@ -1551,6 +1551,34 @@ class SupabaseService {
     return channel;
   }
 
+  RealtimeChannel? subscribeToAllIncomingMessages({
+    required Function(Map<String, dynamic> msgData) onNewMessage,
+  }) {
+    final myName = UserPreferencesStore.getUserName().trim().toLowerCase();
+    final user = currentUser;
+
+    final channel = client
+        .channel('public:global_incoming_messages_${user?.id ?? DateTime.now().millisecondsSinceEpoch}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'direct_messages',
+          callback: (payload) {
+            final newRecord = payload.newRecord;
+            final receiverName = (newRecord['receiver_name'] as String? ?? '').trim().toLowerCase();
+            final senderName = (newRecord['sender_name'] as String? ?? '').trim().toLowerCase();
+            final receiverId = newRecord['receiver_id'] as String?;
+
+            if (senderName != myName && (receiverName == myName || (user != null && receiverId == user.id))) {
+              onNewMessage(newRecord);
+            }
+          },
+        )
+        .subscribe();
+
+    return channel;
+  }
+
   Future<List<Map<String, dynamic>>> getCallHistory() async {
     await init();
     try {

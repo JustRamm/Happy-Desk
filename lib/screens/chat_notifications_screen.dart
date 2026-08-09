@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/brand_logo_widget.dart';
-import '../widgets/notification_bell_widget.dart';
+import '../widgets/call_history_button_widget.dart';
 import 'direct_chat_screen.dart';
 import 'new_chat_selector_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -211,8 +211,8 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
                        ),
                        const SizedBox(width: 10),
 
-                       // Right Header Action Bar (Notification Bell Icon)
-                       const NotificationBellWidget(),
+                        // Right Header Action Bar (Call History Icon)
+                        const CallHistoryButtonWidget(),
                      ],
                    ),
                  ),
@@ -259,6 +259,8 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
                   final chat = entry.value;
                   final isOnline = chat['isOnline'] == true;
                   final isUnread = chat['unread'] == true;
+                  final fullName = (chat['name'] as String? ?? 'Teammate').trim();
+                  final firstName = fullName.isNotEmpty ? fullName.split(' ').first : fullName;
 
                   return Column(
                     children: [
@@ -370,7 +372,7 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            chat['name'],
+                                            firstName,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14.5,
                                               fontWeight: isUnread

@@ -15,7 +15,11 @@ class PushNotificationService {
     if (_initialized) return;
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const darwinSettings = DarwinInitializationSettings();
+    const darwinSettings = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
     const initSettings = InitializationSettings(
       android: androidSettings,
       iOS: darwinSettings,
@@ -28,6 +32,13 @@ class PushNotificationService {
           debugPrint('Notification clicked: ${response.payload}');
         },
       );
+
+      final androidImpl = _localNotifications.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      if (androidImpl != null) {
+        await androidImpl.requestNotificationsPermission();
+      }
+
       _initialized = true;
     } catch (e) {
       debugPrint('Local Notification Init Note: $e');
@@ -44,13 +55,19 @@ class PushNotificationService {
     const androidDetails = AndroidNotificationDetails(
       'happy_desk_channel',
       'Happy Desk Notifications',
-      channelDescription: 'Alerts for direct messages and coffee breaks',
+      channelDescription: 'Alerts for direct messages and workplace updates',
       importance: Importance.max,
       priority: Priority.high,
       icon: '@mipmap/ic_launcher',
+      playSound: true,
+      enableVibration: true,
     );
 
-    const iosDetails = DarwinNotificationDetails();
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
     const details = NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
@@ -66,6 +83,65 @@ class PushNotificationService {
       );
     } catch (e) {
       debugPrint('Error showing local notification: $e');
+    }
+  }
+
+  /// Show high-priority incoming voice or video call notification on phone system notification bar
+  Future<void> showCallNotification({
+    required String callerName,
+    required bool isVideo,
+    required String callId,
+  }) async {
+    await initialize();
+
+    final androidDetails = AndroidNotificationDetails(
+      'happy_desk_calls',
+      'Incoming Calls',
+      channelDescription: 'High priority alert channel for incoming voice and video calls',
+      importance: Importance.max,
+      priority: Priority.max,
+      category: AndroidNotificationCategory.call,
+      fullScreenIntent: true,
+      visibility: NotificationVisibility.public,
+      icon: '@mipmap/ic_launcher',
+      playSound: true,
+      enableVibration: true,
+      timeoutAfter: 60000,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+      interruptionLevel: InterruptionLevel.timeSensitive,
+    );
+
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    try {
+      final int notifId = callId.hashCode.abs();
+      await _localNotifications.show(
+        id: notifId,
+        title: isVideo ? '📹 Incoming Video Call' : '📞 Incoming Voice Call',
+        body: '$callerName is calling you on Happy Desk',
+        notificationDetails: details,
+        payload: 'call:$callId',
+      );
+    } catch (e) {
+      debugPrint('Error showing call notification: $e');
+    }
+  }
+
+  /// Cancel active call notification from system tray when call is answered or rejected
+  Future<void> cancelCallNotification(String callId) async {
+    try {
+      final int notifId = callId.hashCode.abs();
+      await _localNotifications.cancel(id: notifId);
+    } catch (e) {
+      debugPrint('Error canceling call notification: $e');
     }
   }
 

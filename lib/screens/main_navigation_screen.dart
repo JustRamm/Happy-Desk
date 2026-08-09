@@ -10,6 +10,7 @@ import 'audio_video_call_screen.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
 import '../services/supabase_service.dart';
 import '../services/user_preferences_store.dart';
+import '../services/push_notification_service.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   /// Pass a specific tab index to override the persisted tab.
@@ -29,6 +30,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   late int _currentIndex;
   final GlobalKey<AiWellnessBotScreenState> _mochiScreenKey = GlobalKey();
   RealtimeChannel? _callSubscription;
+  RealtimeChannel? _messageSubscription;
   bool _showShiftRestoredBanner = false;
 
   @override
@@ -37,6 +39,23 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _currentIndex = widget.initialIndex >= 0 ? widget.initialIndex : 0;
     _checkShiftRestoredBanner();
     _listenForIncomingCalls();
+    _listenForIncomingMessages();
+  }
+
+  void _listenForIncomingMessages() {
+    _messageSubscription = SupabaseService.instance.subscribeToAllIncomingMessages(
+      onNewMessage: (msgData) {
+        final senderName = msgData['sender_name'] ?? 'Teammate';
+        final content = msgData['content'] ?? 'Sent you a message';
+        final senderFirstName = senderName.toString().split(' ').first;
+
+        PushNotificationService.instance.showNotification(
+          title: '💬 New Message from $senderFirstName',
+          body: content.toString(),
+          payload: 'chat_$senderName',
+        );
+      },
+    );
   }
 
   /// Scenario 8: If user was clocked in before a force-kill, greet them
@@ -58,7 +77,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         if (!mounted) return;
         final callerName = callData['caller_name'] ?? 'Teammate';
         final isVideo = callData['is_video'] ?? true;
-        final callId = callData['id'];
+        final callId = callData['id']?.toString() ?? '';
+
+        // Show native phone system tray notification outside the app!
+        if (callId.isNotEmpty) {
+          PushNotificationService.instance.showCallNotification(
+            callerName: callerName,
+            isVideo: isVideo,
+            callId: callId,
+          );
+        }
 
         final ringtonePlayer = AudioPlayer();
         try {
@@ -119,6 +147,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       onTap: () {
                         ringtonePlayer.stop();
                         ringtonePlayer.dispose();
+                        if (callId.isNotEmpty) {
+                          PushNotificationService.instance.cancelCallNotification(callId);
+                        }
                         SupabaseService.instance.updateCallStatus(callId: callId, status: 'rejected');
                         Navigator.pop(ctx);
                       },
@@ -143,6 +174,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       onTap: () {
                         ringtonePlayer.stop();
                         ringtonePlayer.dispose();
+                        if (callId.isNotEmpty) {
+                          PushNotificationService.instance.cancelCallNotification(callId);
+                        }
                         SupabaseService.instance.updateCallStatus(callId: callId, status: 'accepted');
                         Navigator.pop(ctx);
                         Navigator.push(
@@ -189,7 +223,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   void dispose() {
-    _callSubscription?.unsubscribe();
+    if (_callSubscription != null) {
+      SupabaseService.instance.client.removeChannel(_callSubscription!);
+    }
+    if (_messageSubscription != null) {
+      SupabaseService.instance.client.removeChannel(_messageSubscription!);
+    }
     super.dispose();
   }
 

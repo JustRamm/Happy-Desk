@@ -16,7 +16,6 @@ class CallHistoryScreen extends StatefulWidget {
 class _CallHistoryScreenState extends State<CallHistoryScreen> {
   List<Map<String, dynamic>> _callLogs = [];
   bool _isLoading = true;
-  String _selectedFilter = 'All'; // 'All', 'Missed', 'Video', 'Voice'
   RealtimeChannel? _historySubscription;
 
   @override
@@ -55,20 +54,6 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
         _isLoading = false;
       });
     }
-  }
-
-  List<Map<String, dynamic>> get _filteredLogs {
-    if (_selectedFilter == 'Missed') {
-      return _callLogs.where((c) {
-        final status = (c['status'] as String? ?? '').toLowerCase();
-        return status == 'rejected' || status == 'missed' || (status == 'ringing' && c['is_outgoing'] == false);
-      }).toList();
-    } else if (_selectedFilter == 'Video') {
-      return _callLogs.where((c) => c['is_video'] == true).toList();
-    } else if (_selectedFilter == 'Voice') {
-      return _callLogs.where((c) => c['is_video'] != true).toList();
-    }
-    return _callLogs;
   }
 
   String _formatTimestamp(String? rawTime) {
@@ -119,8 +104,6 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _filteredLogs;
-
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8FF),
       appBar: AppBar(
@@ -146,84 +129,24 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Filter Chips Header
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildFilterChip('All'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Missed'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Video'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Voice'),
-                ],
-              ),
-            ),
-          ),
-
-          const Divider(height: 1, color: Color(0xFFE4E7FE)),
-
-          // Main Call Log List
-          Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppTheme.primaryRust),
-                  )
-                : filtered.isEmpty
-                    ? _buildEmptyState()
-                    : RefreshIndicator(
-                        onRefresh: _fetchCallHistory,
-                        color: AppTheme.primaryRust,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                          itemCount: filtered.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 10),
-                          itemBuilder: (context, index) {
-                            return _buildCallLogTile(filtered[index]);
-                          },
-                        ),
-                      ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label) {
-    final bool isSelected = _selectedFilter == label;
-    return ChoiceChip(
-      label: Text(
-        label,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 13,
-          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-          color: isSelected ? Colors.white : const Color(0xFF594139),
-        ),
-      ),
-      selected: isSelected,
-      selectedColor: AppTheme.primaryRust,
-      backgroundColor: const Color(0xFFF3F2FF),
-      showCheckmark: false,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: isSelected ? AppTheme.primaryRust : const Color(0xFFE4E7FE),
-        ),
-      ),
-      onSelected: (selected) {
-        if (selected) {
-          setState(() {
-            _selectedFilter = label;
-          });
-        }
-      },
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: AppTheme.primaryRust),
+            )
+          : _callLogs.isEmpty
+              ? _buildEmptyState()
+              : RefreshIndicator(
+                  onRefresh: _fetchCallHistory,
+                  color: AppTheme.primaryRust,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    itemCount: _callLogs.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      return _buildCallLogTile(_callLogs[index]);
+                    },
+                  ),
+                ),
     );
   }
 

@@ -2,11 +2,10 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../main.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart' as webrtc;
 import '../services/supabase_service.dart';
 
 class AudioVideoCallScreen extends StatefulWidget {
@@ -29,9 +28,14 @@ class AudioVideoCallScreen extends StatefulWidget {
 
 class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
     with SingleTickerProviderStateMixin {
-  CameraController? _cameraController;
-  bool _isCameraInitialized = false;
-  int _selectedCameraIndex = 0;
+  // WebRTC Peer Connection & Renderers
+  webrtc.RTCPeerConnection? _peerConnection;
+  webrtc.MediaStream? _localStream;
+  webrtc.MediaStream? _remoteStream;
+  final webrtc.RTCVideoRenderer _localRenderer = webrtc.RTCVideoRenderer();
+  final webrtc.RTCVideoRenderer _remoteRenderer = webrtc.RTCVideoRenderer();
+  RealtimeChannel? _signalingChannel;
+  RealtimeChannel? _callStatusChannel;
 
   bool _isMuted = false;
   bool _isVideoEnabled = true;
@@ -40,8 +44,8 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
   Timer? _callTimer;
   bool _isConnected = false;
   bool _isDeclined = false;
+
   final AudioPlayer _ringtonePlayer = AudioPlayer();
-  RealtimeChannel? _callStatusChannel;
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -60,6 +64,8 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
+    _initWebRTC();
+
     if (widget.isIncoming) {
       _isConnected = true;
       _startCallTimer();
@@ -67,9 +73,178 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
       _startRinging();
       _listenToCallStatus();
     }
+  }
 
-    if (_isVideoEnabled) {
-      _initCamera();
+  Future<void> _initWebRTC() async {
+    try {
+      await _localRenderer.initialize();
+      await _remoteRenderer.initialize();
+
+      await Permission.microphone.request();
+      if (widget.isVideoCall) {
+        await Permission.camera.request();
+      }
+
+      final mediaConstraints = <String, dynamic>{
+        'audio': true,
+        'video': widget.isVideoCall
+            ? {
+                'mandatory': {
+                  'minWidth': '640',
+                  'minHeight': '480',
+                  'minFrameRate': '30',
+                },
+                'facingMode': 'user',
+                'optional': [],
+              }
+            : false,
+      };
+
+      try {
+        _localStream = await webrtc.navigator.mediaDevices.getUserMedia(mediaConstraints);
+        _localRenderer.srcObject = _localStream;
+      } catch (e) {
+        debugPrint('[WebRTC] Error obtaining local audio/video media stream: $e');
+      }
+
+      final configuration = <String, dynamic>{
+        'iceServers': [
+          {'urls': 'stun:stun.l.google.com:19302'},
+          {'urls': 'stun:stun1.l.google.com:19302'},
+          {'urls': 'stun:stun2.l.google.com:19302'},
+          {'urls': 'stun:stun3.l.google.com:19302'},
+          {'urls': 'stun:stun4.l.google.com:19302'},
+        ]
+      };
+
+      _peerConnection = await webrtc.createPeerConnection(configuration);
+
+      if (_localStream != null) {
+        _localStream!.getTracks().forEach((track) {
+          _peerConnection?.addTrack(track, _localStream!);
+        });
+      }
+
+      _peerConnection?.onTrack = (event) {
+        if (event.track.kind == 'audio' || event.track.kind == 'video') {
+          if (event.streams.isNotEmpty) {
+            _remoteStream = event.streams[0];
+            _remoteRenderer.srcObject = _remoteStream;
+            if (mounted) setState(() {});
+          }
+        }
+      };
+
+      _peerConnection?.onIceCandidate = (candidate) {
+        _sendSignalingMessage('candidate', {
+          'candidate': candidate.candidate,
+          'sdpMid': candidate.sdpMid,
+          'sdpMlineIndex': candidate.sdpMLineIndex,
+        });
+      };
+
+      _subscribeToSignaling();
+    } catch (e) {
+      debugPrint('[WebRTC] Init error: $e');
+    }
+  }
+
+  void _subscribeToSignaling() {
+    final callId = widget.callInviteData?['id']?.toString() ?? 'call_${widget.teammate['name']}';
+    _signalingChannel = SupabaseService.instance.client.channel('webrtc_signaling_$callId');
+
+    _signalingChannel?.onBroadcast(
+      event: 'webrtc_signal',
+      callback: (payload) async {
+        if (!mounted) return;
+        final type = payload['type'];
+        final data = payload['data'];
+        if (data == null) return;
+
+        if (type == 'offer' && widget.isIncoming) {
+          await _handleOffer(Map<String, dynamic>.from(data as Map));
+        } else if (type == 'answer' && !widget.isIncoming) {
+          await _handleAnswer(Map<String, dynamic>.from(data as Map));
+        } else if (type == 'candidate') {
+          await _handleCandidate(Map<String, dynamic>.from(data as Map));
+        }
+      },
+    ).subscribe();
+  }
+
+  Future<void> _sendSignalingMessage(String type, Map<String, dynamic> data) async {
+    try {
+      await _signalingChannel?.sendBroadcastMessage(
+        event: 'webrtc_signal',
+        payload: {
+          'type': type,
+          'data': data,
+        },
+      );
+    } catch (e) {
+      debugPrint('[WebRTC] Signaling send error: $e');
+    }
+  }
+
+  Future<void> _createAndSendOffer() async {
+    if (_peerConnection == null) return;
+    try {
+      final offer = await _peerConnection!.createOffer({
+        'offerToReceiveAudio': 1,
+        'offerToReceiveVideo': widget.isVideoCall ? 1 : 0,
+      });
+      await _peerConnection!.setLocalDescription(offer);
+      await _sendSignalingMessage('offer', {'sdp': offer.sdp, 'type': offer.type});
+    } catch (e) {
+      debugPrint('[WebRTC] Create offer error: $e');
+    }
+  }
+
+  Future<void> _handleOffer(Map<String, dynamic> data) async {
+    if (_peerConnection == null) return;
+    try {
+      final sdp = data['sdp'] as String?;
+      final type = data['type'] as String?;
+      if (sdp == null || type == null) return;
+
+      await _peerConnection!.setRemoteDescription(webrtc.RTCSessionDescription(sdp, type));
+
+      final answer = await _peerConnection!.createAnswer({
+        'offerToReceiveAudio': 1,
+        'offerToReceiveVideo': widget.isVideoCall ? 1 : 0,
+      });
+      await _peerConnection!.setLocalDescription(answer);
+      await _sendSignalingMessage('answer', {'sdp': answer.sdp, 'type': answer.type});
+    } catch (e) {
+      debugPrint('[WebRTC] Handle offer error: $e');
+    }
+  }
+
+  Future<void> _handleAnswer(Map<String, dynamic> data) async {
+    if (_peerConnection == null) return;
+    try {
+      final sdp = data['sdp'] as String?;
+      final type = data['type'] as String?;
+      if (sdp == null || type == null) return;
+
+      await _peerConnection!.setRemoteDescription(webrtc.RTCSessionDescription(sdp, type));
+    } catch (e) {
+      debugPrint('[WebRTC] Handle answer error: $e');
+    }
+  }
+
+  Future<void> _handleCandidate(Map<String, dynamic> data) async {
+    if (_peerConnection == null) return;
+    try {
+      final candidateStr = data['candidate'] as String?;
+      final sdpMid = data['sdpMid'] as String?;
+      final sdpMLineIndex = data['sdpMlineIndex'] as int?;
+      if (candidateStr == null) return;
+
+      final candidate = webrtc.RTCIceCandidate(candidateStr, sdpMid, sdpMLineIndex);
+      await _peerConnection!.addCandidate(candidate);
+    } catch (e) {
+      debugPrint('[WebRTC] Handle candidate error: $e');
     }
   }
 
@@ -93,7 +268,8 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
             _secondsElapsed = 0;
           });
           _startCallTimer();
-        } else if (status == 'rejected') {
+          _createAndSendOffer();
+        } else if (status == 'rejected' || status == 'ended') {
           await _ringtonePlayer.stop();
           setState(() {
             _isDeclined = true;
@@ -126,86 +302,56 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
     }
   }
 
-  @override
-  void dispose() {
-    _ringtonePlayer.stop();
-    _ringtonePlayer.dispose();
-    _callTimer?.cancel();
-    _pulseController.dispose();
-    _cameraController?.dispose();
-    if (_callStatusChannel != null) {
-      SupabaseService.instance.client.removeChannel(_callStatusChannel!);
-    }
-    super.dispose();
-  }
-
-  Future<void> _initCamera() async {
-    await Permission.camera.request();
-    await Permission.microphone.request();
-
-    if (availableDeviceCameras.isEmpty) {
-      try {
-        availableDeviceCameras = await availableCameras();
-      } catch (e) {
-        debugPrint('Camera fetch error: $e');
-      }
-    }
-
-    if (availableDeviceCameras.isNotEmpty) {
-      final frontIdx = availableDeviceCameras.indexWhere(
-        (c) => c.lensDirection == CameraLensDirection.front,
+  Future<void> _endCall() async {
+    await _ringtonePlayer.stop();
+    final callId = widget.callInviteData?['id']?.toString();
+    if (callId != null && callId.isNotEmpty) {
+      await SupabaseService.instance.updateCallStatus(
+        callId: callId,
+        status: _isConnected ? 'ended' : 'rejected',
       );
-      _selectedCameraIndex = frontIdx != -1 ? frontIdx : 0;
-
-      await _setupCameraController(availableDeviceCameras[_selectedCameraIndex]);
     }
-  }
-
-  Future<void> _setupCameraController(CameraDescription cameraDescription) async {
-    if (_cameraController != null) {
-      await _cameraController!.dispose();
-    }
-
-    _cameraController = CameraController(
-      cameraDescription,
-      ResolutionPreset.medium,
-      enableAudio: true,
-    );
-
-    try {
-      await _cameraController!.initialize();
-      if (mounted) {
-        setState(() {
-          _isCameraInitialized = true;
-        });
-      }
-    } catch (e) {
-      debugPrint('CameraController init error: $e');
+    if (mounted) {
+      Navigator.pop(context);
     }
   }
 
   Future<void> _switchCamera() async {
-    if (availableDeviceCameras.length < 2) return;
-    _selectedCameraIndex = (_selectedCameraIndex + 1) % availableDeviceCameras.length;
-    setState(() {
-      _isCameraInitialized = false;
-    });
-    await _setupCameraController(availableDeviceCameras[_selectedCameraIndex]);
+    if (_localStream != null && widget.isVideoCall) {
+      final videoTrack = _localStream!.getVideoTracks().firstOrNull;
+      if (videoTrack != null) {
+        await webrtc.Helper.switchCamera(videoTrack);
+      }
+    }
   }
 
-  void _toggleVideo() async {
+  void _toggleVideo() {
     setState(() {
       _isVideoEnabled = !_isVideoEnabled;
+      if (_localStream != null) {
+        for (var track in _localStream!.getVideoTracks()) {
+          track.enabled = _isVideoEnabled;
+        }
+      }
     });
-    if (_isVideoEnabled) {
-      await _initCamera();
-    } else {
-      await _cameraController?.dispose();
-      _cameraController = null;
-      setState(() {
-        _isCameraInitialized = false;
-      });
-    }
+  }
+
+  void _toggleMute() {
+    setState(() {
+      _isMuted = !_isMuted;
+      if (_localStream != null) {
+        for (var track in _localStream!.getAudioTracks()) {
+          track.enabled = !_isMuted;
+        }
+      }
+    });
+  }
+
+  void _toggleSpeaker() {
+    setState(() {
+      _isSpeakerOn = !_isSpeakerOn;
+      webrtc.Helper.setSpeakerphoneOn(_isSpeakerOn);
+    });
   }
 
   String _formatDuration(int seconds) {
@@ -215,22 +361,86 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
   }
 
   @override
+  void dispose() {
+    _ringtonePlayer.stop();
+    _ringtonePlayer.dispose();
+    _callTimer?.cancel();
+    _pulseController.dispose();
+
+    _localStream?.getTracks().forEach((track) {
+      track.stop();
+    });
+    _localStream?.dispose();
+    _remoteStream?.dispose();
+    _localRenderer.dispose();
+    _remoteRenderer.dispose();
+    _peerConnection?.close();
+
+    if (_signalingChannel != null) {
+      SupabaseService.instance.client.removeChannel(_signalingChannel!);
+    }
+    if (_callStatusChannel != null) {
+      SupabaseService.instance.client.removeChannel(_callStatusChannel!);
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final String name = widget.teammate['name'] ?? 'Teammate';
     final String role = widget.teammate['role'] ?? 'Colleague';
     final String avatar = widget.teammate['avatar'] ?? '';
 
+    final bool showRemoteVideo = _isVideoEnabled && _remoteRenderer.srcObject != null;
+    final bool showLocalVideo = _isVideoEnabled && _localRenderer.srcObject != null;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF171B2B),
+      backgroundColor: const Color(0xFFFAF8FF), // Warm light ambient background
       body: SafeArea(
         child: Stack(
           children: [
-            // Background Video Stream or Audio Pulse
-            if (_isVideoEnabled && _isCameraInitialized && _cameraController != null)
+            // Soft Ambient Background Gradient Glows (Only shown in Audio Mode)
+            if (!showRemoteVideo && !showLocalVideo) ...[
+              Positioned(
+                top: -60,
+                left: -60,
+                child: Container(
+                  width: 240,
+                  height: 240,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFFFFF0EB).withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 120,
+                right: -60,
+                child: Container(
+                  width: 260,
+                  height: 260,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFFF3F2FF).withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+            ],
+
+            // Video Stream Views or Voice Call Avatar Center Screen
+            if (showRemoteVideo)
               Positioned.fill(
-                child: AspectRatio(
-                  aspectRatio: _cameraController!.value.aspectRatio,
-                  child: CameraPreview(_cameraController!),
+                child: webrtc.RTCVideoView(
+                  _remoteRenderer,
+                  objectFit: webrtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                ),
+              )
+            else if (showLocalVideo)
+              Positioned.fill(
+                child: webrtc.RTCVideoView(
+                  _localRenderer,
+                  mirror: true,
+                  objectFit: webrtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                 ),
               )
             else
@@ -241,13 +451,21 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
                     ScaleTransition(
                       scale: _pulseAnimation,
                       child: Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
+                          color: Colors.white,
                           border: Border.all(
-                            color: const Color(0xFF95416C).withValues(alpha: 0.5),
-                            width: 4,
+                            color: const Color(0xFFAB3500).withValues(alpha: 0.25),
+                            width: 3,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFAB3500).withValues(alpha: 0.12),
+                              blurRadius: 28,
+                              spreadRadius: 4,
+                            ),
+                          ],
                         ),
                         child: CircleAvatar(
                           radius: 64,
@@ -255,8 +473,34 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
                           child: (avatar.startsWith('http') || (avatar.isNotEmpty && File(avatar).existsSync()))
                               ? ClipOval(
                                   child: avatar.startsWith('http')
-                                      ? Image.network(avatar, fit: BoxFit.cover, width: 128, height: 128)
-                                      : Image.file(File(avatar), fit: BoxFit.cover, width: 128, height: 128),
+                                      ? Image.network(
+                                          avatar,
+                                          fit: BoxFit.cover,
+                                          width: 128,
+                                          height: 128,
+                                          errorBuilder: (context, error, stackTrace) => Text(
+                                            name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 48,
+                                              fontWeight: FontWeight.w800,
+                                              color: const Color(0xFFAB3500),
+                                            ),
+                                          ),
+                                        )
+                                      : Image.file(
+                                          File(avatar),
+                                          fit: BoxFit.cover,
+                                          width: 128,
+                                          height: 128,
+                                          errorBuilder: (context, error, stackTrace) => Text(
+                                            name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 48,
+                                              fontWeight: FontWeight.w800,
+                                              color: const Color(0xFFAB3500),
+                                            ),
+                                          ),
+                                        ),
                                 )
                               : Text(
                                   name.isNotEmpty ? name[0].toUpperCase() : '?',
@@ -274,8 +518,8 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
                       name,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF171B2B),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -283,10 +527,41 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
                       role,
                       style: GoogleFonts.beVietnamPro(
                         fontSize: 14,
-                        color: const Color(0xFF9CA3AF),
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF8D7168),
                       ),
                     ),
                   ],
+                ),
+              ),
+
+            // Inset Picture-in-Picture Local Video View (When Remote Video active)
+            if (showRemoteVideo && showLocalVideo)
+              Positioned(
+                top: 70,
+                right: 20,
+                width: 100,
+                height: 140,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white, width: 2),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: webrtc.RTCVideoView(
+                      _localRenderer,
+                      mirror: true,
+                      objectFit: webrtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                    ),
+                  ),
                 ),
               ),
 
@@ -299,21 +574,42 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: Colors.white,
-                      size: 28,
+                    onPressed: _endCall,
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Color(0xFF171B2B),
+                        size: 22,
+                      ),
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE4E7FE)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF95416C).withValues(alpha: 0.08),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
                           width: 8,
@@ -321,7 +617,7 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
                           decoration: BoxDecoration(
                             color: _isConnected
                                 ? const Color(0xFF10B981)
-                                : (_isDeclined ? Colors.redAccent : Colors.orangeAccent),
+                                : (_isDeclined ? const Color(0xFFEF4444) : const Color(0xFFF59E0B)),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -330,26 +626,39 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
                           _isConnected
                               ? _formatDuration(_secondsElapsed)
                               : (_isDeclined ? 'Call Declined' : 'Ringing...'),
-                          style: GoogleFonts.beVietnamPro(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF171B2B),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  if (_isVideoEnabled && availableDeviceCameras.length > 1)
+                  if (_isVideoEnabled)
                     IconButton(
                       onPressed: _switchCamera,
-                      icon: const Icon(
-                        Icons.flip_camera_ios_rounded,
-                        color: Colors.white,
-                        size: 24,
+                      icon: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.flip_camera_ios_rounded,
+                          color: Color(0xFF95416C),
+                          size: 20,
+                        ),
                       ),
                     )
                   else
-                    const SizedBox(width: 48),
+                    const SizedBox(width: 44),
                 ],
               ),
             ),
@@ -360,15 +669,16 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
               left: 20,
               right: 20,
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1F2438).withValues(alpha: 0.9),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(32),
-                  boxShadow: const [
+                  border: Border.all(color: const Color(0xFFE4E7FE), width: 1.5),
+                  boxShadow: [
                     BoxShadow(
-                      color: Colors.black38,
-                      blurRadius: 16,
-                      offset: Offset(0, 4),
+                      color: const Color(0xFF95416C).withValues(alpha: 0.12),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
@@ -376,57 +686,73 @@ class _AudioVideoCallScreenState extends State<AudioVideoCallScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     // Mute / Unmute
-                    IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _isMuted = !_isMuted;
-                        });
-                      },
-                      icon: Icon(
-                        _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
-                        color: _isMuted ? Colors.redAccent : Colors.white,
-                        size: 26,
+                    GestureDetector(
+                      onTap: _toggleMute,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: _isMuted ? const Color(0xFFFEE2E2) : const Color(0xFFFFF0EB),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
+                          color: _isMuted ? const Color(0xFFEF4444) : const Color(0xFFAB3500),
+                          size: 22,
+                        ),
                       ),
                     ),
                     // Video Toggle
-                    IconButton(
-                      onPressed: _toggleVideo,
-                      icon: Icon(
-                        _isVideoEnabled
-                            ? Icons.videocam_rounded
-                            : Icons.videocam_off_rounded,
-                        color: _isVideoEnabled ? const Color(0xFF10B981) : Colors.white,
-                        size: 26,
+                    GestureDetector(
+                      onTap: _toggleVideo,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: !_isVideoEnabled ? const Color(0xFFFEE2E2) : const Color(0xFFF3F2FF),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _isVideoEnabled ? Icons.videocam_rounded : Icons.videocam_off_rounded,
+                          color: !_isVideoEnabled ? const Color(0xFFEF4444) : const Color(0xFF95416C),
+                          size: 22,
+                        ),
                       ),
                     ),
                     // Speaker Toggle
-                    IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _isSpeakerOn = !_isSpeakerOn;
-                        });
-                      },
-                      icon: Icon(
-                        _isSpeakerOn
-                            ? Icons.volume_up_rounded
-                            : Icons.volume_off_rounded,
-                        color: Colors.white,
-                        size: 26,
+                    GestureDetector(
+                      onTap: _toggleSpeaker,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: !_isSpeakerOn ? const Color(0xFFF1F5F9) : const Color(0xFFEFF6FF),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _isSpeakerOn ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+                          color: !_isSpeakerOn ? const Color(0xFF64748B) : const Color(0xFF1D4ED8),
+                          size: 22,
+                        ),
                       ),
                     ),
                     // End Call
                     GestureDetector(
-                      onTap: () => Navigator.pop(context),
+                      onTap: _endCall,
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: const BoxDecoration(
-                          color: Colors.redAccent,
+                          color: Color(0xFFEF4444),
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0x40EF4444),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: const Icon(
                           Icons.call_end_rounded,
                           color: Colors.white,
-                          size: 26,
+                          size: 24,
                         ),
                       ),
                     ),

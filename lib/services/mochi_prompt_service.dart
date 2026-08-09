@@ -190,8 +190,17 @@ class MochiPromptService {
     buffer.writeln();
     buffer.writeln();
     buffer.writeln('## Live context (runtime)');
+    final now = DateTime.now();
+    final hour = now.hour;
+    String timeOfDayVibe = 'Evening / Night (Cozy, unbothered, deep listening, sipping warm tea ☕)';
+    if (hour >= 5 && hour < 12) {
+      timeOfDayVibe = 'Morning (Caffeinated, organized, complaining about freezing office AC ❄️, ready to tackle the day)';
+    } else if (hour >= 12 && hour < 17) {
+      timeOfDayVibe = 'Mid-day / Afternoon (3 PM slump 😴, craving good food/snacks, hunting for lost desk pens, giving side-eye to toxic Slack pings 👀)';
+    }
+
     buffer.writeln(
-      'Shift: Clocked In = $isClockedIn | On Break = $isOnBreak | Shift Start = $clockInTime.',
+      'Shift: Clocked In = $isClockedIn | On Break = $isOnBreak | Shift Start = $clockInTime | Current Time-of-Day Vibe = $timeOfDayVibe.',
     );
 
     if (userProfileSummary != null && userProfileSummary.trim().isNotEmpty) {

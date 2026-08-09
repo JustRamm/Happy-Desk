@@ -26,14 +26,11 @@ class AiWellnessBotScreen extends StatefulWidget {
   State<AiWellnessBotScreen> createState() => AiWellnessBotScreenState();
 }
 
-class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
-    with SingleTickerProviderStateMixin {
+class AiWellnessBotScreenState extends State<AiWellnessBotScreen> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<_ChatMessage> _messages = [];
 
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
   Timer? _messageDebounceTimer;
 
   bool _isTyping = false;
@@ -63,13 +60,6 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2200),
-    )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 0.94, end: 1.06).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
 
     _textController.addListener(_onTextChanged);
     _inputFocusNode.addListener(() {
@@ -100,7 +90,6 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
 
   @override
   void dispose() {
-    _pulseController.dispose();
     _messageDebounceTimer?.cancel();
     _textController.removeListener(_onTextChanged);
     _inputFocusNode.dispose();
@@ -1337,6 +1326,74 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     }
   }
 
+  Future<void> _renameSession(String sessionId, String currentTitle) async {
+    final TextEditingController controller = TextEditingController(text: currentTitle);
+    final newTitle = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            'Rename Conversation',
+            style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF171B2B)),
+          ),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF171B2B)),
+            decoration: InputDecoration(
+              hintText: 'Enter new title...',
+              hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.grey),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFAB3500), width: 1.8),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE4E7FE)),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF8D7168), fontWeight: FontWeight.w700)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFAB3500),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text('Save', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (newTitle != null && newTitle.isNotEmpty && newTitle != currentTitle) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final String raw = prefs.getString('mochi_saved_sessions_local') ?? '[]';
+        final List<dynamic> list = jsonDecode(raw);
+        for (var item in list) {
+          if (item['id']?.toString() == sessionId) {
+            item['title'] = newTitle;
+            break;
+          }
+        }
+        await prefs.setString('mochi_saved_sessions_local', jsonEncode(list));
+        if (mounted) setState(() {});
+      } catch (e) {
+        debugPrint('Error renaming session: $e');
+      }
+    }
+  }
+
   Future<List<Map<String, dynamic>>> _fetchMergedSessions() async {
     final List<Map<String, dynamic>> combined = [];
     final Set<String> seenIds = {};
@@ -1552,7 +1609,6 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
                             dateStr = '${dt.day}/${dt.month}/${dt.year} at ${dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour)}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour >= 12 ? 'PM' : 'AM'}';
                           }
                         }
-                        final totalMsgs = sess['total_messages'] ?? 0;
                         final isCurrent = sess['id'] == _currentSessionId;
 
                         return InkWell(
@@ -1590,19 +1646,38 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        title,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                          color: const Color(0xFF171B2B),
-                                        ),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              title,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w700,
+                                                color: const Color(0xFF171B2B),
+                                              ),
+                                            ),
+                                          ),
+                                          GestureDetector(
+                                            onTap: () {
+                                              _renameSession(sess['id'].toString(), title);
+                                            },
+                                            child: const Padding(
+                                              padding: EdgeInsets.symmetric(horizontal: 4.0),
+                                              child: Icon(
+                                                Icons.edit_outlined,
+                                                size: 16,
+                                                color: Color(0xFF8D7168),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        '$dateStr • $totalMsgs messages',
+                                        dateStr,
                                         style: GoogleFonts.beVietnamPro(
                                           fontSize: 12,
                                           color: const Color(0xFF8D7168),
@@ -1742,15 +1817,12 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
 
             const SizedBox(height: 16),
 
-            // Animated Central Mochi Video Player (Cheering & Happy)
-            ScaleTransition(
-              scale: _pulseAnimation,
-              child: const MochiAnimatedVideoWidget(
-                size: 110,
-                showVideoBadge: false,
-                showCircleBackground: false,
-                cycleDuration: Duration(milliseconds: 2800),
-              ),
+            // Animated Central Mochi Character (Cheering & Happy)
+            const MochiAnimatedVideoWidget(
+              size: 110,
+              showVideoBadge: false,
+              showCircleBackground: false,
+              cycleDuration: Duration(milliseconds: 2800),
             ),
 
             const SizedBox(height: 24),

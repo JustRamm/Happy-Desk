@@ -591,7 +591,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Center(
                       child: SvgPicture.asset(
                         'assets/brand/u and me.svg',
-                        height: 38,
+                        height: 24,
                         fit: BoxFit.contain,
                       ),
                     ),

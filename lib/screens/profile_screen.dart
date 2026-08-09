@@ -330,7 +330,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const BrandLogoWidget(height: 48),
+                  const BrandLogoWidget(height: 54),
                   Row(
                     children: [
                       if (isFounder || isLeader) ...[

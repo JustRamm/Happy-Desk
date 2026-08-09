@@ -16,7 +16,6 @@ class _ComposeNglNoteScreenState extends State<ComposeNglNoteScreen> {
   final _messageController = TextEditingController();
   String _selectedCategory = 'Kindness';
   int _selectedColorIndex = 0;
-  bool _isAnonymous = true;
 
   List<Map<String, dynamic>> _recipientsList = [];
   String? _selectedRecipientName;
@@ -101,7 +100,7 @@ class _ComposeNglNoteScreenState extends State<ComposeNglNoteScreen> {
     try {
       await SupabaseService.instance.postNglJarMessage(
         message: text,
-        isAnonymous: _isAnonymous,
+        isAnonymous: true,
         tag: _selectedCategory.toLowerCase(),
         recipientName: _selectedRecipientName,
       );
@@ -487,69 +486,6 @@ class _ComposeNglNoteScreenState extends State<ComposeNglNoteScreen> {
                           ),
                         ),
                       ],
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Section 5: Anonymous Switch Tile
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryRust.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.visibility_off_outlined,
-                        color: AppTheme.primaryRust,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Send Anonymously',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.titleDark,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Your identity will be hidden in the jar',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Switch(
-                      value: _isAnonymous,
-                      activeThumbColor: AppTheme.primaryRust,
-                      onChanged: (val) => setState(() => _isAnonymous = val),
                     ),
                   ],
                 ),
