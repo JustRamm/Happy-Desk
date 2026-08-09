@@ -490,7 +490,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
         lower.contains('nothing to do') ||
         lower.contains('just bored')) {
       final namePart = firstName.isNotEmpty ? ' $firstName' : '';
-      return "Boredom strikes us all sometimes$namePart! I'm right here with you — whether you want to chat about something fun, take a 1-minute desk stretch, or just vent, I've got your back. What's on your mind today?";
+      return "Boredom strikes us all sometimes$namePart! Whether you want to chat, take a 1-minute desk stretch, or just vent, what's on your mind today?";
     }
 
     // Meta questions about Breathing / Action Buttons
@@ -754,7 +754,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     if (greetingWords.contains(lower) ||
         greetingWords.any((g) => lower.startsWith('$g ') || lower.endsWith(' $g'))) {
       final namePart = firstName.isNotEmpty ? ' $firstName' : '';
-      return "Hey$namePart! I'm Mochi, your workplace stress companion. I'm right here with you — how's your work day going so far?";
+      return "Hey$namePart! How's your day going so far?";
     }
 
     // Technical / workload friction
@@ -776,7 +776,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
         lower.contains('stress') ||
         lower.contains('burnout') ||
         lower.contains('panic')) {
-      return "That sounds like a heavy weight to carry right now. I'm right here with you. Would a quick 60-second breathing exercise help clear space, or do you want to talk it through?";
+      return "That sounds heavy. Would a quick 60-second breathing exercise help clear space, or do you want to talk it through?";
     }
 
     // Micromanagement & Controlling Bosses (Pillar 2)
@@ -1082,7 +1082,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     final moodTrendSummary =
         await UserPreferencesStore.getMochiMoodTrendSummary();
 
-    final systemInstruction = _promptService.buildSystemInstruction(
+    final baseSystemInstruction = _promptService.buildSystemInstruction(
       isClockedIn: _isClockedIn,
       isOnBreak: _isOnBreak,
       clockInTime: _clockInTime,
@@ -1101,6 +1101,8 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       lifeContextSummary: _lifeContextSummary.isNotEmpty ? _lifeContextSummary : null,
       openThreadsSummary: _openThreadsSummary.isNotEmpty ? _openThreadsSummary : null,
     );
+
+    final systemInstruction = "$baseSystemInstruction\n\nCRITICAL CONCISENESS & ANTI-BOT RULE: Be direct, genuine, and concise (1-2 short paragraphs max). DO NOT use repetitive filler phrases like 'Mochi is listening', 'I'm right here with you', 'I hear where you're coming from', or forced AI validation preambles. Speak naturally like a real human friend.";
 
     // Build multi-turn chat history.
     final List<Map<String, dynamic>> contents = [];
