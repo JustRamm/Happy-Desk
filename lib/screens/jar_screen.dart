@@ -48,6 +48,7 @@ class _JarScreenState extends State<JarScreen> {
             'categoryBg': const Color(0xFFFFE6DD),
           });
         }
+        _unopenedNotesCount = _myOpenedNotes.length;
       });
     }
   }
@@ -56,6 +57,20 @@ class _JarScreenState extends State<JarScreen> {
   final List<Map<String, dynamic>> _myOpenedNotes = [];
 
   void _unsealTodayNote() {
+    if (_myOpenedNotes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Your NGL Jar is currently empty. Write an appreciation note to a teammate to get started!',
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: const Color(0xFF95416C),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      );
+      return;
+    }
     SoundService.playJarOpenSound();
     showDialog(
       context: context,
@@ -320,9 +335,11 @@ class _JarScreenState extends State<JarScreen> {
 
                     // Unseal Status Title
                     Text(
-                      _todayNoteUnsealed
-                          ? 'Today\'s Daily Note Unsealed'
-                          : '1 Daily Note Ready to Unseal',
+                      _myOpenedNotes.isEmpty
+                          ? 'Your NGL Jar is Empty'
+                          : (_todayNoteUnsealed
+                              ? 'Today\'s Daily Note Unsealed'
+                              : '1 Daily Note Ready to Unseal'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16.5,
                         fontWeight: FontWeight.w800,
@@ -333,9 +350,11 @@ class _JarScreenState extends State<JarScreen> {
                     const SizedBox(height: 6),
 
                     Text(
-                      _todayNoteUnsealed
-                          ? 'Next daily note unseals tomorrow (in 14h 22m).\nSavor today\'s message below!'
-                          : 'Each day, 1 note unseals automatically so you can\nsavor every message of appreciation.',
+                      _myOpenedNotes.isEmpty
+                          ? 'No notes in your jar yet. Write an appreciation note to a teammate or check back later!'
+                          : (_todayNoteUnsealed
+                              ? 'Next daily note unseals tomorrow (in 14h 22m).\nSavor today\'s message below!'
+                              : 'Each day, 1 note unseals automatically so you can\nsavor every message of appreciation.'),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
@@ -555,39 +574,85 @@ class _JarScreenState extends State<JarScreen> {
               const SizedBox(height: 14),
 
               // Opened Notes List
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _myOpenedNotes.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final note = _myOpenedNotes[index];
-                  return _buildOpenedNoteCard(
-                    sender: note['sender'],
-                    category: note['category'],
-                    message: note['message'],
-                    date: note['date'],
-                    bgColor: note['bgColor'],
-                    categoryColor: note['categoryColor'],
-                    categoryBg: note['categoryBg'],
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => NglNoteDetailScreen(
-                            recipientName: 'You (Private)',
-                            senderName: note['sender'],
-                            category: note['category'],
-                            message: note['message'],
-                            date: note['date'],
-                            cardBgColor: note['bgColor'],
-                          ),
+              if (_myOpenedNotes.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0xFFFFE6DD)),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFFF0EB),
+                          shape: BoxShape.circle,
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
+                        child: const Icon(
+                          Icons.mark_email_read_outlined,
+                          color: Color(0xFFC84B1A),
+                          size: 32,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'No Opened Notes Yet',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.titleDark,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Delivered appreciation notes sent to your private jar will show up here once unsealed!',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.beVietnamPro(
+                          fontSize: 13,
+                          color: AppTheme.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _myOpenedNotes.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final note = _myOpenedNotes[index];
+                    return _buildOpenedNoteCard(
+                      sender: note['sender'],
+                      category: note['category'],
+                      message: note['message'],
+                      date: note['date'],
+                      bgColor: note['bgColor'],
+                      categoryColor: note['categoryColor'],
+                      categoryBg: note['categoryBg'],
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => NglNoteDetailScreen(
+                              recipientName: 'You (Private)',
+                              senderName: note['sender'],
+                              category: note['category'],
+                              message: note['message'],
+                              date: note['date'],
+                              cardBgColor: note['bgColor'],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
 
               const SizedBox(height: 24),
             ],
