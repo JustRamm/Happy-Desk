@@ -31,12 +31,21 @@ final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Fast parallel essential initialization (finishes in milliseconds)
-  await Future.wait([
-    dotenv.load(fileName: ".env").catchError((_) {}),
-    SupabaseService.instance.init().catchError((e) => debugPrint('Supabase init error: $e')),
-    UserPreferencesStore.loadProfileData().catchError((e) => debugPrint('UserPrefs error: $e')),
-  ]);
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (_) {}
+
+  try {
+    await SupabaseService.instance.init();
+  } catch (e) {
+    debugPrint('Supabase init error: $e');
+  }
+
+  try {
+    await UserPreferencesStore.loadProfileData();
+  } catch (e) {
+    debugPrint('UserPrefs load error: $e');
+  }
 
   // Non-blocking background hardware & prompt initialization (does NOT delay runApp)
   availableCameras().then((cameras) {
@@ -114,73 +123,48 @@ class _HappyDeskAppState extends State<HappyDeskApp> {
     // ── Scenarios 7 & 9: Global Auth State Listener ───────────────────────
     // Listens for JWT expiry, remote session revocation, and admin bans.
     // Fires silently for the full app lifetime — no polling required.
-    _authSubscription = SupabaseService.instance.client.auth.onAuthStateChange.listen(
-      (AuthState authState) async {
-        final event = authState.event;
-        debugPrint('[HappyDeskApp] onAuthStateChange: $event');
+    if (SupabaseService.instance.isInitialized) {
+      try {
+        _authSubscription = SupabaseService.instance.client.auth.onAuthStateChange.listen(
+          (AuthState authState) async {
+            final event = authState.event;
+            debugPrint('[HappyDeskApp] onAuthStateChange: $event');
 
-        switch (event) {
-          // ── Scenario 7 / 9: Unexpected sign-out ─────────────────────────
-          case AuthChangeEvent.signedOut:
-            if (userInitiatedSignOut) {
-              // User tapped "Log Out" themselves — suppress duplicate handling
-              userInitiatedSignOut = false;
-              return;
-            }
-            // JWT expired beyond auto-refresh, remote revocation, or account ban.
-            await UserPreferencesStore.setIsLoggedIn(false);
-            final nav = appNavigatorKey.currentState;
-            if (nav != null) {
-              nav.pushAndRemoveUntil(
-                MaterialPageRoute(
-                  builder: (_) => const AuthScreen(initialIsLogin: true),
-                ),
-                (route) => false,
-              );
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                final ctx = appNavigatorKey.currentContext;
-                if (ctx != null && ctx.mounted) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Your session has ended. Please sign in again.',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      backgroundColor: const Color(0xFFDC2626),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      duration: const Duration(seconds: 4),
+            switch (event) {
+              case AuthChangeEvent.signedOut:
+                if (userInitiatedSignOut) {
+                  userInitiatedSignOut = false;
+                  return;
+                }
+                await UserPreferencesStore.setIsLoggedIn(false);
+                final nav = appNavigatorKey.currentState;
+                if (nav != null) {
+                  nav.pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (_) => const AuthScreen(initialIsLogin: true),
                     ),
+                    (route) => false,
                   );
                 }
-              });
+                break;
+
+              case AuthChangeEvent.tokenRefreshed:
+              case AuthChangeEvent.signedIn:
+                await UserPreferencesStore.setIsLoggedIn(true);
+                break;
+
+              default:
+                break;
             }
-            break;
-
-          // ── Scenario 7 (success path): Silent token refresh ──────────────
-          case AuthChangeEvent.tokenRefreshed:
-            await UserPreferencesStore.setIsLoggedIn(true);
-            debugPrint('[HappyDeskApp] Token refreshed silently — session active.');
-            break;
-
-          // ── Any new sign-in: keep local cache in sync ────────────────────
-          case AuthChangeEvent.signedIn:
-            await UserPreferencesStore.setIsLoggedIn(true);
-            break;
-
-          default:
-            break;
-        }
-      },
-      onError: (Object error) {
-        debugPrint('[HappyDeskApp] Auth stream error: $error');
-      },
-    );
+          },
+          onError: (Object error) {
+            debugPrint('[HappyDeskApp] Auth stream error: $error');
+          },
+        );
+      } catch (e) {
+        debugPrint('[HappyDeskApp] Could not subscribe to Auth state: $e');
+      }
+    }
   }
 
   @override
