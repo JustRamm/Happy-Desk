@@ -41,8 +41,8 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
       setState(() {
         _isLoading = false;
       });
-      // After fade-out animation completes (400ms), route based on user session state
-      Future.delayed(const Duration(milliseconds: 400), () {
+      // After fade-out animation completes (200ms), route based on user session state
+      Future.delayed(const Duration(milliseconds: 200), () {
         if (!mounted) return;
         setState(() {
           _showSplashWidget = false;

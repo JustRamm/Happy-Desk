@@ -30,24 +30,25 @@ final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await dotenv.load(fileName: ".env");
-  } catch (_) {}
 
-  try {
-    availableDeviceCameras = await availableCameras();
-  } catch (e) {
-    debugPrint('Camera initialization info: $e');
-  }
+  // Fast parallel essential initialization (finishes in milliseconds)
+  await Future.wait([
+    dotenv.load(fileName: ".env").catchError((_) {}),
+    SupabaseService.instance.init().catchError((e) => debugPrint('Supabase init error: $e')),
+    UserPreferencesStore.loadProfileData().catchError((e) => debugPrint('UserPrefs error: $e')),
+  ]);
 
-  await SupabaseService.instance.init();
-  await UserPreferencesStore.loadProfileData();
-  await MochiPromptService.instance.ensureLoaded();
+  // Non-blocking background hardware & prompt initialization (does NOT delay runApp)
+  availableCameras().then((cameras) {
+    availableDeviceCameras = cameras;
+  }).catchError((e) {
+    debugPrint('Camera async initialization info: $e');
+  });
 
-  // Initialize Background-to-Foreground Resume Session Manager
+  MochiPromptService.instance.ensureLoaded().catchError((_) {});
+
+  // Initialize Background Session & Sync Managers
   SessionManagerService.instance.initialize();
-
-  // Initialize Background Offline Caching & Sync Queue
   OfflineSyncService.instance.initialize();
 
   SystemChrome.setSystemUIOverlayStyle(

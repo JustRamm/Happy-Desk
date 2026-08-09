@@ -26,7 +26,7 @@ class _SplashLoadingScreenState extends State<SplashLoadingScreen>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 4500),
+      duration: const Duration(milliseconds: 2200),
     );
 
     // Phase 1: Logo scales & fades in cleanly
@@ -62,7 +62,7 @@ class _SplashLoadingScreenState extends State<SplashLoadingScreen>
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        Future.delayed(const Duration(milliseconds: 600), () {
+        Future.delayed(const Duration(milliseconds: 200), () {
           if (mounted) {
             widget.onLoadingComplete?.call();
           }
