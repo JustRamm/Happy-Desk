@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:happy_desk/main.dart';
-import 'package:happy_desk/screens/auth/splash_screen.dart';
+import 'package:u_and_me/main.dart';
+import 'package:u_and_me/screens/auth/splash_screen.dart';
 
 void main() {
   testWidgets('App loads splash screen smoke test', (WidgetTester tester) async {
