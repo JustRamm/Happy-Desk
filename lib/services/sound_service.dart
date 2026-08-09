@@ -5,12 +5,35 @@ enum HapticFeedbackType { light, medium, heavy, selection }
 
 class SoundService {
   static final AudioPlayer _player = AudioPlayer();
+  static bool _audioContextConfigured = false;
+
+  static void _ensureAudioContextConfigured() {
+    if (_audioContextConfigured) return;
+    try {
+      AudioPlayer.global.setAudioContext(AudioContext(
+        android: const AudioContextAndroid(
+          stayAwake: false,
+          contentType: AndroidContentType.sonification,
+          usageType: AndroidUsageType.assistanceSonification,
+          audioFocus: AndroidAudioFocus.none,
+        ),
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.ambient,
+          options: {
+            AVAudioSessionOptions.mixWithOthers,
+          },
+        ),
+      ));
+      _audioContextConfigured = true;
+    } catch (_) {}
+  }
 
   static Future<void> _playSoundUrl(
     String url,
     SystemSoundType soundType,
     HapticFeedbackType hapticType,
   ) async {
+    _ensureAudioContextConfigured();
     try {
       if (hapticType == HapticFeedbackType.heavy) {
         await HapticFeedback.heavyImpact();
@@ -25,7 +48,7 @@ class SoundService {
       await SystemSound.play(soundType);
 
       await _player.stop();
-      await _player.setVolume(1.0);
+      await _player.setVolume(0.7);
       await _player.play(UrlSource(url)).timeout(
         const Duration(milliseconds: 1500),
         onTimeout: () async {

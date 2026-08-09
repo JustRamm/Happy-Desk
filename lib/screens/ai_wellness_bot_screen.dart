@@ -1176,34 +1176,117 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     );
   }
 
-  // ── New Chat: saves current session to Supabase, resets to landing ─────────
+  // ── Local Session Archiving & Merging ─────────────────────────────────────
+  Future<void> _archiveCurrentSessionLocally() async {
+    if (_messages.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String raw = prefs.getString('mochi_saved_sessions_local') ?? '[]';
+      final List<dynamic> list = jsonDecode(raw);
+
+      final firstUserMsg = _messages.firstWhere(
+        (m) => m.isUser,
+        orElse: () => _messages.first,
+      );
+      final title = firstUserMsg.text;
+      final String sessId =
+          _currentSessionId ?? DateTime.now().millisecondsSinceEpoch.toString();
+
+      final sessionData = {
+        'id': sessId,
+        'title': title.length > 120 ? '${title.substring(0, 117)}...' : title,
+        'total_messages': _messages.length,
+        'started_at': _sessionStartedAt.toIso8601String(),
+        'ended_at': DateTime.now().toIso8601String(),
+        'local_messages': _messages.map((m) => m.toJson()).toList(),
+      };
+
+      list.removeWhere((item) => item['id'] == sessId);
+      list.insert(0, sessionData);
+
+      final trimmed = list.length > 30 ? list.sublist(0, 30) : list;
+      await prefs.setString('mochi_saved_sessions_local', jsonEncode(trimmed));
+    } catch (e) {
+      debugPrint('Error archiving session locally: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchMergedSessions() async {
+    final List<Map<String, dynamic>> combined = [];
+    final Set<String> seenIds = {};
+
+    // 1. Load local sessions
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String raw = prefs.getString('mochi_saved_sessions_local') ?? '[]';
+      final List<dynamic> localList = jsonDecode(raw);
+      for (var item in localList) {
+        final map = Map<String, dynamic>.from(item);
+        final id = map['id']?.toString() ?? '';
+        if (id.isNotEmpty) {
+          seenIds.add(id);
+          combined.add(map);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading local sessions: $e');
+    }
+
+    // 2. Load Supabase remote sessions
+    try {
+      final remoteList = await SupabaseService.instance.getMochiSessions();
+      for (var item in remoteList) {
+        final id = item['id']?.toString() ?? '';
+        if (id.isNotEmpty && !seenIds.contains(id)) {
+          combined.add(item);
+          seenIds.add(id);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading remote sessions: $e');
+    }
+
+    combined.sort((a, b) {
+      final dateA = DateTime.tryParse(a['ended_at'] ?? a['started_at'] ?? '') ??
+          DateTime(2000);
+      final dateB = DateTime.tryParse(b['ended_at'] ?? b['started_at'] ?? '') ??
+          DateTime(2000);
+      return dateB.compareTo(dateA);
+    });
+
+    return combined;
+  }
+
+  // ── New Chat: saves current session locally & to Supabase, resets to landing ─
   Future<void> _startNewChat() async {
     if (_messages.isEmpty) return; // Already on landing — nothing to save
 
     final sessionStart = DateTime.now().subtract(
-      Duration(minutes: _messages.length * 2), // Rough session start estimate
+      Duration(minutes: _messages.length * 2),
     );
 
-    // First user message becomes the session title
     final firstUserMsg = _messages.firstWhere(
       (m) => m.isUser,
       orElse: () => _messages.first,
     );
     final title = firstUserMsg.text;
 
-    // 1. Trigger local memory summarizer (updates SharedPreferences rolling summary)
+    // 1. Archive locally first (guarantees conversation is NEVER lost)
+    await _archiveCurrentSessionLocally();
+
+    // 2. Trigger memory summarizer
     summarizeSessionIfNeeded();
 
-    // 2. Persist summary to Supabase mochi_session_summaries
+    // 3. Persist summary to Supabase
     final localSummary = await UserPreferencesStore.getMochiSessionSummary();
     if (localSummary != null && localSummary.trim().isNotEmpty) {
       SupabaseService.instance.saveMochiSessionSummary(
         summaryText: localSummary,
         totalTurns: _messages.length,
-      ).catchError((_) {}); // Silent fail
+      ).catchError((_) {});
     }
 
-    // 3. Save session record to Supabase mochi_chat_sessions (if not already created)
+    // 4. Save/update session in Supabase
     if (_currentSessionId != null) {
       SupabaseService.instance.updateMochiSession(
         sessionId: _currentSessionId!,
@@ -1217,7 +1300,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       ).then((_) {}).catchError((_) => null);
     }
 
-    // 4. Clear local chat (SharedPreferences + in-memory) & reset session state
+    // 5. Clear active local chat & reset session state
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('mochi_chat_history');
 
@@ -1228,7 +1311,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       _sessionStartedAt = DateTime.now();
     });
 
-    // 5. Confirmation snackbar
+    // 6. Confirmation snackbar
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -1304,7 +1387,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
               const Divider(height: 1, color: Color(0xFFF3F2FF)),
               Expanded(
                 child: FutureBuilder<List<Map<String, dynamic>>>(
-                  future: SupabaseService.instance.getMochiSessions(),
+                  future: _fetchMergedSessions(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(
@@ -1425,45 +1508,52 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
 
   // ── Load Past Session Messages ──────────────────────────────────────────
   Future<void> _loadSession(Map<String, dynamic> session) async {
-    final sessionId = session['id'] as String?;
-    if (sessionId == null) return;
+    final sessionId = session['id']?.toString();
 
-    // Save current active session if needed
-    if (_messages.isNotEmpty && _currentSessionId != sessionId) {
-      summarizeSessionIfNeeded();
-    }
-
-    final rawMsgs = await SupabaseService.instance.getMochiSessionMessages(sessionId);
-    if (rawMsgs.isEmpty) return;
-
-    final loadedMsgs = <_ChatMessage>[];
-    for (var m in rawMsgs) {
-      final msgText = m['message'] as String? ?? '';
-      final isUser = m['is_user'] as bool? ?? false;
-      final actionType = m['action_type'] as String?;
-      final rawCreatedAt = m['created_at'] as String?;
-
-      String formattedTime = _formatCurrentTime();
-      if (rawCreatedAt != null) {
-        final dt = DateTime.tryParse(rawCreatedAt)?.toLocal();
-        if (dt != null) {
-          final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
-          final min = dt.minute.toString().padLeft(2, '0');
-          final ampm = dt.hour >= 12 ? 'PM' : 'AM';
-          formattedTime = '$h:$min $ampm';
+    // 1. Check if local_messages exists on session
+    List<_ChatMessage> loadedMsgs = [];
+    if (session['local_messages'] != null) {
+      try {
+        final List list = session['local_messages'];
+        for (var item in list) {
+          loadedMsgs.add(_ChatMessage.fromJson(item));
         }
-      }
-
-      loadedMsgs.add(
-        _ChatMessage(
-          text: msgText,
-          isUser: isUser,
-          time: formattedTime,
-          actionType: actionType,
-          isNew: false,
-        ),
-      );
+      } catch (_) {}
     }
+
+    // 2. If not found locally, fetch from Supabase
+    if (loadedMsgs.isEmpty && sessionId != null) {
+      final rawMsgs = await SupabaseService.instance.getMochiSessionMessages(sessionId);
+      for (var m in rawMsgs) {
+        final msgText = m['message'] as String? ?? '';
+        final isUser = m['is_user'] as bool? ?? false;
+        final actionType = m['action_type'] as String?;
+        final rawCreatedAt = m['created_at'] as String?;
+
+        String formattedTime = _formatCurrentTime();
+        if (rawCreatedAt != null) {
+          final dt = DateTime.tryParse(rawCreatedAt)?.toLocal();
+          if (dt != null) {
+            final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+            final min = dt.minute.toString().padLeft(2, '0');
+            final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+            formattedTime = '$h:$min $ampm';
+          }
+        }
+
+        loadedMsgs.add(
+          _ChatMessage(
+            text: msgText,
+            isUser: isUser,
+            time: formattedTime,
+            actionType: actionType,
+            isNew: false,
+          ),
+        );
+      }
+    }
+
+    if (loadedMsgs.isEmpty) return;
 
     if (!mounted) return;
     setState(() {
