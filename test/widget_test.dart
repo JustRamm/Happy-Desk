@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:u_and_me/main.dart';
-import 'package:u_and_me/screens/splash_loading_screen.dart';
+import 'package:happy_desk/main.dart';
+import 'package:happy_desk/screens/auth/splash_screen.dart';
 
 void main() {
   testWidgets('App loads splash screen smoke test', (WidgetTester tester) async {
@@ -10,6 +10,6 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
 
     await tester.pumpWidget(const UAndMeApp());
-    expect(find.byType(SplashLoadingScreen), findsOneWidget);
+    expect(find.byType(SplashScreen), findsOneWidget);
   });
 }

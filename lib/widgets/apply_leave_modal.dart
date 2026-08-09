@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../screens/leave_history_screen.dart';
+import '../screens/coffee/leave_history_screen.dart';
 import '../services/supabase_service.dart';
 import '../services/user_preferences_store.dart';
 

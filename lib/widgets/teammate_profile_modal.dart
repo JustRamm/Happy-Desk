@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../screens/direct_chat_screen.dart';
+import '../screens/chat/direct_chat_screen.dart';
 import '../services/supabase_service.dart';
 import '../services/user_preferences_store.dart';
 

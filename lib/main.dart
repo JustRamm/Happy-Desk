@@ -15,9 +15,9 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'screens/error/global_crash_screen.dart';
 import 'screens/error/no_connectivity_screen.dart';
-import 'screens/auth_screen.dart';
+import 'screens/auth/auth_screen.dart';
 import 'theme/app_theme.dart';
-import 'screens/onboarding_wrapper_screen.dart';
+import 'screens/auth/onboarding_wrapper_screen.dart';
 
 List<CameraDescription> availableDeviceCameras = [];
 

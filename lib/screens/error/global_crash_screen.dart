@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
-import '../onboarding_wrapper_screen.dart';
+import '../auth/onboarding_wrapper_screen.dart';
 
 class GlobalCrashScreen extends StatefulWidget {
   final FlutterErrorDetails errorDetails;

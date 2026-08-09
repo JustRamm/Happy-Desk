@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../screens/call_history_screen.dart';
+import '../screens/chat/call_history_screen.dart';
 
 class NotificationBellWidget extends StatelessWidget {
   const NotificationBellWidget({super.key});
