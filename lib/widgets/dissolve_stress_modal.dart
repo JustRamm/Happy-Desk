@@ -36,6 +36,7 @@ class _DissolveStressModalState extends State<DissolveStressModal>
     with SingleTickerProviderStateMixin {
   final TextEditingController _textController = TextEditingController();
   late AnimationController _shredController;
+  ShredderState _shredderState = ShredderState.idle;
   bool _isShredding = false;
   bool _isShredded = false;
 
@@ -45,10 +46,20 @@ class _DissolveStressModalState extends State<DissolveStressModal>
     _textController.text = widget.initialText ?? '';
     _shredController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2800),
+      duration: const Duration(milliseconds: 3200),
     )..addListener(() {
-        if (_shredController.value > 0.1 && _shredController.value < 0.9) {
-          if ((_shredController.value * 25).floor() % 2 == 0) {
+        final val = _shredController.value;
+
+        // Switch to active shredding state at 35% animation progress
+        if (val >= 0.35 && _shredderState != ShredderState.shredding) {
+          setState(() {
+            _shredderState = ShredderState.shredding;
+          });
+        }
+
+        // Rhythmic mechanical click and haptic feedback during shredding
+        if (val > 0.1 && val < 0.95) {
+          if ((val * 30).floor() % 2 == 0) {
             SystemSound.play(SystemSoundType.click);
             HapticFeedback.lightImpact();
           }
@@ -56,6 +67,7 @@ class _DissolveStressModalState extends State<DissolveStressModal>
       })..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
           setState(() {
+            _shredderState = ShredderState.idle;
             _isShredding = false;
             _isShredded = true;
           });
@@ -80,6 +92,7 @@ class _DissolveStressModalState extends State<DissolveStressModal>
     if (_textController.text.trim().isEmpty) return;
     setState(() {
       _isShredding = true;
+      _shredderState = ShredderState.feeding;
     });
     SoundService.playShredSound();
     _shredController.forward(from: 0.0);
@@ -112,8 +125,8 @@ class _DissolveStressModalState extends State<DissolveStressModal>
                   child: Row(
                     children: [
                       const ShredderIconWidget(
-                        size: 18,
-                        mainColor: Color(0xFFAB3500),
+                        size: 20,
+                        state: ShredderState.idle,
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -146,7 +159,7 @@ class _DissolveStressModalState extends State<DissolveStressModal>
               ),
               const SizedBox(height: 6),
               Text(
-                'Type out what is causing you workplace tension. Your words will be pulled directly into the paper shredder and cut into fine paper strips.',
+                'Type out what is causing you workplace tension. Your note will be fed into the office shredder and cut into fine paper strips.',
                 style: GoogleFonts.beVietnamPro(
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
@@ -156,22 +169,22 @@ class _DissolveStressModalState extends State<DissolveStressModal>
               ),
               const SizedBox(height: 20),
 
-              // Interactive Paper Shredder Stage
+              // Interactive Paper Shredder Stage (Renders Realistic SVG States)
               SizedBox(
-                height: 240,
+                height: 310,
                 width: double.infinity,
                 child: Stack(
                   alignment: Alignment.topCenter,
                   children: [
-                    // Top Input Paper Sheet pulling downwards
+                    // Text Note Input Paper Sheet (slides downward during shredding)
                     if (_isShredding)
                       Positioned(
                         top: 10 + (_shredController.value * 90),
                         child: Opacity(
-                          opacity: (1.0 - _shredController.value).clamp(0.0, 1.0),
+                          opacity: (1.0 - _shredController.value * 1.2).clamp(0.0, 1.0),
                           child: Container(
-                            width: 260,
-                            height: 100,
+                            width: 250,
+                            height: 90,
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: Colors.white,
@@ -200,8 +213,8 @@ class _DissolveStressModalState extends State<DissolveStressModal>
                       Positioned(
                         top: 0,
                         child: Container(
-                          width: 280,
-                          height: 130,
+                          width: 270,
+                          height: 120,
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -228,62 +241,22 @@ class _DissolveStressModalState extends State<DissolveStressModal>
                         ),
                       ),
 
-                    // Paper Shredder Device Slot Header
+                    // Realistic Vector Office Paper Shredder SVG Device
                     Positioned(
-                      top: 105,
-                      child: Container(
-                        width: 300,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFAB3500),
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x33AB3500),
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.only(left: 14.0),
-                              child: Icon(Icons.shield_rounded,
-                                  color: Colors.white, size: 18),
-                            ),
-                            Container(
-                              width: 180,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF3D1200),
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(right: 14.0),
-                              child: Container(
-                                width: 10,
-                                height: 10,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF64FBCE),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      top: 75,
+                      child: ShredderIconWidget(
+                        size: 230,
+                        state: _shredderState,
                       ),
                     ),
 
-                    // Shredded Strips Falling Output Box
-                    if (_isShredding)
+                    // Falling Paper Shred Strips Overlay during Active Shredding
+                    if (_isShredding && _shredderState == ShredderState.shredding)
                       Positioned(
-                        top: 145,
+                        top: 200,
                         child: SizedBox(
-                          width: 280,
-                          height: 90,
+                          width: 170,
+                          height: 95,
                           child: AnimatedBuilder(
                             animation: _shredController,
                             builder: (context, child) {
@@ -299,7 +272,7 @@ class _DissolveStressModalState extends State<DissolveStressModal>
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
               SizedBox(
                 width: double.infinity,
@@ -317,10 +290,9 @@ class _DissolveStressModalState extends State<DissolveStressModal>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const ShredderIconWidget(
-                        size: 20,
-                        mainColor: Colors.white,
-                        slotColor: Colors.white,
+                      ShredderIconWidget(
+                        size: 22,
+                        state: _shredderState,
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -341,16 +313,16 @@ class _DissolveStressModalState extends State<DissolveStressModal>
                   children: [
                     const SizedBox(height: 16),
                     Container(
-                      width: 80,
-                      height: 80,
+                      width: 90,
+                      height: 90,
                       decoration: const BoxDecoration(
                         color: Color(0xFFEBF7F5),
                         shape: BoxShape.circle,
                       ),
                       child: const Center(
                         child: ShredderIconWidget(
-                          size: 44,
-                          mainColor: Color(0xFF006C53),
+                          size: 56,
+                          state: ShredderState.shredding,
                         ),
                       ),
                     ),
@@ -365,7 +337,7 @@ class _DissolveStressModalState extends State<DissolveStressModal>
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Your stress thoughts have been completely cut into paper strips and dissolved. Take a slow, relaxing deep breath.',
+                      'Your workplace stress note has been completely cut into paper strips and dissolved. Take a slow, relaxing deep breath.',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.beVietnamPro(
                         fontSize: 15,
@@ -389,7 +361,7 @@ class _DissolveStressModalState extends State<DissolveStressModal>
                           elevation: 0,
                         ),
                         child: Text(
-                          'Return to NGL Jar',
+                          'Return to Workspace',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -424,17 +396,17 @@ class _ShredderStripsPainter extends CustomPainter {
       final delay = (i % 4) * 0.15;
       final adjustedProgress = ((progress - delay) / (1.0 - delay)).clamp(0.0, 1.0);
 
-      final yTop = adjustedProgress * (size.height * 0.4);
+      final yTop = adjustedProgress * (size.height * 0.45);
       final stripLength = 20.0 + (rand.nextDouble() * 25.0);
 
       final paint = Paint()
         ..color = Color.lerp(
-          const Color(0xFFAB3500),
-          const Color(0xFFFF99C8),
+          const Color(0xFFD1D5DB),
+          const Color(0xFFFFFFFF),
           rand.nextDouble(),
         )!
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.5
+        ..strokeWidth = 3.2
         ..strokeCap = StrokeCap.round;
 
       if (adjustedProgress > 0) {

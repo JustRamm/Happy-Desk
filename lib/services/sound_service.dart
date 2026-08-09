@@ -93,10 +93,11 @@ class SoundService {
     );
   }
 
-  /// Play Shred paper / Dissolve Vent Note sound
+  /// Play Shred paper / Dissolve Vent Note sound (mechanical shredder motor)
   static Future<void> playShredSound() async {
+    await HapticFeedback.heavyImpact();
     await _playSoundUrl(
-      'https://assets.mixkit.co/active_storage/sfx/2048/2048-preview.mp3',
+      'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3',
       SystemSoundType.click,
       HapticFeedbackType.heavy,
     );

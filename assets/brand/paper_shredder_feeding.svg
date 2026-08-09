@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="headBodyGradFeed" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#374151"/>
+      <stop offset="50%" stop-color="#1F2937"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+
+    <linearGradient id="silverPlateGradFeed" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F3F4F6"/>
+      <stop offset="50%" stop-color="#D1D5DB"/>
+      <stop offset="100%" stop-color="#9CA3AF"/>
+    </linearGradient>
+
+    <linearGradient id="binBodyGradFeed" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4B5563"/>
+      <stop offset="100%" stop-color="#1F2937"/>
+    </linearGradient>
+
+    <linearGradient id="binWindowGradFeed" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="50%" stop-color="#6B7280" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#111827" stop-opacity="0.45"/>
+    </linearGradient>
+
+    <linearGradient id="paperGradFeed" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F3F4F6"/>
+    </linearGradient>
+
+    <linearGradient id="handleGradFeed" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#9CA3AF"/>
+      <stop offset="50%" stop-color="#F9FAFB"/>
+      <stop offset="100%" stop-color="#9CA3AF"/>
+    </linearGradient>
+
+    <filter id="dropShadowFeed" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+
+    <filter id="ledGlowFeed" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#dropShadowFeed)">
+    <!-- 1. SHREDDER BASE & WHEELS / FEET -->
+    <rect x="136" y="440" width="32" height="18" rx="6" fill="#111827"/>
+    <rect x="344" y="440" width="32" height="18" rx="6" fill="#111827"/>
+    <rect x="120" y="450" width="272" height="10" rx="5" fill="#030712"/>
+
+    <!-- 2. WASTE CONTAINER BIN (LOWER BODY) -->
+    <rect x="116" y="210" width="280" height="234" rx="20" fill="url(#binBodyGradFeed)"/>
+    <rect x="124" y="218" width="264" height="218" rx="16" fill="none" stroke="#6B7280" stroke-width="1.5" stroke-opacity="0.4"/>
+
+    <!-- Translucent View Window -->
+    <rect x="176" y="270" width="160" height="145" rx="14" fill="url(#binWindowGradFeed)" stroke="#9CA3AF" stroke-width="2" stroke-opacity="0.5"/>
+
+    <!-- Bin Pull Handle -->
+    <rect x="206" y="234" width="100" height="14" rx="7" fill="url(#handleGradFeed)"/>
+
+    <!-- 3. PAPER SHEET (ENTERING FEED SLOT) -->
+    <path d="M 176 42 L 336 42 C 342 42 346 46 346 52 L 346 160 L 166 160 L 166 52 C 166 46 170 42 176 42 Z" fill="url(#paperGradFeed)"/>
+    <!-- Folded Corner Detail -->
+    <path d="M 326 42 L 346 62 L 326 62 Z" fill="#D1D5DB"/>
+    <!-- Text Lines on Paper Sheet -->
+    <line x1="196" y1="75" x2="316" y2="75" stroke="#9CA3AF" stroke-width="3" stroke-linecap="round"/>
+    <line x1="196" y1="92" x2="296" y2="92" stroke="#9CA3AF" stroke-width="3" stroke-linecap="round"/>
+    <line x1="196" y1="109" x2="310" y2="109" stroke="#9CA3AF" stroke-width="3" stroke-linecap="round"/>
+    <line x1="196" y1="126" x2="270" y2="126" stroke="#9CA3AF" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- 4. SHREDDER HEAD / TOP MOTOR HOUSING -->
+    <rect x="100" y="145" width="312" height="75" rx="16" fill="url(#headBodyGradFeed)"/>
+    <rect x="100" y="145" width="312" height="75" rx="16" fill="none" stroke="#4B5563" stroke-width="2"/>
+
+    <!-- Top Metallic Feed Plate Rim -->
+    <rect x="140" y="152" width="232" height="24" rx="8" fill="url(#silverPlateGradFeed)"/>
+
+    <!-- Feed Slot Throat (Dark Inset) -->
+    <rect x="156" y="158" width="200" height="12" rx="6" fill="#030712"/>
+
+    <!-- 5. CONTROL PANEL & STATUS INDICATORS -->
+    <!-- Power Button -->
+    <circle cx="126" cy="182" r="10" fill="#1F2937" stroke="#6B7280" stroke-width="1.5"/>
+    <path d="M 126 177 L 126 182" stroke="#10B981" stroke-width="2" stroke-linecap="round"/>
+    <path d="M 122.5 179.5 A 5 5 0 1 0 129.5 179.5" fill="none" stroke="#10B981" stroke-width="1.8" stroke-linecap="round"/>
+
+    <!-- Green Power Active LED -->
+    <circle cx="366" cy="182" r="6" fill="#10B981" filter="url(#ledGlowFeed)"/>
+    <circle cx="366" cy="182" r="3" fill="#D1FAE5"/>
+
+    <!-- Warning LED -->
+    <circle cx="386" cy="182" r="5" fill="#F59E0B" opacity="0.6"/>
+
+    <!-- Accent Line -->
+    <rect x="176" y="195" width="160" height="4" rx="2" fill="#4B5563"/>
+  </g>
+</svg>
