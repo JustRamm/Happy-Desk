@@ -11,6 +11,7 @@ import 'founder_team_analytics_screen.dart';
 import '../widgets/brand_logo_widget.dart';
 import '../services/user_preferences_store.dart';
 import '../services/supabase_service.dart';
+import '../theme/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -109,10 +110,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile photo updated & saved to Supabase!'),
-          backgroundColor: Color(0xFF047857),
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+              const SizedBox(width: 10),
+              Text(
+                'Profile photo updated successfully!',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF047857),
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       );
     } catch (e) {
@@ -143,21 +158,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildInitialsAvatar(String name) {
     final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?';
     return Container(
-      color: const Color(0xFFFFF0EB),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFF0EB), Color(0xFFFFDBD0)],
+        ),
+      ),
       alignment: Alignment.center,
       child: Text(
         initial,
         style: GoogleFonts.plusJakartaSans(
-          fontSize: 32,
+          fontSize: 36,
           fontWeight: FontWeight.w800,
-          color: const Color(0xFFAB3500),
+          color: AppTheme.primaryRust,
         ),
       ),
     );
   }
 
   List<Map<String, dynamic>> _getDynamicProjects() {
-    // Real algorithm to calculate completion percentages
     final name = UserPreferencesStore.getUserName();
     final role = UserPreferencesStore.getUserRole();
     final company = UserPreferencesStore.getCompany();
@@ -181,8 +201,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'title': 'Profile Setup & Workspace Identity',
         'role': 'Member',
         'progress': profileProgress,
-        'status': profileProgress >= 1.0 ? 'Completed' : 'In Active Progress',
-        'color': const Color(0xFFAB3500),
+        'status': profileProgress >= 1.0 ? 'Completed' : 'In Progress',
+        'color': AppTheme.primaryRust,
         'bgColor': const Color(0xFFFFF0EB),
       },
       {
@@ -208,7 +228,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return [
       {
         'title': 'Mochi AI Mindful Check-ins',
-        'count': '$_mochiChatCount Stress Chats Completed',
+        'count': '$_mochiChatCount Chats Logged',
         'subtitle': 'Personalized Emotional Support Routine',
         'icon': Icons.self_improvement_rounded,
         'color': const Color(0xFF95416C),
@@ -216,7 +236,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
       {
         'title': 'Daily Stress-Buster Lessons',
-        'count': '$_stressLessonsCount Lessons Completed',
+        'count': '$_stressLessonsCount Completed',
         'subtitle': 'Mastering Workplace Mindfulness',
         'icon': Icons.menu_book_rounded,
         'color': const Color(0xFF7C3AED),
@@ -224,7 +244,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
       {
         'title': '60s Box Breathing Sessions',
-        'count': '$_boxBreathingCount Sessions Logged',
+        'count': '$_boxBreathingCount Logged',
         'subtitle': 'Consistent Anxiety Relief Routine',
         'icon': Icons.air_rounded,
         'color': const Color(0xFF0284C7),
@@ -232,7 +252,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
       {
         'title': 'Desk Stretch Micro-Habit',
-        'count': '$_deskStretchesCount Sessions Logged',
+        'count': '$_deskStretchesCount Logged',
         'subtitle': 'Postural Health & Energy Boost',
         'icon': Icons.fitness_center_rounded,
         'color': const Color(0xFFD97706),
@@ -241,12 +261,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ];
   }
 
+  void _copyToClipboard(String text, String label) {
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.copy_rounded, color: Colors.white, size: 16),
+            const SizedBox(width: 10),
+            Text(
+              '$label copied to clipboard!',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF2D3142),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userName = UserPreferencesStore.getUserName();
     final userRole = UserPreferencesStore.getUserRole();
     final company = UserPreferencesStore.getCompany();
     final userAvatar = UserPreferencesStore.getUserAvatarUrl() ?? '';
+    final isFounder = UserPreferencesStore.getIsFounder();
+    final isLeader = UserPreferencesStore.getIsLeader();
+
+    final roleTitle = isFounder
+        ? 'Founder & CEO'
+        : (isLeader
+            ? (userRole.isNotEmpty ? userRole : 'Team Leader')
+            : (userRole.isNotEmpty ? userRole : 'Team Member'));
+
+    final companyTitle = isFounder
+        ? (company.isNotEmpty ? company : 'Workspace')
+        : (isLeader
+            ? 'Team Lead at ${company.isNotEmpty ? company : 'Workspace'}'
+            : 'Member of ${company.isNotEmpty ? company : 'Workspace'}');
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8FF),
@@ -257,382 +316,322 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Header Bar: Logo & Settings Icon
+              // Top Bar: Logo & Settings Action Button
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const BrandLogoWidget(height: 54),
-                  IconButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SettingsScreen(),
+                  const BrandLogoWidget(height: 48),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFE4E7FE)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
                         ),
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.settings_outlined,
-                      color: Color(0xFF8B2600),
-                      size: 28,
+                      ],
                     ),
-                    tooltip: 'Settings',
+                    child: IconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.settings_outlined,
+                        color: AppTheme.primaryRust,
+                        size: 22,
+                      ),
+                      tooltip: 'Settings',
+                    ),
                   ),
                 ],
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
 
-              // User Profile Header Card
+              // Executive Profile Hero Card
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: const Color(0xFFE4E7FE)),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFAB3500).withValues(alpha: 0.04),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
+                      color: AppTheme.primaryRust.withValues(alpha: 0.06),
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
                 child: Column(
                   children: [
-                    GestureDetector(
-                      onTap: _pickAndUploadAvatar,
-                      child: Stack(
+                    // Top Decorative Cover Accent Banner
+                    Container(
+                      height: 72,
+                      decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(23)),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFFFFF0EB),
+                            Color(0xFFF3F2FF),
+                            Color(0xFFFFE0D4),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Avatar Overlapping Banner
+                    Transform.translate(
+                      offset: const Offset(0, -36),
+                      child: Column(
                         children: [
-                          Container(
-                            width: 88,
-                            height: 88,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFFAB3500),
-                                width: 2.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFAB3500).withValues(alpha: 0.15),
-                                  blurRadius: 12,
+                          GestureDetector(
+                            onTap: _pickAndUploadAvatar,
+                            child: Stack(
+                              alignment: Alignment.bottomRight,
+                              children: [
+                                Container(
+                                  width: 92,
+                                  height: 92,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 4,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppTheme.primaryRust.withValues(alpha: 0.18),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ClipOval(
+                                    child: _isUploadingAvatar
+                                        ? const Center(
+                                            child: SizedBox(
+                                              width: 26,
+                                              height: 26,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2.5,
+                                                color: AppTheme.primaryRust,
+                                              ),
+                                            ),
+                                          )
+                                        : _buildAvatarWidget(userAvatar, userName),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryRust,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.15),
+                                        blurRadius: 6,
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt_rounded,
+                                    size: 13,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ],
                             ),
-                            child: ClipOval(
-                              child: _isUploadingAvatar
-                                  ? const Center(
-                                      child: SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          color: Color(0xFFAB3500),
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          // Name & Designation
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Column(
+                              children: [
+                                Text(
+                                  userName.isNotEmpty ? userName : 'User Profile',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF171B2B),
+                                    letterSpacing: -0.4,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  roleTitle,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.primaryRust,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+
+                                // Company Badge
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF0EB),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: AppTheme.primaryRust.withValues(alpha: 0.2),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.business_rounded,
+                                        size: 14,
+                                        color: AppTheme.primaryRust,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          companyTitle,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppTheme.primaryRust,
+                                          ),
                                         ),
                                       ),
-                                    )
-                                  : _buildAvatarWidget(userAvatar, userName),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFAB3500),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt_rounded,
-                                size: 14,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
+                                    ],
+                                  ),
+                                ),
 
-                    Text(
-                      userName,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF171B2B),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      UserPreferencesStore.getIsFounder()
-                          ? 'Founder & CEO'
-                          : (UserPreferencesStore.getIsLeader()
-                              ? (userRole.isNotEmpty ? userRole : 'Team Leader / Manager')
-                              : (userRole.isNotEmpty ? userRole : 'Employee')),
-                      style: GoogleFonts.beVietnamPro(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFFAB3500),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
+                                // Additional Executive Badges (HQ / Industry)
+                                if (isFounder) ...[
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    alignment: WrapAlignment.center,
+                                    spacing: 8,
+                                    runSpacing: 6,
+                                    children: [
+                                      if (UserPreferencesStore.getCompanyHq().isNotEmpty)
+                                        _buildMetaPill(
+                                          icon: Icons.location_on_rounded,
+                                          label: UserPreferencesStore.getCompanyHq(),
+                                          color: const Color(0xFF7C3AED),
+                                          bgColor: const Color(0xFFF0EBFE),
+                                        ),
+                                      if (UserPreferencesStore.getCompanyIndustry().isNotEmpty)
+                                        _buildMetaPill(
+                                          icon: Icons.domain_rounded,
+                                          label: UserPreferencesStore.getCompanyIndustry(),
+                                          color: const Color(0xFF0284C7),
+                                          bgColor: const Color(0xFFE0F2FE),
+                                        ),
+                                    ],
+                                  ),
+                                ],
 
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF0EB),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        UserPreferencesStore.getIsFounder()
-                            ? (company.isNotEmpty ? company : 'Workspace')
-                            : (UserPreferencesStore.getIsLeader()
-                                ? 'Team Leader at ${company.isNotEmpty ? company : 'Workspace'}'
-                                : 'Member of ${company.isNotEmpty ? company : 'Workspace'}'),
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFFAB3500),
-                        ),
-                      ),
-                    ),
+                                const SizedBox(height: 18),
 
-                    if (UserPreferencesStore.getIsFounder()) ...[
-                      const SizedBox(height: 12),
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: [
-                          if (UserPreferencesStore.getCompanyHq().isNotEmpty)
-                            Chip(
-                              label: Text('HQ: ${UserPreferencesStore.getCompanyHq()}'),
-                              backgroundColor: const Color(0xFFF3F2FF),
-                              labelStyle: GoogleFonts.beVietnamPro(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF7C3AED)),
-                              padding: EdgeInsets.zero,
-                            ),
-                          if (UserPreferencesStore.getCompanyIndustry().isNotEmpty)
-                            Chip(
-                              label: Text(UserPreferencesStore.getCompanyIndustry()),
-                              backgroundColor: const Color(0xFFE0F2FE),
-                              labelStyle: GoogleFonts.beVietnamPro(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF0284C7)),
-                              padding: EdgeInsets.zero,
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const FounderTeamAnalyticsScreen(),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFAB3500),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
-                        icon: const Icon(Icons.analytics_rounded, size: 16),
-                        label: Text(
-                          'View Team Working Hours',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Company Join Code Card
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF3F2FF),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFE4E7FE)),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
+                                // Hero Actions (Edit Profile + Analytics)
                                 Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(Icons.key_rounded, size: 16, color: Color(0xFF7C3AED)),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Company Join Code:',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFF171B2B),
+                                    ElevatedButton.icon(
+                                      onPressed: () async {
+                                        final updated = await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => const EditProfileScreen(),
+                                          ),
+                                        );
+                                        if (updated == true && mounted) {
+                                          setState(() {});
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppTheme.primaryRust,
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 22,
+                                          vertical: 11,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(30),
+                                        ),
+                                      ),
+                                      icon: const Icon(Icons.edit_rounded, size: 15),
+                                      label: Text(
+                                        'Edit Profile',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                        ),
                                       ),
                                     ),
+
+                                    if (isFounder || isLeader) ...[
+                                      const SizedBox(width: 10),
+                                      OutlinedButton.icon(
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const FounderTeamAnalyticsScreen(),
+                                            ),
+                                          );
+                                        },
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 11,
+                                          ),
+                                          side: BorderSide(
+                                            color: AppTheme.primaryRust.withValues(alpha: 0.4),
+                                            width: 1.2,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(30),
+                                          ),
+                                          backgroundColor: const Color(0xFFFFF0EB),
+                                        ),
+                                        icon: const Icon(
+                                          Icons.analytics_rounded,
+                                          size: 15,
+                                          color: AppTheme.primaryRust,
+                                        ),
+                                        label: Text(
+                                          'Analytics',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppTheme.primaryRust,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
-                                SelectableText(
-                                  UserPreferencesStore.getCompanyCode().isNotEmpty
-                                      ? UserPreferencesStore.getCompanyCode()
-                                      : 'COMP-89241',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF7C3AED),
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
                               ],
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                TextButton.icon(
-                                  onPressed: () {
-                                    final code = UserPreferencesStore.getCompanyCode().isNotEmpty
-                                        ? UserPreferencesStore.getCompanyCode()
-                                        : 'COMP-89241';
-                                    Clipboard.setData(ClipboardData(text: code));
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Company Join Code copied to clipboard!'),
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.copy_rounded, size: 14),
-                                  label: Text(
-                                    'Copy Join Code',
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.w700),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-
-                    // Leader Team Join Code Card
-                    if (UserPreferencesStore.getIsLeader()) ...[
-                      const SizedBox(height: 14),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEBF7F5),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFF00AE88).withValues(alpha: 0.3)),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(Icons.group_work_rounded, size: 16, color: Color(0xFF00AE88)),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Team Join Code:',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFF171B2B),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SelectableText(
-                                  UserPreferencesStore.getTeamCode().isNotEmpty
-                                      ? UserPreferencesStore.getTeamCode()
-                                      : 'TEAM-54912',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF00AE88),
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                TextButton.icon(
-                                  onPressed: () {
-                                    final code = UserPreferencesStore.getTeamCode().isNotEmpty
-                                        ? UserPreferencesStore.getTeamCode()
-                                        : 'TEAM-54912';
-                                    Clipboard.setData(ClipboardData(text: code));
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Team Join Code copied to clipboard!'),
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.copy_rounded, size: 14),
-                                  label: Text(
-                                    'Copy Team Code',
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.w700),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-
-                    const SizedBox(height: 16),
-
-                    // Edit Profile CTA Button
-                    OutlinedButton(
-                      onPressed: () async {
-                        final updated = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const EditProfileScreen(),
-                          ),
-                        );
-                        if (updated == true && mounted) {
-                          setState(() {});
-                        }
-                      },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                        side: const BorderSide(color: Color(0xFFAB3500), width: 1.5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.edit_outlined, size: 16, color: Color(0xFFAB3500)),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Edit Profile',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFFAB3500),
                             ),
                           ),
                         ],
@@ -644,23 +643,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 20),
 
-              // SECTION 1: Workplace Schedule & Shift Hours Card
+              // Section: Workspace Access Codes (Founder & Leader)
+              if (isFounder || isLeader) ...[
+                Text(
+                  'Workspace Access Codes',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF171B2B),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                Row(
+                  children: [
+                    if (isFounder)
+                      Expanded(
+                        child: _buildCompactCodeCard(
+                          title: 'Company Code',
+                          code: UserPreferencesStore.getCompanyCode().isNotEmpty
+                              ? UserPreferencesStore.getCompanyCode()
+                              : 'COMP-89241',
+                          icon: Icons.vpn_key_rounded,
+                          color: const Color(0xFF7C3AED),
+                          bgColor: const Color(0xFFF0EBFE),
+                          onCopy: () {
+                            final code = UserPreferencesStore.getCompanyCode().isNotEmpty
+                                ? UserPreferencesStore.getCompanyCode()
+                                : 'COMP-89241';
+                            _copyToClipboard(code, 'Company Join Code');
+                          },
+                        ),
+                      ),
+
+                    if (isFounder && isLeader) const SizedBox(width: 12),
+
+                    if (isLeader)
+                      Expanded(
+                        child: _buildCompactCodeCard(
+                          title: 'Team Code',
+                          code: UserPreferencesStore.getTeamCode().isNotEmpty
+                              ? UserPreferencesStore.getTeamCode()
+                              : 'TEAM-54912',
+                          icon: Icons.group_work_rounded,
+                          color: const Color(0xFF047857),
+                          bgColor: const Color(0xFFE6F7F0),
+                          onCopy: () {
+                            final code = UserPreferencesStore.getTeamCode().isNotEmpty
+                                ? UserPreferencesStore.getTeamCode()
+                                : 'TEAM-54912';
+                            _copyToClipboard(code, 'Team Join Code');
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+              ],
+
+              // Section 1: Workplace Schedule & Shift Overview
               Text(
-                'Workplace Schedule & Shift Overview',
+                'Shift & Work Overview',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 17,
+                  fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF171B2B),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: const Color(0xFFE4E7FE)),
                   boxShadow: [
                     BoxShadow(
@@ -674,12 +732,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     _buildScheduleRow(
                       icon: Icons.access_time_filled_rounded,
-                      iconColor: const Color(0xFFAB3500),
+                      iconColor: AppTheme.primaryRust,
                       bgColor: const Color(0xFFFFF0EB),
                       title: 'Core Shift Hours',
                       value: '9:00 AM - 5:30 PM (EST)',
                     ),
-                    const Divider(height: 24, color: Color(0xFFF0EFF8)),
+                    const Divider(height: 22, color: Color(0xFFF3F2FF)),
                     _buildScheduleRow(
                       icon: Icons.chat_bubble_rounded,
                       iconColor: const Color(0xFF047857),
@@ -687,7 +745,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       title: 'Preferred Contact Window',
                       value: '10:00 AM - 4:00 PM EST',
                     ),
-                    const Divider(height: 24, color: Color(0xFFF0EFF8)),
+                    const Divider(height: 22, color: Color(0xFFF3F2FF)),
                     _buildScheduleRow(
                       icon: Icons.event_available_rounded,
                       iconColor: const Color(0xFF7C3AED),
@@ -701,16 +759,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 24),
 
-              // SECTION 2: Current Focus Projects & Key Objectives
+              // Section 2: Current Focus Projects & Objectives
               Text(
-                'Current Focus Projects & Objectives',
+                'Current Focus Objectives',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 17,
+                  fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF171B2B),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               ..._getDynamicProjects().map((project) {
                 final Color color = project['color'];
@@ -718,12 +776,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 final double progress = project['progress'];
 
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(18),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: const Color(0xFFE4E7FE)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -735,7 +800,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: Text(
                               project['title'],
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14.5,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w800,
                                 color: const Color(0xFF171B2B),
                               ),
@@ -758,29 +823,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Text(
                         'Role: ${project['role']}',
                         style: GoogleFonts.beVietnamPro(
-                          fontSize: 12.5,
+                          fontSize: 12,
                           color: const Color(0xFF594139),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Row(
                         children: [
                           Expanded(
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(6),
                               child: LinearProgressIndicator(
                                 value: progress,
-                                minHeight: 7,
-                                backgroundColor: const Color(0xFFF0EFF8),
+                                minHeight: 6,
+                                backgroundColor: const Color(0xFFF3F2FF),
                                 valueColor: AlwaysStoppedAnimation<Color>(color),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 10),
                           Text(
                             '${(progress * 100).toInt()}%',
                             style: GoogleFonts.plusJakartaSans(
@@ -798,40 +863,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 24),
 
-              // SECTION 3: Personal Micro-Learning & Wellbeing Milestones
+              // Section 3: Wellbeing & Learning Milestones
               Text(
-                'Wellbeing & Learning Milestones',
+                'Wellbeing & Growth Milestones',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 17,
+                  fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF171B2B),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               ..._getWellbeingMilestones().map((item) {
                 final Color color = item['color'];
                 final Color bgColor = item['bgColor'];
 
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: const Color(0xFFE4E7FE)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: bgColor,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(item['icon'], color: color, size: 22),
+                        child: Icon(item['icon'], color: color, size: 20),
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -839,7 +911,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Text(
                               item['title'],
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14.5,
+                                fontSize: 13.5,
                                 fontWeight: FontWeight.w700,
                                 color: const Color(0xFF171B2B),
                               ),
@@ -847,7 +919,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Text(
                               item['subtitle'],
                               style: GoogleFonts.beVietnamPro(
-                                fontSize: 12,
+                                fontSize: 11.5,
                                 color: const Color(0xFF594139),
                               ),
                             ),
@@ -855,15 +927,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: bgColor,
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           item['count'],
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11.5,
+                            fontSize: 11,
                             fontWeight: FontWeight.w800,
                             color: color,
                           ),
@@ -874,10 +946,120 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
               }),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMetaPill({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: GoogleFonts.beVietnamPro(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactCodeCard({
+    required String title,
+    required String code,
+    required IconData icon,
+    required Color color,
+    required Color bgColor,
+    required VoidCallback onCopy,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE4E7FE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 14, color: color),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF594139),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SelectableText(
+                code,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              InkWell(
+                onTap: onCopy,
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.copy_rounded, size: 14, color: color),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -916,7 +1098,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Text(
                 value,
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13.5,
+                  fontSize: 13,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF171B2B),
                 ),
