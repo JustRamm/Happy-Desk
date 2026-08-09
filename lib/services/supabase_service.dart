@@ -1026,6 +1026,84 @@ class SupabaseService {
     });
   }
 
+  // Mochi - Create a Session Record and return its UUID
+  // Returns the new session's UUID so callers can link messages to it.
+  Future<String?> saveMochiSession({
+    required String title,
+    required int totalMessages,
+    required DateTime startedAt,
+  }) async {
+    await init();
+    final user = currentUser;
+    if (user == null) return null;
+    try {
+      final res = await client.from('mochi_chat_sessions').insert({
+        'user_id': user.id,
+        'title': title.length > 120 ? '${title.substring(0, 117)}...' : title,
+        'total_messages': totalMessages,
+        'started_at': startedAt.toIso8601String(),
+        'ended_at': DateTime.now().toIso8601String(),
+      }).select('id').single();
+      return res['id'] as String?;
+    } catch (e) {
+      debugPrint('[Mochi] saveMochiSession error (non-fatal): $e');
+      return null;
+    }
+  }
+
+  // Mochi - Update session total_messages + ended_at when closing
+  Future<void> updateMochiSession({
+    required String sessionId,
+    required int totalMessages,
+  }) async {
+    await init();
+    try {
+      await client.from('mochi_chat_sessions').update({
+        'total_messages': totalMessages,
+        'ended_at': DateTime.now().toIso8601String(),
+      }).eq('id', sessionId);
+    } catch (e) {
+      debugPrint('[Mochi] updateMochiSession error (non-fatal): $e');
+    }
+  }
+
+  // Mochi - Fetch list of past sessions for the history panel (newest first)
+  Future<List<Map<String, dynamic>>> getMochiSessions() async {
+    await init();
+    final user = currentUser;
+    if (user == null) return [];
+    try {
+      final res = await client
+          .from('mochi_chat_sessions')
+          .select('id, title, total_messages, started_at, ended_at')
+          .eq('user_id', user.id)
+          .order('ended_at', ascending: false)
+          .limit(50);
+      return List<Map<String, dynamic>>.from(res);
+    } catch (e) {
+      debugPrint('[Mochi] getMochiSessions error: $e');
+      return [];
+    }
+  }
+
+  // Mochi - Fetch all messages belonging to a specific session
+  Future<List<Map<String, dynamic>>> getMochiSessionMessages(
+      String sessionId) async {
+    await init();
+    try {
+      final res = await client
+          .from('mochi_chat_messages')
+          .select('message, is_user, action_type, created_at')
+          .eq('session_id', sessionId)
+          .order('created_at', ascending: true);
+      return List<Map<String, dynamic>>.from(res);
+    } catch (e) {
+      debugPrint('[Mochi] getMochiSessionMessages error: $e');
+      return [];
+    }
+  }
+
+
   // 12. Direct Messages - Fetch & Send
   Future<List<Map<String, dynamic>>> getDirectMessages() async {
     await init();

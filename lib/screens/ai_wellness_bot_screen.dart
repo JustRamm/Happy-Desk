@@ -45,6 +45,9 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
   String _lifeContextSummary = '';
   String _openThreadsSummary = '';
 
+  String? _currentSessionId;
+  DateTime _sessionStartedAt = DateTime.now();
+
   // Read API Key securely from .env file with fallback
   static String get _geminiApiKey =>
       dotenv.env['GEMINI_API_KEY'] ??
@@ -204,6 +207,21 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     _scrollToBottom();
     _saveMessages();
 
+    // Ensure we have a session ID linked to this chat
+    if (_currentSessionId == null) {
+      _sessionStartedAt = DateTime.now();
+      _currentSessionId = await SupabaseService.instance.saveMochiSession(
+        title: text,
+        totalMessages: 1,
+        startedAt: _sessionStartedAt,
+      );
+    } else {
+      SupabaseService.instance.updateMochiSession(
+        sessionId: _currentSessionId!,
+        totalMessages: _messages.length,
+      );
+    }
+
     await _maybeCaptureStylePreference(text);
 
     // Parallelize Step 1 Intent Analysis and Supabase pre-fetches for minimal latency
@@ -316,11 +334,13 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       SupabaseService.instance.saveMochiChatMessage(
         message: text,
         isUser: true,
+        sessionId: _currentSessionId,
       );
       SupabaseService.instance.saveMochiChatMessage(
         message: textToDisplay,
         isUser: false,
         actionType: determinedAction,
+        sessionId: _currentSessionId,
       );
 
       final chunks = _splitBotResponse(textToDisplay);
@@ -1156,6 +1176,306 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     );
   }
 
+  // ── New Chat: saves current session to Supabase, resets to landing ─────────
+  Future<void> _startNewChat() async {
+    if (_messages.isEmpty) return; // Already on landing — nothing to save
+
+    final sessionStart = DateTime.now().subtract(
+      Duration(minutes: _messages.length * 2), // Rough session start estimate
+    );
+
+    // First user message becomes the session title
+    final firstUserMsg = _messages.firstWhere(
+      (m) => m.isUser,
+      orElse: () => _messages.first,
+    );
+    final title = firstUserMsg.text;
+
+    // 1. Trigger local memory summarizer (updates SharedPreferences rolling summary)
+    summarizeSessionIfNeeded();
+
+    // 2. Persist summary to Supabase mochi_session_summaries
+    final localSummary = await UserPreferencesStore.getMochiSessionSummary();
+    if (localSummary != null && localSummary.trim().isNotEmpty) {
+      SupabaseService.instance.saveMochiSessionSummary(
+        summaryText: localSummary,
+        totalTurns: _messages.length,
+      ).catchError((_) {}); // Silent fail
+    }
+
+    // 3. Save session record to Supabase mochi_chat_sessions (if not already created)
+    if (_currentSessionId != null) {
+      SupabaseService.instance.updateMochiSession(
+        sessionId: _currentSessionId!,
+        totalMessages: _messages.length,
+      ).catchError((_) {});
+    } else {
+      SupabaseService.instance.saveMochiSession(
+        title: title,
+        totalMessages: _messages.length,
+        startedAt: sessionStart,
+      ).then((_) {}).catchError((_) => null);
+    }
+
+    // 4. Clear local chat (SharedPreferences + in-memory) & reset session state
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('mochi_chat_history');
+
+    if (!mounted) return;
+    setState(() {
+      _messages.clear();
+      _currentSessionId = null;
+      _sessionStartedAt = DateTime.now();
+    });
+
+    // 5. Confirmation snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded,
+                color: Colors.white, size: 18),
+            const SizedBox(width: 10),
+            Text(
+              'Chat saved — start fresh with Mochi!',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF2D7A57),
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  // ── Show Past Chat History Bottom Sheet ─────────────────────────────────
+  Future<void> _showChatHistory() async {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE4E7FE),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.history_rounded, color: Color(0xFF95416C), size: 24),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Past Conversations',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF171B2B),
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: Color(0xFF8D7168)),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, color: Color(0xFFF3F2FF)),
+              Expanded(
+                child: FutureBuilder<List<Map<String, dynamic>>>(
+                  future: SupabaseService.instance.getMochiSessions(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: Color(0xFF95416C)),
+                      );
+                    }
+                    final sessions = snapshot.data ?? [];
+                    if (sessions.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.chat_bubble_outline_rounded,
+                                size: 48, color: Color(0xFFD1C7C4)),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No saved conversations yet',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF8D7168),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    return ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      itemCount: sessions.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final sess = sessions[index];
+                        final title = sess['title'] ?? 'Untitled Chat';
+                        final String? rawDate = sess['ended_at'] ?? sess['started_at'];
+                        String dateStr = '';
+                        if (rawDate != null) {
+                          final dt = DateTime.tryParse(rawDate)?.toLocal();
+                          if (dt != null) {
+                            dateStr = '${dt.day}/${dt.month}/${dt.year} at ${dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour)}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour >= 12 ? 'PM' : 'AM'}';
+                          }
+                        }
+                        final totalMsgs = sess['total_messages'] ?? 0;
+                        final isCurrent = sess['id'] == _currentSessionId;
+
+                        return InkWell(
+                          onTap: () {
+                            Navigator.pop(context);
+                            _loadSession(sess);
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: isCurrent ? const Color(0xFFFFF0EB) : const Color(0xFFFAF9F8),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isCurrent ? const Color(0xFFAB3500) : const Color(0xFFE4E7FE),
+                                width: isCurrent ? 1.5 : 1.0,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: isCurrent ? const Color(0xFFAB3500) : const Color(0xFFF3F2FF),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.chat_rounded,
+                                    size: 18,
+                                    color: isCurrent ? Colors.white : const Color(0xFF95416C),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          color: const Color(0xFF171B2B),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '$dateStr • $totalMsgs messages',
+                                        style: GoogleFonts.beVietnamPro(
+                                          fontSize: 12,
+                                          color: const Color(0xFF8D7168),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.chevron_right_rounded, color: Color(0xFF8D7168)),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ── Load Past Session Messages ──────────────────────────────────────────
+  Future<void> _loadSession(Map<String, dynamic> session) async {
+    final sessionId = session['id'] as String?;
+    if (sessionId == null) return;
+
+    // Save current active session if needed
+    if (_messages.isNotEmpty && _currentSessionId != sessionId) {
+      summarizeSessionIfNeeded();
+    }
+
+    final rawMsgs = await SupabaseService.instance.getMochiSessionMessages(sessionId);
+    if (rawMsgs.isEmpty) return;
+
+    final loadedMsgs = <_ChatMessage>[];
+    for (var m in rawMsgs) {
+      final msgText = m['message'] as String? ?? '';
+      final isUser = m['is_user'] as bool? ?? false;
+      final actionType = m['action_type'] as String?;
+      final rawCreatedAt = m['created_at'] as String?;
+
+      String formattedTime = _formatCurrentTime();
+      if (rawCreatedAt != null) {
+        final dt = DateTime.tryParse(rawCreatedAt)?.toLocal();
+        if (dt != null) {
+          final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+          final min = dt.minute.toString().padLeft(2, '0');
+          final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+          formattedTime = '$h:$min $ampm';
+        }
+      }
+
+      loadedMsgs.add(
+        _ChatMessage(
+          text: msgText,
+          isUser: isUser,
+          time: formattedTime,
+          actionType: actionType,
+          isNew: false,
+        ),
+      );
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _messages.clear();
+      _messages.addAll(loadedMsgs);
+      _currentSessionId = sessionId;
+    });
+
+    _saveMessages();
+    _scrollToBottom();
+  }
+
   Widget _buildGeminiStyleLandingView() {
     final name = UserPreferencesStore.getUserName();
     final firstName = name.isNotEmpty ? name.split(' ').first : '';
@@ -1173,7 +1493,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 IconButton(
-                  onPressed: _showUpcomingFeatureSnackBar,
+                  onPressed: _showChatHistory,
                   icon: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: const BoxDecoration(
@@ -1190,7 +1510,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
                 ),
                 const SizedBox(width: 4),
                 IconButton(
-                  onPressed: _showUpcomingFeatureSnackBar,
+                  onPressed: _startNewChat,
                   icon: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: const BoxDecoration(
@@ -1399,7 +1719,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
                     ),
                     const Spacer(),
                     IconButton(
-                      onPressed: _showUpcomingFeatureSnackBar,
+                      onPressed: _showChatHistory,
                       icon: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: const BoxDecoration(
@@ -1416,7 +1736,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
                     ),
                     const SizedBox(width: 4),
                     IconButton(
-                      onPressed: _showUpcomingFeatureSnackBar,
+                      onPressed: _startNewChat,
                       icon: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: const BoxDecoration(
