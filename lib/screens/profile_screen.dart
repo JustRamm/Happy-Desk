@@ -90,15 +90,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
 
       final file = File(picked.path);
-      final uploadedUrl = await SupabaseService.instance.uploadAvatarImage(file);
+      final uploadedUrl = await SupabaseService.instance.uploadAvatarImage(
+        file,
+      );
 
       if (uploadedUrl != null) {
         await UserPreferencesStore.setUserAvatarUrl(uploadedUrl);
         final user = SupabaseService.instance.currentUser;
         if (user != null) {
-          await SupabaseService.instance.client.from('profiles').update({
-            'avatar_url': uploadedUrl,
-          }).eq('id', user.id);
+          await SupabaseService.instance.client
+              .from('profiles')
+              .update({'avatar_url': uploadedUrl})
+              .eq('id', user.id);
         }
       } else {
         await UserPreferencesStore.setUserAvatarUrl(picked.path);
@@ -113,7 +116,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
               const SizedBox(width: 10),
               Text(
                 'Profile photo updated successfully!',
@@ -127,7 +134,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           backgroundColor: const Color(0xFF047857),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
       );
     } catch (e) {
@@ -143,13 +152,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return Image.network(
         avatarUrl,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildInitialsAvatar(userName),
+        errorBuilder: (context, error, stackTrace) =>
+            _buildInitialsAvatar(userName),
       );
     } else if (avatarUrl.isNotEmpty && File(avatarUrl).existsSync()) {
       return Image.file(
         File(avatarUrl),
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildInitialsAvatar(userName),
+        errorBuilder: (context, error, stackTrace) =>
+            _buildInitialsAvatar(userName),
       );
     }
     return _buildInitialsAvatar(userName);
@@ -189,7 +200,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (company.isNotEmpty) filledFields++;
     if (hq.isNotEmpty) filledFields++;
 
-    final double profileProgress = ((filledFields / 4.0) * 100).clamp(25.0, 100.0) / 100.0;
+    final double profileProgress =
+        ((filledFields / 4.0) * 100).clamp(25.0, 100.0) / 100.0;
 
     final int totalWellbeingSessions =
         _mochiChatCount + _boxBreathingCount + _deskStretchesCount;
@@ -209,7 +221,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'title': 'Employee Joy & Emotional Wellbeing',
         'role': 'Active Participant',
         'progress': wellbeingProgress,
-        'status': wellbeingProgress >= 0.8 ? 'Excellent Rhythm' : 'Building Habit',
+        'status': wellbeingProgress >= 0.8
+            ? 'Excellent Rhythm'
+            : 'Building Habit',
         'color': const Color(0xFF95416C),
         'bgColor': const Color(0xFFF3F2FF),
       },
@@ -296,16 +310,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final isLeader = UserPreferencesStore.getIsLeader();
 
     final roleTitle = isFounder
-        ? 'Founder & CEO'
+        ? 'Founder'
         : (isLeader
-            ? (userRole.isNotEmpty ? userRole : 'Team Leader')
-            : (userRole.isNotEmpty ? userRole : 'Team Member'));
+              ? (userRole.isNotEmpty ? userRole : 'Team Leader')
+              : (userRole.isNotEmpty ? userRole : 'Team Member'));
 
-    final companyTitle = isFounder
-        ? (company.isNotEmpty ? company : 'Workspace')
-        : (isLeader
-            ? 'Team Lead at ${company.isNotEmpty ? company : 'Workspace'}'
-            : 'Member of ${company.isNotEmpty ? company : 'Workspace'}');
+
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8FF),
@@ -316,49 +326,91 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Bar: Logo & Settings Action Button
+              // Top Bar: Logo, Analytics Action & Settings Action Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const BrandLogoWidget(height: 48),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFE4E7FE)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: IconButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const SettingsScreen(),
+                  Row(
+                    children: [
+                      if (isFounder || isLeader) ...[
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFFE4E7FE)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 10,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                      icon: const Icon(
-                        Icons.settings_outlined,
-                        color: AppTheme.primaryRust,
-                        size: 22,
+                          child: IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const FounderTeamAnalyticsScreen(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.analytics_outlined,
+                              color: AppTheme.primaryRust,
+                              size: 22,
+                            ),
+                            tooltip: 'Team Analytics',
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFE4E7FE)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: IconButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SettingsScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(
+                            Icons.settings_outlined,
+                            color: AppTheme.primaryRust,
+                            size: 22,
+                          ),
+                          tooltip: 'Settings',
+                        ),
                       ),
-                      tooltip: 'Settings',
-                    ),
+                    ],
                   ),
                 ],
               ),
 
               const SizedBox(height: 18),
 
-              // Executive Profile Hero Card
+              // Executive Profile Hero Card (Clean Solid Background — No Gradient Banner)
               Container(
                 width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 24,
+                  horizontal: 20,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
@@ -373,265 +425,147 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: Column(
                   children: [
-                    // Top Decorative Cover Accent Banner
-                    Container(
-                      height: 72,
-                      decoration: const BoxDecoration(
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(23)),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Color(0xFFFFF0EB),
-                            Color(0xFFF3F2FF),
-                            Color(0xFFFFE0D4),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Avatar Overlapping Banner
-                    Transform.translate(
-                      offset: const Offset(0, -36),
-                      child: Column(
-                        children: [
-                          GestureDetector(
-                            onTap: _pickAndUploadAvatar,
-                            child: Stack(
-                              alignment: Alignment.bottomRight,
-                              children: [
-                                Container(
-                                  width: 92,
-                                  height: 92,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 4,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppTheme.primaryRust.withValues(alpha: 0.18),
-                                        blurRadius: 16,
-                                        offset: const Offset(0, 6),
-                                      ),
-                                    ],
+                    // Avatar with Pen Edit Icon
+                    Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        GestureDetector(
+                          onTap: _pickAndUploadAvatar,
+                          child: Container(
+                            width: 92,
+                            height: 92,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                              border: Border.all(
+                                color: const Color(0xFFFFF0EB),
+                                width: 3,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primaryRust.withValues(
+                                    alpha: 0.15,
                                   ),
-                                  child: ClipOval(
-                                    child: _isUploadingAvatar
-                                        ? const Center(
-                                            child: SizedBox(
-                                              width: 26,
-                                              height: 26,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2.5,
-                                                color: AppTheme.primaryRust,
-                                              ),
-                                            ),
-                                          )
-                                        : _buildAvatarWidget(userAvatar, userName),
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.primaryRust,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white, width: 2),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.15),
-                                        blurRadius: 6,
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                    Icons.camera_alt_rounded,
-                                    size: 13,
-                                    color: Colors.white,
-                                  ),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 4),
                                 ),
                               ],
                             ),
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          // Name & Designation
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Column(
-                              children: [
-                                Text(
-                                  userName.isNotEmpty ? userName : 'User Profile',
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF171B2B),
-                                    letterSpacing: -0.4,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  roleTitle,
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppTheme.primaryRust,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-
-                                // Company Badge
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFF0EB),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: AppTheme.primaryRust.withValues(alpha: 0.2),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        Icons.business_rounded,
-                                        size: 14,
-                                        color: AppTheme.primaryRust,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Flexible(
-                                        child: Text(
-                                          companyTitle,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700,
-                                            color: AppTheme.primaryRust,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                // Additional Executive Badges (HQ / Industry)
-                                if (isFounder) ...[
-                                  const SizedBox(height: 10),
-                                  Wrap(
-                                    alignment: WrapAlignment.center,
-                                    spacing: 8,
-                                    runSpacing: 6,
-                                    children: [
-                                      if (UserPreferencesStore.getCompanyHq().isNotEmpty)
-                                        _buildMetaPill(
-                                          icon: Icons.location_on_rounded,
-                                          label: UserPreferencesStore.getCompanyHq(),
-                                          color: const Color(0xFF7C3AED),
-                                          bgColor: const Color(0xFFF0EBFE),
-                                        ),
-                                      if (UserPreferencesStore.getCompanyIndustry().isNotEmpty)
-                                        _buildMetaPill(
-                                          icon: Icons.domain_rounded,
-                                          label: UserPreferencesStore.getCompanyIndustry(),
-                                          color: const Color(0xFF0284C7),
-                                          bgColor: const Color(0xFFE0F2FE),
-                                        ),
-                                    ],
-                                  ),
-                                ],
-
-                                const SizedBox(height: 18),
-
-                                // Hero Actions (Edit Profile + Analytics)
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    ElevatedButton.icon(
-                                      onPressed: () async {
-                                        final updated = await Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => const EditProfileScreen(),
-                                          ),
-                                        );
-                                        if (updated == true && mounted) {
-                                          setState(() {});
-                                        }
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppTheme.primaryRust,
-                                        foregroundColor: Colors.white,
-                                        elevation: 0,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 22,
-                                          vertical: 11,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(30),
-                                        ),
-                                      ),
-                                      icon: const Icon(Icons.edit_rounded, size: 15),
-                                      label: Text(
-                                        'Edit Profile',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ),
-
-                                    if (isFounder || isLeader) ...[
-                                      const SizedBox(width: 10),
-                                      OutlinedButton.icon(
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  const FounderTeamAnalyticsScreen(),
-                                            ),
-                                          );
-                                        },
-                                        style: OutlinedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 11,
-                                          ),
-                                          side: BorderSide(
-                                            color: AppTheme.primaryRust.withValues(alpha: 0.4),
-                                            width: 1.2,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(30),
-                                          ),
-                                          backgroundColor: const Color(0xFFFFF0EB),
-                                        ),
-                                        icon: const Icon(
-                                          Icons.analytics_rounded,
-                                          size: 15,
+                            child: ClipOval(
+                              child: _isUploadingAvatar
+                                  ? const Center(
+                                      child: SizedBox(
+                                        width: 26,
+                                        height: 26,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
                                           color: AppTheme.primaryRust,
                                         ),
-                                        label: Text(
-                                          'Analytics',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w700,
-                                            color: AppTheme.primaryRust,
-                                          ),
-                                        ),
                                       ),
-                                    ],
-                                  ],
+                                    )
+                                  : _buildAvatarWidget(userAvatar, userName),
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () async {
+                            final updated = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const EditProfileScreen(),
+                              ),
+                            );
+                            if (updated == true && mounted) {
+                              setState(() {});
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryRust,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.15),
+                                  blurRadius: 6,
                                 ),
                               ],
+                            ),
+                            child: const Icon(
+                              Icons.edit_rounded,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // Name & Designation
+                    Text(
+                      userName.isNotEmpty ? userName : 'User Profile',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF171B2B),
+                        letterSpacing: -0.4,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      roleTitle,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.primaryRust,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Company Name & Company Domain in the SAME Horizontal Line
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF0EB),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppTheme.primaryRust.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.business_rounded,
+                            size: 14,
+                            color: AppTheme.primaryRust,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              UserPreferencesStore.getCompanyIndustry()
+                                      .isNotEmpty
+                                  ? '${company.isNotEmpty ? company : "Workspace"} • ${UserPreferencesStore.getCompanyIndustry()}'
+                                  : (UserPreferencesStore.getCompanyHq()
+                                            .isNotEmpty
+                                        ? '${company.isNotEmpty ? company : "Workspace"} • ${UserPreferencesStore.getCompanyHq()}'
+                                        : (company.isNotEmpty
+                                              ? company
+                                              : "MindEmpowered Inc.")),
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primaryRust,
+                              ),
                             ),
                           ),
                         ],
@@ -668,7 +602,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: const Color(0xFF7C3AED),
                           bgColor: const Color(0xFFF0EBFE),
                           onCopy: () {
-                            final code = UserPreferencesStore.getCompanyCode().isNotEmpty
+                            final code =
+                                UserPreferencesStore.getCompanyCode().isNotEmpty
                                 ? UserPreferencesStore.getCompanyCode()
                                 : 'COMP-89241';
                             _copyToClipboard(code, 'Company Join Code');
@@ -689,7 +624,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: const Color(0xFF047857),
                           bgColor: const Color(0xFFE6F7F0),
                           onCopy: () {
-                            final code = UserPreferencesStore.getTeamCode().isNotEmpty
+                            final code =
+                                UserPreferencesStore.getTeamCode().isNotEmpty
                                 ? UserPreferencesStore.getTeamCode()
                                 : 'TEAM-54912';
                             _copyToClipboard(code, 'Team Join Code');
@@ -807,7 +743,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: bgColor,
                               borderRadius: BorderRadius.circular(12),
@@ -841,7 +780,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 value: progress,
                                 minHeight: 6,
                                 backgroundColor: const Color(0xFFF3F2FF),
-                                valueColor: AlwaysStoppedAnimation<Color>(color),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  color,
+                                ),
                               ),
                             ),
                           ),
@@ -927,7 +868,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: bgColor,
                           borderRadius: BorderRadius.circular(12),
@@ -954,35 +898,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMetaPill({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required Color bgColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: GoogleFonts.beVietnamPro(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildCompactCodeCard({
     required String title,
@@ -1075,10 +991,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: bgColor,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
           child: Icon(icon, color: iconColor, size: 18),
         ),
         const SizedBox(width: 14),
