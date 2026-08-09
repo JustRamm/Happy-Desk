@@ -50,8 +50,9 @@ class _DissolveStressModalState extends State<DissolveStressModal>
     )..addListener(() {
         final val = _shredController.value;
 
-        // Switch to active shredding state at 35% animation progress
-        if (val >= 0.35 && _shredderState != ShredderState.shredding) {
+        // Sound: paper-feeds-in for first 0.04s of the 3.2s animation (= 1.25%)
+        // then actual mechanical shredding starts — match animation to audio
+        if (val >= 0.0125 && _shredderState != ShredderState.shredding) {
           setState(() {
             _shredderState = ShredderState.shredding;
           });

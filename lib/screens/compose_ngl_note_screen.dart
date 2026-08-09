@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/supabase_service.dart';
+import '../services/user_preferences_store.dart';
 
 class ComposeNglNoteScreen extends StatefulWidget {
   const ComposeNglNoteScreen({super.key});
@@ -13,18 +14,54 @@ class ComposeNglNoteScreen extends StatefulWidget {
 
 class _ComposeNglNoteScreenState extends State<ComposeNglNoteScreen> {
   final _messageController = TextEditingController();
-  String _selectedRecipient = 'Alex Miller (Founder & CEO)';
   String _selectedCategory = 'Kindness';
   int _selectedColorIndex = 0;
   bool _isAnonymous = true;
 
-  final List<String> _recipients = [
-    'Alex Miller (Founder & CEO)',
-    'Sarah Chen (Design Lead)',
-    'Rownok Rahman (Product Manager)',
-    'David Kim (Senior Engineer)',
-    'Whole Team (Community Jar)',
-  ];
+  List<Map<String, dynamic>> _recipientsList = [];
+  String? _selectedRecipientName;
+  bool _isLoadingRecipients = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRealTeammates();
+  }
+
+  Future<void> _loadRealTeammates() async {
+    final teammates = await SupabaseService.instance.getCompanyTeammates();
+    final myName = UserPreferencesStore.getUserName();
+
+    final filtered = teammates
+        .where((t) => (t['name'] ?? '').toString().isNotEmpty && t['name'] != myName)
+        .map((t) => {
+              'id': t['id'],
+              'name': t['name'] as String,
+              'job_title': t['job_title'] as String? ?? 'Teammate',
+              'department': t['department'] as String? ?? 'General',
+              'display': "${t['name']} (${t['job_title'] ?? 'Teammate'})",
+            })
+        .toList();
+
+    // Always include option for Community Jar
+    filtered.add({
+      'id': null,
+      'name': 'Whole Team (Community Jar)',
+      'job_title': 'Community Jar',
+      'department': 'All',
+      'display': 'Whole Team (Community Jar)',
+    });
+
+    if (mounted) {
+      setState(() {
+        _recipientsList = filtered;
+        if (filtered.isNotEmpty) {
+          _selectedRecipientName = filtered.first['display'];
+        }
+        _isLoadingRecipients = false;
+      });
+    }
+  }
 
   final List<Map<String, dynamic>> _categories = [
     {'name': 'Kindness', 'color': const Color(0xFFFF652F), 'bg': const Color(0xFFFFEBE6)},
@@ -66,6 +103,7 @@ class _ComposeNglNoteScreenState extends State<ComposeNglNoteScreen> {
         message: text,
         isAnonymous: _isAnonymous,
         tag: _selectedCategory.toLowerCase(),
+        recipientName: _selectedRecipientName,
       );
     } catch (_) {}
 
@@ -159,36 +197,58 @@ class _ComposeNglNoteScreenState extends State<ComposeNglNoteScreen> {
                     ),
                   ],
                 ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedRecipient,
-                    isExpanded: true,
-                    icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.titleDark),
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.titleDark,
-                    ),
-                    items: _recipients.map((recipient) {
-                      return DropdownMenuItem<String>(
-                        value: recipient,
-                        child: Row(
-                          children: [
-                            const Icon(Icons.person_outline_rounded,
-                                size: 18, color: AppTheme.primaryRust),
-                            const SizedBox(width: 10),
-                            Text(recipient),
-                          ],
+                child: _isLoadingRecipients
+                    ? const Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppTheme.primaryRust,
+                            ),
+                          ),
                         ),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() => _selectedRecipient = val);
-                      }
-                    },
-                  ),
-                ),
+                      )
+                    : DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedRecipientName,
+                          isExpanded: true,
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                              color: AppTheme.titleDark),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.titleDark,
+                          ),
+                          items: _recipientsList.map((recipient) {
+                            final String displayStr =
+                                recipient['display'] as String;
+                            return DropdownMenuItem<String>(
+                              value: displayStr,
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.person_outline_rounded,
+                                      size: 18, color: AppTheme.primaryRust),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      displayStr,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => _selectedRecipientName = val);
+                            }
+                          },
+                        ),
+                      ),
               ),
 
               const SizedBox(height: 12),
@@ -358,12 +418,15 @@ class _ComposeNglNoteScreenState extends State<ComposeNglNoteScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'To: $_selectedRecipient',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.titleDark,
+                        Expanded(
+                          child: Text(
+                            'To: ${_selectedRecipientName ?? 'Select Recipient'}',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.titleDark,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Container(
@@ -415,7 +478,7 @@ class _ComposeNglNoteScreenState extends State<ComposeNglNoteScreen> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         Text(
-                          _isAnonymous ? 'From: Anonymous Teammate' : 'From: You',
+                          'From: Anonymous Teammate',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w600,

@@ -133,6 +133,20 @@ class UserPreferencesStore {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyIsLoggedIn, false);
     await prefs.setInt(_keyLastActiveTabIndex, 0);
+
+    // Clear all Mochi session and chat data so a new account starts fresh
+    await prefs.remove('mochi_chat_history');
+    await prefs.remove('mochi_saved_sessions_local');
+    await prefs.remove('mochi_session_summary');
+    await prefs.remove('mochi_mood_log');
+    await prefs.remove('mochi_check_in_count');
+    await prefs.remove('mochi_style_preference');
+    await prefs.remove('mochi_user_nickname');
+    await prefs.remove('mochi_has_asked_nickname');
+    await prefs.remove('user_name');
+    await prefs.remove('user_role');
+    await prefs.remove('user_profile_data');
+
     await SupabaseService.instance.signOut();
   }
 

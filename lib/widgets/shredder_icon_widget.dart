@@ -22,11 +22,11 @@ class ShredderIconWidget extends StatelessWidget {
   String get _assetPath {
     switch (state) {
       case ShredderState.feeding:
-        return 'assets/brand/paper_shredder_feeding.svg';
+        return 'assets/shredder/paper_shredder_feeding.svg';
       case ShredderState.shredding:
-        return 'assets/brand/paper_shredder_shredding.svg';
+        return 'assets/shredder/paper_shredder_shredding.svg';
       case ShredderState.idle:
-        return 'assets/brand/paper_shredder_idle.svg';
+        return 'assets/shredder/paper_shredder_idle.svg';
     }
   }
 

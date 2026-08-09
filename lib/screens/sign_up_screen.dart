@@ -1474,7 +1474,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Team Branch Location (Optional)',
+                          'Team Branch Location',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
@@ -1971,7 +1971,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          isFounder ? 'Launch Company' : 'Complete Setup & Join Team',
+                          isFounder ? 'Launch Company' : 'Create Team',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,

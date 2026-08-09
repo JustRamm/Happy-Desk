@@ -1,0 +1,53 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mochiBg" x1="0" y1="0" x2="240" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFF0EB" />
+      <stop offset="100%" stop-color="#FFE4DD" />
+    </linearGradient>
+    <linearGradient id="mochiBody" x1="40" y1="40" x2="200" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="85%" stop-color="#FFF3EF" />
+      <stop offset="100%" stop-color="#FFDBD0" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="120" y1="8" x2="120" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="mochiShadow" x="15" y="175" width="210" height="55" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+
+  <!-- Soft Ambient Drop Shadow -->
+  <ellipse cx="120" cy="202" rx="76" ry="15" fill="#AB3500" fill-opacity="0.16" filter="url(#mochiShadow)" />
+
+  <!-- Raised Hand Nubs (Excited Pose) -->
+  <path d="M40 125C25 110 22 130 36 142Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M200 125C215 110 218 130 204 142Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Main Mochi Squishy Body -->
+  <path d="M34 148C24 93 56 48 120 48C184 48 216 93 206 148C198 188 166 204 120 204C74 204 42 188 34 148Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Rosy Pastel Cheeks -->
+  <ellipse cx="72" cy="140" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+  <ellipse cx="168" cy="140" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+
+  <!-- Joyful Curved Eyes ^ ^ -->
+  <path d="M70 118C77 108 89 108 96 118" stroke="#4C1D95" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M144 118C151 108 163 108 170 118" stroke="#4C1D95" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Open Cheerful Mouth D -->
+  <path d="M106 132C106 150 134 150 134 132Z" fill="#9333EA" stroke="#4C1D95" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M112 142C118 138 126 138 130 143C124 148 116 148 112 142Z" fill="#F472B6"/>
+
+  <!-- Serene Sprout Leaf -->
+  <path d="M120 48C120 26 102 10 82 17C82 36 100 48 120 48Z" fill="url(#leafGrad)" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48C120 26 138 10 158 17C158 36 140 48 120 48Z" fill="#6EE7B7" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48V32" stroke="#047857" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Celebration Sparkles & Hearts -->
+  <path d="M200 32L202 40L210 42L202 44L200 52L198 44L190 42L198 40L200 32Z" fill="#F472B6"/>
+  <path d="M38 38L39 44L45 45L39 46L38 52L37 46L31 45L37 44L38 38Z" fill="#F59E0B"/>
+  <!-- Mini Heart -->
+  <path d="M180 65C180 60 186 58 189 62C192 58 198 60 198 65C198 72 189 77 189 77C189 77 180 72 180 65Z" fill="#EC4899"/>
+</svg>

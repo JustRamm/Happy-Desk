@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/coffee_notification_store.dart';
 import '../services/supabase_service.dart';
 import '../services/user_preferences_store.dart';
 
@@ -295,11 +294,6 @@ class _MultiCoffeeResetModalState extends State<MultiCoffeeResetModal> {
                           }
                         }
 
-                        CoffeeNotificationStore.addCoffeeInvite(
-                          senderName: 'Group Team',
-                          message: text,
-                          isGroup: true,
-                        );
                         if (context.mounted) {
                           Navigator.of(context).pop();
                           ScaffoldMessenger.of(context).showSnackBar(

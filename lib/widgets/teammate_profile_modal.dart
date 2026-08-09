@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../screens/direct_chat_screen.dart';
-import '../services/coffee_notification_store.dart';
 import '../services/supabase_service.dart';
 import '../services/user_preferences_store.dart';
 
@@ -319,12 +318,6 @@ class _TeammateProfileModalState extends State<TeammateProfileModal> {
                           debugPrint('Error sending coffee invite: $e');
                         }
                       }
-                      
-                      CoffeeNotificationStore.addCoffeeInvite(
-                        senderName: name,
-                        senderAvatar: avatar,
-                        message: '$name sent you a 1-on-1 coffee break invitation!',
-                      );
                       
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(

@@ -61,12 +61,12 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               const SizedBox(height: 16),
 
-              // Brand Logo SVG (assets/brand/U&ME.svg)
+              // Brand Logo SVG & Animated Mochi Video Player
               const Center(
-                child: BrandLogoWidget(height: 60),
+                child: BrandLogoWidget(height: 52),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
               // Title & Subtitle
               Text(

@@ -59,8 +59,29 @@ class SoundService {
       await SystemSound.play(soundType);
     }
   }
+  static Future<void> _playSoundAsset(
+    String assetPath,
+    HapticFeedbackType hapticType,
+  ) async {
+    _ensureAudioContextConfigured();
+    try {
+      if (hapticType == HapticFeedbackType.heavy) {
+        await HapticFeedback.heavyImpact();
+      } else if (hapticType == HapticFeedbackType.medium) {
+        await HapticFeedback.mediumImpact();
+      } else if (hapticType == HapticFeedbackType.light) {
+        await HapticFeedback.lightImpact();
+      } else {
+        await HapticFeedback.selectionClick();
+      }
+      await _player.stop();
+      await _player.setVolume(0.85);
+      await _player.play(AssetSource(assetPath));
+    } catch (e) {
+      await SystemSound.play(SystemSoundType.click);
+    }
+  }
 
-  /// Play Inhale breath sound
   static Future<void> playInhaleSound() async {
     await _playSoundUrl(
       'https://assets.mixkit.co/active_storage/sfx/2569/2569-preview.mp3',
@@ -93,14 +114,11 @@ class SoundService {
     );
   }
 
-  /// Play Shred paper / Dissolve Vent Note sound (mechanical shredder motor)
+  /// Play Shred paper / Dissolve Vent Note sound (local mechanical shredder MP3)
   static Future<void> playShredSound() async {
     await HapticFeedback.heavyImpact();
-    await _playSoundUrl(
-      'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3',
-      SystemSoundType.click,
-      HapticFeedbackType.heavy,
-    );
+    // Use local shredder.mp3 — real shredding sound starts at 0.04s
+    await _playSoundAsset('shredder/shredder.mp3', HapticFeedbackType.heavy);
   }
 
   /// Play Open NGL Jar note sound

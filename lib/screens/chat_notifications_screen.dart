@@ -6,6 +6,7 @@ import '../widgets/brand_logo_widget.dart';
 import '../widgets/notification_bell_widget.dart';
 import 'direct_chat_screen.dart';
 import 'new_chat_selector_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart';
 import '../services/user_preferences_store.dart';
 import '../services/sound_service.dart';
@@ -20,21 +21,42 @@ class ChatNotificationsScreen extends StatefulWidget {
 
 class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
   final TextEditingController _searchController = TextEditingController();
-
   final List<Map<String, dynamic>> _chats = [];
+  dynamic _realtimeSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadLiveChats();
+    _subscribeToRealtimeChats();
+  }
+
+  void _subscribeToRealtimeChats() {
+    try {
+      _realtimeSubscription = SupabaseService.instance.client
+          .channel('public:direct_messages_realtime')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'direct_messages',
+            callback: (payload) {
+              if (mounted) {
+                _loadLiveChats();
+              }
+            },
+          )
+          .subscribe();
+    } catch (e) {
+      debugPrint('Error subscribing to realtime direct messages: $e');
+    }
   }
 
   Future<void> _loadLiveChats() async {
     final dbMessages = await SupabaseService.instance.getDirectMessages();
-    if (dbMessages.isNotEmpty && mounted) {
-      final currentUserName = UserPreferencesStore.getUserName();
-      final Map<String, Map<String, dynamic>> latestByPerson = {};
+    final currentUserName = UserPreferencesStore.getUserName();
+    final Map<String, Map<String, dynamic>> latestByPerson = {};
 
+    if (dbMessages.isNotEmpty) {
       for (var msg in dbMessages) {
         final sender = msg['sender_name'] as String? ?? 'Unknown';
         final receiver = msg['receiver_name'] as String? ?? 'Unknown';
@@ -57,18 +79,23 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
           'avatar': msg['avatar_url'] as String? ?? '',
         };
       }
+    }
 
-      if (latestByPerson.isNotEmpty) {
-        setState(() {
-          _chats.clear();
-          _chats.addAll(latestByPerson.values);
-        });
-      }
+    if (mounted) {
+      setState(() {
+        _chats.clear();
+        _chats.addAll(latestByPerson.values);
+      });
     }
   }
 
   @override
   void dispose() {
+    if (_realtimeSubscription != null) {
+      try {
+        SupabaseService.instance.client.removeChannel(_realtimeSubscription);
+      } catch (_) {}
+    }
     _searchController.dispose();
     super.dispose();
   }
@@ -78,13 +105,14 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8FF),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => const NewChatSelectorScreen(),
             ),
           );
+          _loadLiveChats();
         },
         backgroundColor: const Color(0xFFAB3500),
         foregroundColor: Colors.white,
@@ -229,12 +257,13 @@ class _ChatNotificationsScreenState extends State<ChatNotificationsScreen> {
                             await SupabaseService.instance
                                 .markDirectMessagesAsRead(chat['name'] ?? '');
                             if (!context.mounted) return;
-                            Navigator.push(
+                            await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => DirectChatScreen(teammate: chat),
                               ),
                             );
+                            _loadLiveChats();
                           },
                           child: Container(
                             width: double.infinity,

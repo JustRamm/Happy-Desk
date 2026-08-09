@@ -9,6 +9,7 @@ import '../widgets/apply_leave_modal.dart';
 import '../widgets/founder_leave_approvals_modal.dart';
 import 'leave_history_screen.dart';
 import 'jar_screen.dart';
+import 'compose_ngl_note_screen.dart';
 import 'hero_screen.dart';
 import 'work_session_details_screen.dart';
 import '../widgets/jar_icon_widget.dart';
@@ -433,108 +434,18 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showAddEntryModal() {
-    final textController = TextEditingController();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-            top: 24,
-            left: 24,
-            right: 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Add Anonymous Note',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF7C3A68),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Share a kind word or secret appreciation to fill the team NGL Jar!',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13.5,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: textController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: 'Write something uplifting...',
-                  filled: true,
-                  fillColor: const Color(0xFFF9F5F8),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (textController.text.trim().isNotEmpty) {
-                      setState(() {
-                        if (_nglEntries < _targetEntries) {
-                          _nglEntries++;
-                        }
-                      });
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Appreciation added to the jar!'),
-                          backgroundColor: AppTheme.primaryRust,
-                        ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8C436E),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                  ),
-                  child: Text(
-                    'Drop in Jar',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+  void _showAddEntryModal() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ComposeNglNoteScreen()),
     );
+    if (result == true && mounted) {
+      setState(() {
+        if (_nglEntries < _targetEntries) {
+          _nglEntries++;
+        }
+      });
+    }
   }
 
   @override

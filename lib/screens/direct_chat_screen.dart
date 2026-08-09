@@ -28,7 +28,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   // Currently staged attachment preview before sending
   Map<String, dynamic>? _stagedAttachment;
   bool _isPlayingVoice = false;
-  bool _isTeammateTyping = false;
+  final bool _isTeammateTyping = false;
 
   RealtimeChannel? _chatChannel;
 
@@ -37,7 +37,6 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     super.initState();
     SoundService.playMessageOpenSound();
     _loadSupabaseMessages();
-    _startTypingSimulation();
     _subscribeToMessages();
   }
 
@@ -84,24 +83,6 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         }
       },
     );
-  }
-
-  void _startTypingSimulation() {
-    Timer(const Duration(milliseconds: 2500), () {
-      if (mounted) {
-        setState(() {
-          _isTeammateTyping = true;
-        });
-      }
-    });
-
-    Timer(const Duration(milliseconds: 5500), () {
-      if (mounted) {
-        setState(() {
-          _isTeammateTyping = false;
-        });
-      }
-    });
   }
 
   Future<void> _loadSupabaseMessages() async {
@@ -301,7 +282,8 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           _messages.last['status'] = 'delivered';
         });
       }
-    } catch (_) {
+    } catch (e, stack) {
+      debugPrint('Error sending direct message: $e\n$stack');
       await OfflineSyncService.instance.enqueueAction(
         actionType: 'send_message',
         payload: {

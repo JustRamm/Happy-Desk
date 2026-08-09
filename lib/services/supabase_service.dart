@@ -861,22 +861,30 @@ class SupabaseService {
     }
   }
 
-  // NGL Jar - Post Message
+  // NGL Jar - Post Message (Strictly 100% Anonymous)
   Future<void> postNglJarMessage({
     required String message,
     bool isAnonymous = true,
     String tag = 'vent',
+    String? recipientName,
   }) async {
     await init();
-    final user = currentUser;
-    await client.from('ngl_jar_messages').insert({
-      'user_id': user?.id,
+    final payload = {
+      'user_id': null, // Strictly NULL so sender identity is completely untraceable
       'company_id': '11111111-1111-1111-1111-111111111111',
       'message': message,
-      'is_anonymous': isAnonymous,
+      'is_anonymous': true,
       'likes_count': 0,
       'tag': tag,
-    });
+    };
+    if (recipientName != null && recipientName.isNotEmpty) {
+      payload['recipient_name'] = recipientName;
+    }
+    try {
+      await client.from('ngl_jar_messages').insert(payload);
+    } catch (e) {
+      debugPrint('Error posting NGL jar message: $e');
+    }
   }
 
   // Fetch Pending/Reviewed Company Leave Requests for Founder Review
@@ -1108,46 +1116,26 @@ class SupabaseService {
   Future<List<Map<String, dynamic>>> getDirectMessages() async {
     await init();
     try {
+      final currentUserName = UserPreferencesStore.getUserName();
       final user = currentUser;
-      if (user == null) return [];
 
-      // 1. Get current user's company_id
-      final profileRes = await client
-          .from('profiles')
-          .select('company_id')
-          .eq('id', user.id)
-          .maybeSingle();
-      if (profileRes == null || profileRes['company_id'] == null) {
-        return [];
-      }
-      final companyId = profileRes['company_id'];
-
-      // 2. Fetch all profile names in the same company
-      final companyProfiles = await client
-          .from('profiles')
-          .select('name')
-          .eq('company_id', companyId);
-
-      final companyNames = companyProfiles
-          .map((p) => p['name'] as String?)
-          .where((name) => name != null)
-          .cast<String>()
-          .toSet();
-
-      // 3. Fetch all direct messages
       final res = await client
           .from('direct_messages')
           .select()
           .order('created_at', ascending: true);
 
-      // 4. Filter messages where both sender and receiver belong to the company
-      final filtered = List<Map<String, dynamic>>.from(res).where((msg) {
-        final sender = msg['sender_name'] as String?;
-        final receiver = msg['receiver_name'] as String?;
-        return companyNames.contains(sender) && companyNames.contains(receiver);
-      }).toList();
+      final List<Map<String, dynamic>> allMsgs = List<Map<String, dynamic>>.from(res);
 
-      return filtered;
+      return allMsgs.where((msg) {
+        final sender = msg['sender_name'] as String? ?? '';
+        final receiver = msg['receiver_name'] as String? ?? '';
+        final sId = msg['sender_id'] as String? ?? '';
+        final rId = msg['receiver_id'] as String? ?? '';
+
+        return (currentUserName.isNotEmpty &&
+                (sender == currentUserName || receiver == currentUserName)) ||
+            (user != null && (sId == user.id || rId == user.id));
+      }).toList();
     } catch (e) {
       debugPrint('Error fetching direct messages: $e');
       return [];
@@ -1162,15 +1150,49 @@ class SupabaseService {
     await init();
     final user = currentUser;
     final senderName = UserPreferencesStore.getUserName();
-    final String? senderId = user?.id ?? (UserPreferencesStore.getUserId().isNotEmpty ? UserPreferencesStore.getUserId() : null);
-    await client.from('direct_messages').insert({
-      'sender_id': senderId,
-      'sender_name': senderName,
-      'receiver_name': receiverName,
-      'message': message,
-      'media_url': mediaUrl,
-      'is_read': false,
-    });
+    final String rawSenderId = user?.id ?? UserPreferencesStore.getUserId();
+
+    final uuidRegex = RegExp(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+    final String? validSenderId =
+        uuidRegex.hasMatch(rawSenderId) ? rawSenderId : null;
+
+    String? validReceiverId;
+    try {
+      final receiverRes = await client
+          .from('profiles')
+          .select('id')
+          .eq('name', receiverName)
+          .maybeSingle();
+      if (receiverRes != null && receiverRes['id'] != null) {
+        final String rId = receiverRes['id'].toString();
+        if (uuidRegex.hasMatch(rId)) {
+          validReceiverId = rId;
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final Map<String, dynamic> payload = {
+        'sender_name': senderName.isNotEmpty ? senderName : 'User',
+        'receiver_name': receiverName,
+        'message': message,
+        'media_url': mediaUrl,
+        'is_read': false,
+      };
+
+      if (validSenderId != null) {
+        payload['sender_id'] = validSenderId;
+      }
+      if (validReceiverId != null) {
+        payload['receiver_id'] = validReceiverId;
+      }
+
+      await client.from('direct_messages').insert(payload);
+    } catch (e) {
+      debugPrint('Error inserting into direct_messages: $e');
+      rethrow;
+    }
   }
 
   Future<void> markDirectMessagesAsRead(String senderName) async {

@@ -136,6 +136,43 @@ class _JarScreenState extends State<JarScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
+                        onPressed: () => DissolveStressModal.show(context),
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFFFF0EB),
+                            shape: BoxShape.circle,
+                          ),
+                          child: ColorFiltered(
+                            colorFilter: const ColorFilter.mode(
+                              Color(0xFFAB3500),
+                              BlendMode.srcIn,
+                            ),
+                            child: const ShredderIconWidget(
+                              size: 22,
+                              state: ShredderState.idle,
+                            ),
+                          ),
+                        ),
+                        tooltip: 'Paper Shredder Stress Vent',
+                      ),
+                      IconButton(
+                        onPressed: () => MultiCoffeeResetModal.show(context),
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF3F2FF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.local_cafe_rounded,
+                            color: Color(0xFF95416C),
+                            size: 22,
+                          ),
+                        ),
+                        tooltip: 'Coffee Break',
+                      ),
+                      IconButton(
                         onPressed: () {
                           Navigator.push(
                             context,
@@ -157,37 +194,6 @@ class _JarScreenState extends State<JarScreen> {
                           ),
                         ),
                         tooltip: 'Notifications',
-                      ),
-                      IconButton(
-                        onPressed: () => MultiCoffeeResetModal.show(context),
-                        icon: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFF3F2FF),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.local_cafe_rounded,
-                            color: Color(0xFF95416C),
-                            size: 22,
-                          ),
-                        ),
-                        tooltip: 'Coffee Break',
-                      ),
-                      IconButton(
-                        onPressed: () => DissolveStressModal.show(context),
-                        icon: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFFFF0EB),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const ShredderIconWidget(
-                            size: 20,
-                            state: ShredderState.idle,
-                          ),
-                        ),
-                        tooltip: 'Paper Shredder Stress Vent',
                       ),
                     ],
                   ),

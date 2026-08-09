@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/coffee_notification_store.dart';
-import '../services/user_preferences_store.dart';
 
 class CoffeeBreakSchedulerScreen extends StatefulWidget {
   final Map<String, dynamic>? initialTeammate;
@@ -117,13 +115,6 @@ class _CoffeeBreakSchedulerScreenState
         .where((t) => t['selected'] == true)
         .map((t) => t['name'])
         .join(', ');
-
-    CoffeeNotificationStore.addCoffeeInvite(
-      senderName: selectedNames,
-      senderAvatar: UserPreferencesStore.getUserAvatarUrl() ?? '',
-      message:
-          'Coffee reset scheduled at $_selectedLocation for $_selectedDurationMinutes mins with $selectedNames.',
-    );
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

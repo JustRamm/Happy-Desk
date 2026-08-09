@@ -339,54 +339,50 @@ class _OnboardingPageOneContentState extends State<OnboardingPageOneContent>
         children: [
           const SizedBox(height: 4),
 
-          // Enlarged Hero Pick Shape (285px)
-          SizedBox(
-            height: 285,
-            child: Center(
-              child: AnimatedBuilder(
-                animation: _rotationController,
-                builder: (context, child) {
-                  final angle = _rotationController.value * 2 * math.pi;
-                  return Transform.rotate(
-                    angle: angle,
+          // Rotating Hero Image Container with organic shape & peach backdrop
+          AnimatedBuilder(
+            animation: _rotationController,
+            builder: (context, child) {
+              final angle = _rotationController.value * 2 * math.pi;
+              return Transform.rotate(
+                angle: angle,
+                child: Container(
+                  height: 285,
+                  width: double.infinity,
+                  constraints:
+                      const BoxConstraints(maxHeight: 285, maxWidth: 285),
+                  child: ClipPath(
+                    clipper: SmoothOrganicPickClipper(),
                     child: Container(
-                      width: double.infinity,
-                      constraints:
-                          const BoxConstraints(maxHeight: 285, maxWidth: 285),
+                      color: const Color(0xFFFFE6DD),
+                      padding: const EdgeInsets.all(4),
                       child: ClipPath(
                         clipper: SmoothOrganicPickClipper(),
-                        child: Container(
-                          color: const Color(0xFFFFE6DD),
-                          padding: const EdgeInsets.all(4),
-                          child: ClipPath(
-                            clipper: SmoothOrganicPickClipper(),
-                            child: Transform.rotate(
-                              angle: -angle,
-                              child: Transform.scale(
-                                scale: 1.25,
-                                child: Image.asset(
-                                  widget.imagePath,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const Center(
-                                      child: Icon(
-                                        Icons.groups_rounded,
-                                        size: 80,
-                                        color: Color(0xFFFF652F),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
+                        child: Transform.rotate(
+                          angle: -angle,
+                          child: Transform.scale(
+                            scale: 1.25,
+                            child: Image.asset(
+                              widget.imagePath,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Center(
+                                  child: Icon(
+                                    Icons.diversity_3_rounded,
+                                    size: 80,
+                                    color: Color(0xFFFF652F),
+                                  ),
+                                );
+                              },
                             ),
                           ),
                         ),
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
+                  ),
+                ),
+              );
+            },
           ),
 
           const SizedBox(height: 24),
@@ -498,51 +494,6 @@ class _OnboardingPageTwoContentState extends State<OnboardingPageTwoContent>
     super.dispose();
   }
 
-  Widget _buildHeroImage() {
-    return AnimatedBuilder(
-      animation: _rotationController,
-      builder: (context, child) {
-        final angle = _rotationController.value * 2 * math.pi;
-        return Transform.rotate(
-          angle: angle,
-          child: Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(maxHeight: 285, maxWidth: 285),
-            child: ClipPath(
-              clipper: SmoothOrganicPickClipper(),
-              child: Container(
-                color: const Color(0xFFFFE6DD),
-                padding: const EdgeInsets.all(4),
-                child: ClipPath(
-                  clipper: SmoothOrganicPickClipper(),
-                  child: Transform.rotate(
-                    angle: -angle,
-                    child: Transform.scale(
-                      scale: 1.25,
-                      child: Image.asset(
-                        widget.imagePath,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Icon(
-                              Icons.handshake_rounded,
-                              size: 72,
-                              color: Color(0xFFFF652F),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -553,10 +504,50 @@ class _OnboardingPageTwoContentState extends State<OnboardingPageTwoContent>
         children: [
           const SizedBox(height: 4),
 
-          // Enlarged Hero Pick Shape (285px)
-          SizedBox(
-            height: 285,
-            child: Center(child: _buildHeroImage()),
+          // Rotating Hero Image Container with organic shape & peach backdrop
+          AnimatedBuilder(
+            animation: _rotationController,
+            builder: (context, child) {
+              final angle = _rotationController.value * 2 * math.pi;
+              return Transform.rotate(
+                angle: angle,
+                child: Container(
+                  height: 285,
+                  width: double.infinity,
+                  constraints:
+                      const BoxConstraints(maxHeight: 285, maxWidth: 285),
+                  child: ClipPath(
+                    clipper: SmoothOrganicPickClipper(),
+                    child: Container(
+                      color: const Color(0xFFFFE6DD),
+                      padding: const EdgeInsets.all(4),
+                      child: ClipPath(
+                        clipper: SmoothOrganicPickClipper(),
+                        child: Transform.rotate(
+                          angle: -angle,
+                          child: Transform.scale(
+                            scale: 1.25,
+                            child: Image.asset(
+                              widget.imagePath,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Center(
+                                  child: Icon(
+                                    Icons.handshake_rounded,
+                                    size: 72,
+                                    color: Color(0xFFFF652F),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
 
           const SizedBox(height: 24),
@@ -669,51 +660,6 @@ class _OnboardingPageThreeContentState
     super.dispose();
   }
 
-  Widget _buildHeroImage() {
-    return AnimatedBuilder(
-      animation: _rotationController,
-      builder: (context, child) {
-        final angle = _rotationController.value * 2 * math.pi;
-        return Transform.rotate(
-          angle: angle,
-          child: Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(maxHeight: 285, maxWidth: 285),
-            child: ClipPath(
-              clipper: SmoothOrganicPickClipper(),
-              child: Container(
-                color: const Color(0xFFFFE6DD),
-                padding: const EdgeInsets.all(4),
-                child: ClipPath(
-                  clipper: SmoothOrganicPickClipper(),
-                  child: Transform.rotate(
-                    angle: -angle,
-                    child: Transform.scale(
-                      scale: 1.25,
-                      child: Image.asset(
-                        widget.imagePath,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Icon(
-                              Icons.groups_rounded,
-                              size: 80,
-                              color: Color(0xFFFF652F),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -723,10 +669,50 @@ class _OnboardingPageThreeContentState
         children: [
           const SizedBox(height: 4),
 
-          // Enlarged Hero Pick Shape (285px)
-          SizedBox(
-            height: 285,
-            child: Center(child: _buildHeroImage()),
+          // Rotating Hero Image Container with organic shape & peach backdrop
+          AnimatedBuilder(
+            animation: _rotationController,
+            builder: (context, child) {
+              final angle = _rotationController.value * 2 * math.pi;
+              return Transform.rotate(
+                angle: angle,
+                child: Container(
+                  height: 285,
+                  width: double.infinity,
+                  constraints:
+                      const BoxConstraints(maxHeight: 285, maxWidth: 285),
+                  child: ClipPath(
+                    clipper: SmoothOrganicPickClipper(),
+                    child: Container(
+                      color: const Color(0xFFFFE6DD),
+                      padding: const EdgeInsets.all(4),
+                      child: ClipPath(
+                        clipper: SmoothOrganicPickClipper(),
+                        child: Transform.rotate(
+                          angle: -angle,
+                          child: Transform.scale(
+                            scale: 1.25,
+                            child: Image.asset(
+                              widget.imagePath,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Center(
+                                  child: Icon(
+                                    Icons.groups_rounded,
+                                    size: 80,
+                                    color: Color(0xFFFF652F),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
 
           const SizedBox(height: 24),

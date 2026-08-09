@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -16,6 +17,7 @@ import '../services/sound_service.dart';
 import '../services/offline_sync_service.dart';
 import '../widgets/box_breathing_modal.dart';
 import '../widgets/desk_stretches_modal.dart';
+import '../widgets/mochi_animated_video_widget.dart';
 
 class AiWellnessBotScreen extends StatefulWidget {
   const AiWellnessBotScreen({super.key});
@@ -35,6 +37,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
   Timer? _messageDebounceTimer;
 
   bool _isTyping = false;
+  String _currentMochiAvatar = 'assets/mochi/mochi_bot.svg';
   bool _isClockedIn = false;
   bool _isOnBreak = false;
   String _clockInTime = 'None';
@@ -48,6 +51,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
 
   String? _currentSessionId;
   DateTime _sessionStartedAt = DateTime.now();
+  final FocusNode _inputFocusNode = FocusNode();
 
   // Read API Key securely from .env file with fallback
   static String get _geminiApiKey =>
@@ -68,6 +72,13 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     );
 
     _textController.addListener(_onTextChanged);
+    _inputFocusNode.addListener(() {
+      if (_inputFocusNode.hasFocus) {
+        _scrollToBottom();
+        Future.delayed(const Duration(milliseconds: 300), _scrollToBottom);
+      }
+    });
+
     SoundService.playMessageOpenSound();
     _promptService.ensureLoaded();
     _loadShiftState();
@@ -92,10 +103,80 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     _pulseController.dispose();
     _messageDebounceTimer?.cancel();
     _textController.removeListener(_onTextChanged);
+    _inputFocusNode.dispose();
     summarizeSessionIfNeeded();
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  String _generateSmartSessionTitle(List<_ChatMessage> messages) {
+    if (messages.isEmpty) return 'Mindful Chat';
+
+    final userTexts = messages.where((m) => m.isUser).map((m) => m.text).toList();
+    if (userTexts.isEmpty) return 'Mindful Chat';
+
+    final combined = userTexts.join(' ').toLowerCase();
+
+    if (combined.contains('ex') ||
+        combined.contains('breakup') ||
+        combined.contains('relationship') ||
+        combined.contains('partner') ||
+        combined.contains('dating')) {
+      return 'Relationship & Heartbreak';
+    }
+    if (combined.contains('worthless') ||
+        combined.contains('trapped') ||
+        combined.contains('body') ||
+        combined.contains('identity') ||
+        combined.contains('self-worth')) {
+      return 'Identity & Personal Reflection';
+    }
+    if (combined.contains('cat') ||
+        combined.contains('iit') ||
+        combined.contains('exam') ||
+        combined.contains('cutoff') ||
+        combined.contains('study') ||
+        combined.contains('marks')) {
+      return 'Academic & Career Pressure';
+    }
+    if (combined.contains('fired') ||
+        combined.contains('manager') ||
+        combined.contains('boss') ||
+        combined.contains('intern') ||
+        combined.contains('work') ||
+        combined.contains('job') ||
+        combined.contains('slack')) {
+      return 'Workplace Dynamics & Stress';
+    }
+    if (combined.contains('bored') ||
+        combined.contains('tired') ||
+        combined.contains('exhausted') ||
+        combined.contains('burnout')) {
+      return 'Burnout & Mindful Reset';
+    }
+    if (combined.contains('anxious') ||
+        combined.contains('anxiety') ||
+        combined.contains('panic') ||
+        combined.contains('scared')) {
+      return 'Anxiety & Grounding';
+    }
+
+    for (final text in userTexts) {
+      final clean = text.trim();
+      final lower = clean.toLowerCase();
+      if (lower != 'hi' &&
+          lower != 'hey' &&
+          lower != 'hello' &&
+          lower != 'hlo' &&
+          lower != 'hmm' &&
+          lower != 'ugh' &&
+          clean.length > 3) {
+        return clean.length > 40 ? '${clean.substring(0, 37)}...' : clean;
+      }
+    }
+
+    return 'Mindful Chat';
   }
 
   Future<void> _loadUserProfileContext() async {
@@ -208,6 +289,27 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     });
   }
 
+  /// Returns true for simple, short social messages that should bypass the
+  /// 2.6s debounce and go straight to Gemini for an immediate in-character reply.
+  bool _isSimpleMessage(String text) {
+    final t = text.trim().toLowerCase();
+    const simplePatterns = {
+      'hi', 'hello', 'halo', 'hey', 'hlo', 'gm', 'good morning',
+      'good afternoon', 'hey mochi', 'hi mochi', 'heyy', 'heya',
+      'bye', 'goodbye', 'bye mochi', 'see ya', 'see you', 'cya',
+      'gn', 'good night', 'goodnight', 'talk later', 'ttyl', 'brb',
+      'thanks', 'thankyou', 'thank you', 'thx', 'tysm', 'ty', 'thank u',
+      'ok', 'okay', 'k', 'got it', 'sure', 'cool', 'nice', 'alright',
+      'fine', 'bet', 'noted', 'gotcha', 'sounds good',
+      'how are you', 'how r u', 'how are u', 'how is it going',
+      "how's it going", "how's everything", 'whats up', "what's up",
+      'sup', 'how was your day', "how's your day", 'how r you',
+      'hmm', 'hmm...', 'ugh', 'bruh', 'bro', 'nvm', 'lol', 'haha',
+      'hehe', 'lmao', 'omg', ':)', ':D', '😊', '🙂',
+    };
+    return simplePatterns.contains(t);
+  }
+
   Future<void> _handleSendMessage([String? prefilledText]) async {
     final text = prefilledText ?? _textController.text.trim();
     if (text.isEmpty) return;
@@ -238,6 +340,14 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
         sessionId: _currentSessionId!,
         totalMessages: _messages.length,
       );
+    }
+
+    // Simple social messages (hi, bye, how are you, etc.) bypass the 2.6s
+    // debounce and go straight to Gemini for an immediate in-character reply.
+    if (_isSimpleMessage(text)) {
+      _messageDebounceTimer?.cancel();
+      await _processBotResponse(text);
+      return;
     }
 
     // Cancel existing debounce timer if active, and restart 2.6s pause window
@@ -466,6 +576,16 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     final lower = userText.trim().toLowerCase();
     final name = UserPreferencesStore.getUserName();
     final firstName = name.isNotEmpty ? name.split(' ').first : '';
+
+    // Gratitude & Thank You
+    if (lower.contains('thankyou') ||
+        lower.contains('thank you') ||
+        lower.contains('thanks') ||
+        lower.contains('thx') ||
+        lower.contains('tysm')) {
+      final namePart = firstName.isNotEmpty ? ' $firstName' : '';
+      return "You're so welcome$namePart. I'm really glad this brought you a bit of clarity and comfort. Take a deep breath, go gentle on yourself today, and I'm right here whenever you want to talk again. 🤍";
+    }
 
     // Clinical Crises, Severe Depression, Self-Harm, or Professional Psychological Referral
     if (_promptService.isCrisisOrSelfHarmText(userText) ||
@@ -853,68 +973,53 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     final trimmed = fullText.trim();
     if (trimmed.isEmpty) return [fullText];
 
-    // Try splitting by double newlines (paragraphs)
-    final paragraphs = trimmed
-        .split(RegExp(r'\n\s*\n'))
-        .map((p) => p.trim())
-        .where((p) => p.isNotEmpty)
-        .toList();
+    // 1. Split into individual complete sentences
+    final RegExp sentenceRegex = RegExp(r'[^.!?\n]+[.!?]+|\n+');
+    final rawSentences = <String>[];
+    int lastMatchEnd = 0;
 
-    if (paragraphs.length >= 2 && paragraphs.length <= 3) {
-      return paragraphs;
-    }
-    if (paragraphs.length > 3) {
-      final chunk1 = paragraphs[0];
-      final chunk2 = paragraphs[1];
-      final chunk3 = paragraphs.sublist(2).join('\n\n');
-      return [chunk1, chunk2, chunk3];
+    for (final match in sentenceRegex.allMatches(trimmed)) {
+      final s = match.group(0)!.trim();
+      if (s.isNotEmpty) {
+        rawSentences.add(s);
+      }
+      lastMatchEnd = match.end;
     }
 
-    // If text is moderate (< 220 chars), keep it in 1 single clean message bubble
-    if (trimmed.length < 220) {
-      return [trimmed];
-    }
-
-    // Split single long text into sentences while preserving 100% of fullText
-    final sentences = <String>[];
-    int lastEnd = 0;
-    for (final match in RegExp(r'[^.!?]+[.!?]+').allMatches(trimmed)) {
-      sentences.add(match.group(0)!.trim());
-      lastEnd = match.end;
-    }
-    // Append any trailing text after the last punctuation so NO text is ever lost/cut!
-    if (lastEnd < trimmed.length) {
-      final remainder = trimmed.substring(lastEnd).trim();
+    if (lastMatchEnd < trimmed.length) {
+      final remainder = trimmed.substring(lastMatchEnd).trim();
       if (remainder.isNotEmpty) {
-        if (sentences.isNotEmpty) {
-          sentences[sentences.length - 1] = '${sentences.last} $remainder';
+        if (rawSentences.isNotEmpty) {
+          rawSentences[rawSentences.length - 1] = '${rawSentences.last} $remainder';
         } else {
-          sentences.add(remainder);
+          rawSentences.add(remainder);
         }
       }
     }
 
-    if (sentences.length <= 1) {
+    if (rawSentences.length <= 1) {
       return [trimmed];
-    } else if (sentences.length == 2) {
-      return [sentences[0], sentences[1]];
-    } else {
-      final partSize = (sentences.length / 3).ceil();
-      final p1 = sentences.sublist(0, partSize).join(' ');
-      final p2 = sentences
-          .sublist(partSize, (partSize * 2).clamp(0, sentences.length))
-          .join(' ');
-      final p3 = sentences
-          .sublist((partSize * 2).clamp(0, sentences.length))
-          .join(' ');
-
-      final result = <String>[];
-      if (p1.trim().isNotEmpty) result.add(p1.trim());
-      if (p2.trim().isNotEmpty) result.add(p2.trim());
-      if (p3.trim().isNotEmpty) result.add(p3.trim());
-
-      return result.isNotEmpty ? result : [trimmed];
     }
+
+    // 2. Group sentences into small, bite-sized bubbles (~130 chars max per bubble)
+    final List<String> bubbles = [];
+    String currentBubble = '';
+
+    for (final sentence in rawSentences) {
+      if (currentBubble.isEmpty) {
+        currentBubble = sentence;
+      } else if ((currentBubble.length + sentence.length + 1) <= 130) {
+        currentBubble = '$currentBubble $sentence';
+      } else {
+        bubbles.add(currentBubble);
+        currentBubble = sentence;
+      }
+    }
+    if (currentBubble.isNotEmpty) {
+      bubbles.add(currentBubble);
+    }
+
+    return bubbles.isNotEmpty ? bubbles : [trimmed];
   }
 
   Future<void> _maybeCaptureStylePreference(String text) async {
@@ -1201,25 +1306,6 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     return _generateDomainFallbackResponse(userPrompt);
   }
 
-  void _showUpcomingFeatureSnackBar() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Upcoming feature — Stay tuned!',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: const Color(0xFF171B2B),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
   // ── Local Session Archiving & Merging ─────────────────────────────────────
   Future<void> _archiveCurrentSessionLocally() async {
     if (_messages.isEmpty) return;
@@ -1228,17 +1314,13 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       final String raw = prefs.getString('mochi_saved_sessions_local') ?? '[]';
       final List<dynamic> list = jsonDecode(raw);
 
-      final firstUserMsg = _messages.firstWhere(
-        (m) => m.isUser,
-        orElse: () => _messages.first,
-      );
-      final title = firstUserMsg.text;
+      final title = _generateSmartSessionTitle(_messages);
       final String sessId =
           _currentSessionId ?? DateTime.now().millisecondsSinceEpoch.toString();
 
       final sessionData = {
         'id': sessId,
-        'title': title.length > 120 ? '${title.substring(0, 117)}...' : title,
+        'title': title,
         'total_messages': _messages.length,
         'started_at': _sessionStartedAt.toIso8601String(),
         'ended_at': DateTime.now().toIso8601String(),
@@ -1259,7 +1341,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     final List<Map<String, dynamic>> combined = [];
     final Set<String> seenIds = {};
 
-    // 1. Load local sessions
+    // 1. Load local archived sessions
     try {
       final prefs = await SharedPreferences.getInstance();
       final String raw = prefs.getString('mochi_saved_sessions_local') ?? '[]';
@@ -1268,8 +1350,8 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
         final map = Map<String, dynamic>.from(item);
         final id = map['id']?.toString() ?? '';
         if (id.isNotEmpty) {
-          seenIds.add(id);
           combined.add(map);
+          seenIds.add(id);
         }
       }
     } catch (e) {
@@ -1309,11 +1391,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
       Duration(minutes: _messages.length * 2),
     );
 
-    final firstUserMsg = _messages.firstWhere(
-      (m) => m.isUser,
-      orElse: () => _messages.first,
-    );
-    final title = firstUserMsg.text;
+    final title = _generateSmartSessionTitle(_messages);
 
     // 1. Archive locally first (guarantees conversation is NEVER lost)
     await _archiveCurrentSessionLocally();
@@ -1462,7 +1540,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
                     return ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       itemCount: sessions.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      separatorBuilder: (context, index) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final sess = sessions[index];
                         final title = sess['title'] ?? 'Untitled Chat';
@@ -1664,43 +1742,13 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
 
             const SizedBox(height: 16),
 
-            // Animated Central Mochi Spark Icon
+            // Animated Central Mochi Video Player (Cheering & Happy)
             ScaleTransition(
               scale: _pulseAnimation,
-              child: Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFFFFF0EB),
-                      Color(0xFFF3F2FF),
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFAB3500).withValues(alpha: 0.16),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
-                    ),
-                    BoxShadow(
-                      color: const Color(0xFF95416C).withValues(alpha: 0.12),
-                      blurRadius: 36,
-                      offset: const Offset(0, 12),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: SvgPicture.asset(
-                    'assets/brand/mochi_bot.svg',
-                    width: 52,
-                    height: 52,
-                    fit: BoxFit.contain,
-                  ),
-                ),
+              child: const MochiAnimatedVideoWidget(
+                size: 110,
+                showVideoBadge: false,
+                cycleDuration: Duration(milliseconds: 2800),
               ),
             ),
 
@@ -1740,10 +1788,10 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
               runSpacing: 10,
               alignment: WrapAlignment.center,
               children: [
-                _buildSuggestionChip("De-stress Reset", Icons.self_improvement_rounded, "Help me de-stress after a long meeting"),
-                _buildSuggestionChip("Vent about Workload", Icons.chat_bubble_outline_rounded, "I'm feeling overwhelmed with my tasks today"),
-                _buildSuggestionChip("Coffee Break", Icons.coffee_rounded, "I need a quick 2-minute mental reset"),
-                _buildSuggestionChip("Focus & Goals", Icons.center_focus_strong_rounded, "Give me a quick action plan for my priorities"),
+                _buildSuggestionChip("De-stress Reset", Icons.self_improvement_rounded, "Help me de-stress after a long meeting", avatarExpression: 'assets/mochi/mochi_relaxed.svg'),
+                _buildSuggestionChip("Vent about Workload", Icons.chat_bubble_outline_rounded, "I'm feeling overwhelmed with my tasks today", avatarExpression: 'assets/mochi/mochi_thinking.svg'),
+                _buildSuggestionChip("Coffee Break", Icons.coffee_rounded, "I need a quick 2-minute mental reset", avatarExpression: 'assets/mochi/mochi_relaxed.svg'),
+                _buildSuggestionChip("Focus & Goals", Icons.center_focus_strong_rounded, "Give me a quick action plan for my priorities", avatarExpression: 'assets/mochi/mochi_cheering.svg'),
               ],
             ),
 
@@ -1754,9 +1802,14 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
     );
   }
 
-  Widget _buildSuggestionChip(String label, IconData icon, String fullPrompt) {
+  Widget _buildSuggestionChip(String label, IconData icon, String fullPrompt, {String? avatarExpression}) {
     return InkWell(
       onTap: () {
+        if (avatarExpression != null && mounted) {
+          setState(() {
+            _currentMochiAvatar = avatarExpression;
+          });
+        }
         _textController.text = fullPrompt;
         _handleSendMessage();
       },
@@ -1819,7 +1872,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
                         shape: BoxShape.circle,
                       ),
                       child: SvgPicture.asset(
-                        'assets/brand/mochi_bot.svg',
+                        _currentMochiAvatar,
                         fit: BoxFit.contain,
                       ),
                     ),
@@ -1949,6 +2002,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
                   Expanded(
                     child: TextField(
                       controller: _textController,
+                      focusNode: _inputFocusNode,
                       minLines: 1,
                       maxLines: 4,
                       keyboardType: TextInputType.multiline,
@@ -2168,7 +2222,7 @@ class AiWellnessBotScreenState extends State<AiWellnessBotScreen>
                 ? Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: SvgPicture.asset(
-                      'assets/brand/mochi_bot.svg',
+                      _currentMochiAvatar,
                       width: 32,
                       height: 32,
                     ),
@@ -2196,150 +2250,95 @@ class _MochiListeningIndicator extends StatefulWidget {
 }
 
 class __MochiListeningIndicatorState extends State<_MochiListeningIndicator>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _bounceController;
-  late Animation<double> _bounceAnimation;
-  Timer? _dotsTimer;
-  int _dotCount = 1;
-
-  // ── Phrase sets by tone ────────────────────────────────────────────────────
-  static const List<String> _genZPhrases = [
-    'no cap, mochi is on it',
-    'bestie mode activated',
-    'processing your feels rn',
-    'not gonna ghost you',
-    'lowkey working on this',
-    'mochi said bet',
-    'cooking something up fr',
-    'brain not braining yet',
-    'okay okay okay',
-    'slay, mochi is thinking',
-  ];
-
-  static const List<String> _playfulPhrases = [
-    'Mochi is buffering',
-    'Loading wisdom',
-    'Consulting the vibes',
-    'Brain.exe is running',
-    'Almost cooked',
-    'Warming up the good thoughts',
-    'Mochi is caffeinating',
-    'Thinking really hard (ow)',
-    'Ideas incoming',
-    'Plot twist incoming',
-  ];
-
-  static const List<String> _warmPhrases = [
-    'Mochi is listening',
-    'Taking a breath with you',
-    'Holding space for you',
-    'Let me sit with that',
-    'Finding the right words',
-    'Here with you',
-    'Reflecting on what you shared',
-    'One moment, you matter',
-    'Thinking it through',
-    'Almost there',
-  ];
-
-  late List<String> _phrases;
-  int _phraseIndex = 0;
-
-  /// Picks a phrase list based on the user's saved communication preference,
-  /// then shuffles it so order feels fresh every session.
-  List<String> _buildPhraseList() {
-    final pref = UserPreferencesStore.getUserCommunicationPreference()
-        .toLowerCase();
-    List<String> base;
-    if (pref.contains('gen z') ||
-        pref.contains('genz') ||
-        pref.contains('casual') ||
-        pref.contains('chill') ||
-        pref.contains('informal')) {
-      base = List<String>.from(_genZPhrases);
-    } else if (pref.contains('playful') ||
-        pref.contains('funny') ||
-        pref.contains('witty') ||
-        pref.contains('humour') ||
-        pref.contains('humor') ||
-        pref.contains('fun')) {
-      base = List<String>.from(_playfulPhrases);
-    } else {
-      base = List<String>.from(_warmPhrases);
-    }
-    base.shuffle();
-    return base;
-  }
+    with TickerProviderStateMixin {
+  late AnimationController _dotController;
 
   @override
   void initState() {
     super.initState();
-    _phrases = _buildPhraseList();
-
-    _bounceController = AnimationController(
+    _dotController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..repeat(reverse: true);
-
-    _bounceAnimation = Tween<double>(begin: 0.0, end: -6.0).animate(
-      CurvedAnimation(parent: _bounceController, curve: Curves.easeInOut),
-    );
-
-    _dotsTimer = Timer.periodic(const Duration(milliseconds: 320), (timer) {
-      if (!mounted) return;
-      setState(() {
-        if (_dotCount < 4) {
-          _dotCount++;
-        } else {
-          // Dot cycle completed — advance to the next phrase
-          _dotCount = 2;
-          _phraseIndex = (_phraseIndex + 1) % _phrases.length;
-        }
-      });
-    });
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
   }
 
   @override
   void dispose() {
-    _bounceController.dispose();
-    _dotsTimer?.cancel();
+    _dotController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final dots = '.' * _dotCount;
-    final phrase = _phrases[_phraseIndex];
-
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.only(left: 4, bottom: 12, top: 4),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            AnimatedBuilder(
-              animation: _bounceAnimation,
-              builder: (context, child) {
-                return Transform.translate(
-                  offset: Offset(0, _bounceAnimation.value),
-                  child: child,
-                );
-              },
+            // Mochi Avatar
+            Padding(
+              padding: const EdgeInsets.only(bottom: 2),
               child: SvgPicture.asset(
-                'assets/brand/mochi_bot.svg',
-                width: 28,
-                height: 28,
+                'assets/mochi/mochi_bot.svg',
+                width: 32,
+                height: 32,
               ),
             ),
-            const SizedBox(width: 10),
-            Text(
-              '$phrase$dots',
-              style: GoogleFonts.beVietnamPro(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF8D7168),
+            const SizedBox(width: 8),
+            // Clean Humane Typing Bubble with 3 Bouncing Dots
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  topRight: Radius.circular(18),
+                  bottomRight: Radius.circular(18),
+                  bottomLeft: Radius.circular(4),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF171B2B).withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: AnimatedBuilder(
+                animation: _dotController,
+                builder: (context, child) {
+                  final progress = _dotController.value;
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(3, (index) {
+                      final double delay = index * 0.22;
+                      final double val = math.sin(((progress - delay) % 1.0) * math.pi * 2);
+                      final double translateY = (val > 0 ? val : 0) * -5.0;
+                      final double opacity = 0.35 + ((val > 0 ? val : 0) * 0.65);
+
+                      return Container(
+                        margin: EdgeInsets.only(right: index < 2 ? 5 : 0),
+                        child: Transform.translate(
+                          offset: Offset(0, translateY),
+                          child: Opacity(
+                            opacity: opacity,
+                            child: Container(
+                              width: 7,
+                              height: 7,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFAB3500),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  );
+                },
               ),
             ),
           ],

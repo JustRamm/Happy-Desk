@@ -239,6 +239,22 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
+                            onPressed: () => MultiCoffeeResetModal.show(context),
+                            icon: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFF3F2FF),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.local_cafe_rounded,
+                                color: Color(0xFF95416C),
+                                size: 22,
+                              ),
+                            ),
+                            tooltip: 'Coffee Break',
+                          ),
+                          IconButton(
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -260,22 +276,6 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                               ),
                             ),
                             tooltip: 'Notifications',
-                          ),
-                          IconButton(
-                            onPressed: () => MultiCoffeeResetModal.show(context),
-                            icon: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFF3F2FF),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.local_cafe_rounded,
-                                color: Color(0xFF95416C),
-                                size: 22,
-                              ),
-                            ),
-                            tooltip: 'Coffee Break',
                           ),
                         ],
                       ),

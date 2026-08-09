@@ -1,0 +1,49 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mochiBg" x1="0" y1="0" x2="240" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFF0EB" />
+      <stop offset="100%" stop-color="#FFE4DD" />
+    </linearGradient>
+    <linearGradient id="mochiBody" x1="40" y1="40" x2="200" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="85%" stop-color="#FFF3EF" />
+      <stop offset="100%" stop-color="#FFDBD0" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="120" y1="8" x2="120" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="mochiShadow" x="15" y="175" width="210" height="55" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+
+  <!-- Soft Ambient Drop Shadow -->
+  <ellipse cx="120" cy="202" rx="76" ry="15" fill="#AB3500" fill-opacity="0.16" filter="url(#mochiShadow)" />
+
+  <!-- Main Mochi Squishy Body -->
+  <path d="M34 148C24 93 56 48 120 48C184 48 216 93 206 148C198 188 166 204 120 204C74 204 42 188 34 148Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Relaxed Content Cheeks -->
+  <ellipse cx="72" cy="138" rx="16" ry="10" fill="#F472B6" fill-opacity="0.75" />
+  <ellipse cx="168" cy="138" rx="16" ry="10" fill="#F472B6" fill-opacity="0.75" />
+
+  <!-- Calm Serene Closed Eyes (Smooth curves) -->
+  <path d="M72 120C79 126 89 126 96 120" stroke="#4C1D95" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M144 120C151 126 161 126 168 120" stroke="#4C1D95" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Soft Peaceful Smile -->
+  <path d="M112 136C117 141 123 141 128 136" stroke="#4C1D95" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Serene Sprout Leaf -->
+  <path d="M120 48C120 26 102 10 82 17C82 36 100 48 120 48Z" fill="url(#leafGrad)" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48C120 26 138 10 158 17C158 36 140 48 120 48Z" fill="#6EE7B7" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48V32" stroke="#047857" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Soothing Zen Steam & Bubbles -->
+  <path d="M192 45C195 40 190 35 195 30" stroke="#A7F3D0" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M202 52C205 47 200 42 205 37" stroke="#A7F3D0" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <circle cx="42" cy="48" r="4" fill="#6EE7B7" opacity="0.7"/>
+  <circle cx="48" cy="38" r="2.5" fill="#6EE7B7" opacity="0.6"/>
+  <circle cx="36" cy="58" r="2" fill="#F472B6" opacity="0.6"/>
+</svg>
