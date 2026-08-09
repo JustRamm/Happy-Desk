@@ -22,7 +22,7 @@ class CallHistoryButtonWidget extends StatelessWidget {
           shape: BoxShape.circle,
         ),
         child: const Icon(
-          Icons.phone_outlined,
+          Icons.phone_callback_rounded,
           color: Color(0xFFAB3500),
           size: 22,
         ),
