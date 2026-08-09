@@ -446,61 +446,69 @@ class _WorkSessionDetailsScreenState extends State<WorkSessionDetailsScreen> {
                 ),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: isActive
-                              ? const Color(0xFFFFF0EB)
-                              : const Color(0xFFEBEDFF),
-                          shape: BoxShape.circle,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? const Color(0xFFFFF0EB)
+                                : const Color(0xFFEBEDFF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isActive
+                                ? Icons.timer_rounded
+                                : Icons.history_rounded,
+                            color: isActive
+                                ? const Color(0xFFAB3500)
+                                : const Color(0xFF594139),
+                            size: 18,
+                          ),
                         ),
-                        child: Icon(
-                          isActive
-                              ? Icons.timer_rounded
-                              : Icons.history_rounded,
-                          color: isActive
-                              ? const Color(0xFFAB3500)
-                              : const Color(0xFF594139),
-                          size: 18,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item['date']!,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF171B2B),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'In: ${item['in']} • Out: ${item['out']}',
+                                style: GoogleFonts.beVietnamPro(
+                                  fontSize: 11.5,
+                                  color: const Color(0xFF594139),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                item['location']!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.beVietnamPro(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFFAB3500),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item['date']!,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF171B2B),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'In: ${item['in']} • Out: ${item['out']}',
-                            style: GoogleFonts.beVietnamPro(
-                              fontSize: 12,
-                              color: const Color(0xFF594139),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            item['location']!,
-                            style: GoogleFonts.beVietnamPro(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFFAB3500),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 4),

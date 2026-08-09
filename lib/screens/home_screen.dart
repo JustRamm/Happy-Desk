@@ -679,7 +679,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () => BoxBreathingModal.show(context),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 12),
+                        horizontal: 10, vertical: 12),
                     decoration: BoxDecoration(
                       color: const Color(0xFFEBF7F5),
                       borderRadius: BorderRadius.circular(20),
@@ -693,13 +693,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           size: 18,
                           color: Color(0xFF006C53),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '60s Breathing',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF006C53),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            '60s Breathing',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF006C53),
+                            ),
                           ),
                         ),
                       ],
@@ -707,7 +711,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
 
               // Desk Stretches Pill
               Expanded(
@@ -715,7 +719,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () => DeskStretchesModal.show(context),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 12),
+                        horizontal: 10, vertical: 12),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFF0EB),
                       borderRadius: BorderRadius.circular(20),
@@ -729,13 +733,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           size: 18,
                           color: Color(0xFFAB3500),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Desk Stretches',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFFAB3500),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            'Desk Stretches',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFFAB3500),
+                            ),
                           ),
                         ),
                       ],

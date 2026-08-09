@@ -514,14 +514,19 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'How did they help you?',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.titleDark,
+                    Expanded(
+                      child: Text(
+                        'How did they help you?',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.titleDark,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: _hasNominatedThisWeek ? null : _generateAiStory,
                       child: Container(
@@ -604,15 +609,17 @@ class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateM
                 ),
                 const SizedBox(height: 10),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 10,
+                  spacing: 6,
+                  runSpacing: 8,
                   children: _allSuperpowers.map((tag) {
                     final isSelected = _selectedSuperpowers.contains(tag);
                     return ChoiceChip(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       label: Text(
                         tag,
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12.5,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: isSelected
                               ? const Color(0xFF047857)
