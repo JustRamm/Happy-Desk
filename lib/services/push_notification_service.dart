@@ -125,7 +125,7 @@ class PushNotificationService {
       final int notifId = callId.hashCode.abs();
       await _localNotifications.show(
         id: notifId,
-        title: isVideo ? '📹 Incoming Video Call' : '📞 Incoming Voice Call',
+        title: isVideo ? 'Incoming Video Call' : 'Incoming Voice Call',
         body: '$callerName is calling you on Happy Desk',
         notificationDetails: details,
         payload: 'call:$callId',

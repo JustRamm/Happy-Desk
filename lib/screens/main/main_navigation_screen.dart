@@ -50,7 +50,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         final senderFirstName = senderName.toString().split(' ').first;
 
         PushNotificationService.instance.showNotification(
-          title: '💬 New Message from $senderFirstName',
+          title: 'New Message from $senderFirstName',
           body: content.toString(),
           payload: 'chat_$senderName',
         );
