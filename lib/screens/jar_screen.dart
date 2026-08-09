@@ -116,7 +116,7 @@ class _JarScreenState extends State<JarScreen> {
                         )
                       : const BrandLogoWidget(height: 54),
 
-                  // Right Header Action Bar (Notification & Coffee icons matching Home & Messages)
+                  // Right Header Action Bar (Notification, Coffee, & Paper Shredder icons)
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -158,6 +158,21 @@ class _JarScreenState extends State<JarScreen> {
                           ),
                         ),
                         tooltip: 'Coffee Break',
+                      ),
+                      IconButton(
+                        onPressed: () => DissolveStressModal.show(context),
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFFFF0EB),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const ShredderIconWidget(
+                            size: 20,
+                            state: ShredderState.idle,
+                          ),
+                        ),
+                        tooltip: 'Paper Shredder Stress Vent',
                       ),
                     ],
                   ),
@@ -498,97 +513,7 @@ class _JarScreenState extends State<JarScreen> {
                 ),
               ),
 
-              const SizedBox(height: 16),
 
-              // Paper Shredder Stress Vent Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF7ED),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFFFED7AA)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFC84B1A),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const ShredderIconWidget(
-                            size: 20,
-                            mainColor: Colors.white,
-                            slotColor: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Paper Shredder Stress Vent',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppTheme.titleDark,
-                                ),
-                              ),
-                              Text(
-                                'Private stress vent • Shreds text into paper strips',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppTheme.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 46,
-                      child: OutlinedButton(
-                        onPressed: () => DissolveStressModal.show(context),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFFC84B1A)),
-                          foregroundColor: const Color(0xFFC84B1A),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Open Paper Shredder & Dissolve',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFFC84B1A),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Icon(
-                              Icons.arrow_forward_rounded,
-                              size: 16,
-                              color: Color(0xFFC84B1A),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
 
               const SizedBox(height: 28),
 
