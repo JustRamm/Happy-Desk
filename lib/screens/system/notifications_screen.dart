@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
 import '../../services/coffee_notification_store.dart';
 import '../../widgets/multi_coffee_reset_modal.dart';
-import '../../widgets/brand_logo_widget.dart';
 import '../../services/supabase_service.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -68,13 +67,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
-                      const SizedBox(width: 10),
-                      const BrandLogoWidget(height: 54),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       Text(
                         'Notifications',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 20,
+                          fontSize: 22,
                           fontWeight: FontWeight.w800,
                           color: AppTheme.titleDark,
                           letterSpacing: -0.4,

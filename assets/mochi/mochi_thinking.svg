@@ -24,35 +24,49 @@
   <!-- Main Mochi Squishy Body -->
   <path d="M34 148C24 93 56 48 120 48C184 48 216 93 206 148C198 188 166 204 120 204C74 204 42 188 34 148Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- Hand Nub on Cheek (Thinking Pose) -->
-  <path d="M150 148C162 136 178 140 170 156Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Left Arm Resting Comfortably -->
+  <path d="M48 152C38 158 35 172 45 174Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Right Arm Nub Lifted under Chin in Thinking Pose -->
+  <path d="M152 142C164 128 178 134 168 152Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
 
   <!-- Rosy Pastel Cheeks -->
   <ellipse cx="72" cy="138" rx="15" ry="9" fill="#F472B6" fill-opacity="0.6" />
   <ellipse cx="168" cy="138" rx="15" ry="9" fill="#F472B6" fill-opacity="0.6" />
 
-  <!-- Curious Looking-Up Eyes -->
+  <!-- Pensive Tilted Eyebrows (Thinking Expression) -->
+  <path d="M74 98Q84 92 94 98" stroke="#AB3500" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M146 98Q156 92 166 98" stroke="#AB3500" stroke-width="3" stroke-linecap="round" fill="none"/>
+
+  <!-- Curious Looking-Up / Pensive Eyes -->
   <!-- Left Eye -->
-  <ellipse cx="84" cy="116" rx="10" ry="13" fill="#4C1D95" />
-  <circle cx="87" cy="110" r="4.5" fill="white" />
-  <circle cx="81" cy="120" r="2" fill="white" />
+  <ellipse cx="84" cy="114" rx="10" ry="12" fill="#4C1D95" />
+  <circle cx="87" cy="108" r="4.5" fill="white" />
+  <circle cx="81" cy="118" r="2" fill="white" />
 
   <!-- Right Eye -->
-  <ellipse cx="160" cy="116" rx="10" ry="13" fill="#4C1D95" />
-  <circle cx="163" cy="110" r="4.5" fill="white" />
-  <circle cx="157" cy="120" r="2" fill="white" />
+  <ellipse cx="160" cy="114" rx="10" ry="12" fill="#4C1D95" />
+  <circle cx="163" cy="108" r="4.5" fill="white" />
+  <circle cx="157" cy="118" r="2" fill="white" />
 
-  <!-- Cute Pensive 'o' Mouth -->
-  <circle cx="120" cy="138" r="5" fill="#4C1D95" />
+  <!-- Cute Sideways Pensive 'o' Mouth -->
+  <ellipse cx="122" cy="136" rx="4.5" ry="5.5" fill="#4C1D95" />
 
   <!-- Serene Sprout Leaf -->
   <path d="M120 48C120 26 102 10 82 17C82 36 100 48 120 48Z" fill="url(#leafGrad)" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M120 48C120 26 138 10 158 17C158 36 140 48 120 48Z" fill="#6EE7B7" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M120 48V32" stroke="#047857" stroke-width="3" stroke-linecap="round"/>
 
-  <!-- Idea / Thought Lightbulb & Sparkles -->
-  <path d="M198 32C204 32 208 37 206 43C204 47 200 50 200 53H196C196 50 192 47 190 43C188 37 192 32 198 32Z" fill="#FBBF24" stroke="#D97706" stroke-width="2"/>
-  <rect x="196" y="54" width="4" height="3" rx="1" fill="#9CA3AF"/>
-  <path d="M198 25V28M187 32L190 34M209 32L206 34" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
+  <!-- Floating Thought Bubbles (Classic Thinking Signal) -->
+  <circle cx="174" cy="74" r="4" fill="white" stroke="#AB3500" stroke-width="2" />
+  <circle cx="186" cy="60" r="7" fill="white" stroke="#AB3500" stroke-width="2" />
+  <ellipse cx="204" cy="38" rx="20" ry="15" fill="white" stroke="#AB3500" stroke-width="2.5" />
+  
+  <!-- Glowing Idea Lightbulb inside Thought Cloud -->
+  <path d="M204 28C209 28 212 32 211 37C209 40 206 43 206 45H202C202 43 199 40 197 37C196 32 199 28 204 28Z" fill="#FBBF24" stroke="#D97706" stroke-width="1.8"/>
+  <rect x="202" y="46" width="4" height="2.5" rx="1" fill="#9CA3AF"/>
+  <path d="M204 23V25M194 28L197 30M214 28L211 30" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round"/>
+
+  <!-- Left Sparkle -->
   <path d="M38 42L39 48L45 49L39 50L38 56L37 50L31 49L37 48L38 42Z" fill="#3B82F6" opacity="0.8"/>
 </svg>
