@@ -1579,6 +1579,28 @@ class SupabaseService {
     return channel;
   }
 
+  Future<void> deleteDirectMessageConversation({required String partnerName}) async {
+    await init();
+    try {
+      final myName = UserPreferencesStore.getUserName().trim().toLowerCase();
+      final partnerLower = partnerName.trim().toLowerCase();
+
+      await client
+          .from('direct_messages')
+          .delete()
+          .or('and(sender_name.ilike.$myName,receiver_name.ilike.$partnerLower),and(sender_name.ilike.$partnerLower,receiver_name.ilike.$myName)');
+    } catch (e) {
+      debugPrint('Error deleting direct message conversation with $partnerName: $e');
+    }
+  }
+
+  Future<void> deleteMultipleConversations({required List<String> partnerNames}) async {
+    await init();
+    for (final partnerName in partnerNames) {
+      await deleteDirectMessageConversation(partnerName: partnerName);
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getCallHistory() async {
     await init();
     try {

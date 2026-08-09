@@ -22,7 +22,64 @@ class ChatListScreen extends StatefulWidget {
 class _ChatListScreenState extends State<ChatListScreen> {
   final TextEditingController _searchController = TextEditingController();
   final List<Map<String, dynamic>> _chats = [];
+  final Set<String> _selectedChatPartners = {};
   dynamic _realtimeSubscription;
+
+  void _toggleChatSelection(String partnerName) {
+    HapticFeedback.mediumImpact();
+    setState(() {
+      if (_selectedChatPartners.contains(partnerName)) {
+        _selectedChatPartners.remove(partnerName);
+      } else {
+        _selectedChatPartners.add(partnerName);
+      }
+    });
+  }
+
+  void _confirmDeleteSelectedChats() {
+    final count = _selectedChatPartners.length;
+    if (count == 0) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: const Color(0xFF171B2B),
+        title: Text(
+          count == 1 ? 'Delete Selected Chat?' : 'Delete $count Selected Chats?',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: Colors.white, fontSize: 18),
+        ),
+        content: Text(
+          count == 1
+              ? 'This will permanently delete the selected conversation.'
+              : 'This will permanently delete all $count selected conversations.',
+          style: GoogleFonts.plusJakartaSans(color: const Color(0xFF9CA3AF), fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: Colors.white60, fontWeight: FontWeight.w700)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final targets = _selectedChatPartners.toList();
+              setState(() => _selectedChatPartners.clear());
+              await SupabaseService.instance.deleteMultipleConversations(partnerNames: targets);
+              if (mounted) {
+                _loadLiveChats();
+              }
+            },
+            child: Text('Delete', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -156,66 +213,107 @@ class _ChatListScreenState extends State<ChatListScreen> {
              child: Column(
                crossAxisAlignment: CrossAxisAlignment.start,
                children: [
-                 // Top Header Bar with Logo, Searchbar, and Notification Bell
-                 Padding(
-                   padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-                   child: Row(
-                     children: [
-                       // Brand Logo Widget
-                       const BrandLogoWidget(height: 54),
-                       const SizedBox(width: 10),
+                  // Top Header Bar with Logo, Searchbar, and Notification/Delete Button
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+                    child: _selectedChatPartners.isNotEmpty
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.close_rounded, color: Color(0xFF2D3142), size: 22),
+                                    onPressed: () => setState(() => _selectedChatPartners.clear()),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Text(
+                                    '${_selectedChatPartners.length} Selected',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF2D3142),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              IconButton(
+                                tooltip: 'Delete Selected Chats',
+                                onPressed: _confirmDeleteSelectedChats,
+                                icon: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFFEE2E2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.delete_rounded,
+                                    color: Color(0xFFDC2626),
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              // Brand Logo Widget
+                              const BrandLogoWidget(height: 54),
+                              const SizedBox(width: 10),
 
-                       // Header Search Bar
-                       Expanded(
-                         child: Container(
-                           height: 38,
-                           padding: const EdgeInsets.symmetric(horizontal: 10),
-                           decoration: BoxDecoration(
-                             color: Colors.white,
-                             borderRadius: BorderRadius.circular(19),
-                             border: Border.all(color: const Color(0xFFE4E7FE)),
-                           ),
-                           child: Row(
-                             children: [
-                               const Icon(
-                                 Icons.search_rounded,
-                                 color: Color(0xFFAB3500),
-                                 size: 18,
-                               ),
-                               const SizedBox(width: 6),
-                               Expanded(
-                                 child: TextField(
-                                   controller: _searchController,
-                                   onTap: () {
-                                     SystemChannels.textInput.invokeMethod('TextInput.show');
-                                   },
-                                   style: GoogleFonts.beVietnamPro(
-                                     fontSize: 12,
-                                     color: const Color(0xFF171B2B),
-                                   ),
-                                   decoration: InputDecoration(
-                                     hintText: 'Search...',
-                                     hintStyle: GoogleFonts.beVietnamPro(
-                                       fontSize: 11.5,
-                                       color: const Color(0xFF8D7168),
-                                     ),
-                                     border: InputBorder.none,
-                                     isDense: true,
-                                     contentPadding: EdgeInsets.zero,
-                                   ),
-                                 ),
-                               ),
-                             ],
-                           ),
-                         ),
-                       ),
-                       const SizedBox(width: 10),
+                              // Header Search Bar
+                              Expanded(
+                                child: Container(
+                                  height: 38,
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(19),
+                                    border: Border.all(color: const Color(0xFFE4E7FE)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.search_rounded,
+                                        color: Color(0xFFAB3500),
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: TextField(
+                                          controller: _searchController,
+                                          onTap: () {
+                                            SystemChannels.textInput.invokeMethod('TextInput.show');
+                                          },
+                                          style: GoogleFonts.beVietnamPro(
+                                            fontSize: 12,
+                                            color: const Color(0xFF171B2B),
+                                          ),
+                                          decoration: InputDecoration(
+                                            hintText: 'Search...',
+                                            hintStyle: GoogleFonts.beVietnamPro(
+                                              fontSize: 11.5,
+                                              color: const Color(0xFF8D7168),
+                                            ),
+                                            border: InputBorder.none,
+                                            isDense: true,
+                                            contentPadding: EdgeInsets.zero,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
 
-                        // Right Header Action Bar (Call History Icon)
-                        const CallHistoryButtonWidget(),
-                     ],
-                   ),
-                 ),
+                              // Right Header Action Bar (Call History Icon)
+                              const CallHistoryButtonWidget(),
+                            ],
+                          ),
+                  ),
 
                  const SizedBox(height: 16),
 
@@ -261,13 +359,21 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   final isUnread = chat['unread'] == true;
                   final fullName = (chat['name'] as String? ?? 'Teammate').trim();
                   final firstName = fullName.isNotEmpty ? fullName.split(' ').first : fullName;
+                  final isSelected = _selectedChatPartners.contains(fullName);
 
                   return Column(
                     children: [
                       Material(
-                        color: isUnread ? const Color(0xFFFFF6F3) : Colors.white,
+                        color: isSelected
+                            ? const Color(0xFFDC2626).withValues(alpha: 0.12)
+                            : (isUnread ? const Color(0xFFFFF6F3) : Colors.white),
                         child: InkWell(
+                          onLongPress: () => _toggleChatSelection(fullName),
                           onTap: () async {
+                            if (_selectedChatPartners.isNotEmpty) {
+                              _toggleChatSelection(fullName);
+                              return;
+                            }
                             SoundService.playMessageOpenSound();
                             setState(() {
                               chat['unread'] = false;
@@ -344,7 +450,24 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                               ),
                                             ),
                                     ),
-                                    if (isOnline)
+                                    if (isSelected)
+                                      Positioned(
+                                        right: 0,
+                                        bottom: 0,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(2),
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFFDC2626),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.check_rounded,
+                                            color: Colors.white,
+                                            size: 12,
+                                          ),
+                                        ),
+                                      )
+                                    else if (isOnline)
                                       Positioned(
                                         right: 0,
                                         bottom: 0,

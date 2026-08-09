@@ -33,6 +33,108 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   String? _partnerAvatarUrl;
 
   RealtimeChannel? _chatChannel;
+  bool _isMuted = false;
+  bool _isBlocked = false;
+
+  void _toggleMute() {
+    final name = widget.teammate['name'] ?? 'Teammate';
+    setState(() => _isMuted = !_isMuted);
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _isMuted ? 'Muted notifications for $name' : 'Unmuted notifications for $name',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: const Color(0xFF2D3142),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _confirmBlockUser() {
+    final name = widget.teammate['name'] ?? 'Teammate';
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: const Color(0xFF171B2B),
+        title: Text(
+          _isBlocked ? 'Unblock $name?' : 'Block $name?',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: Colors.white, fontSize: 18),
+        ),
+        content: Text(
+          _isBlocked
+              ? 'You will be able to send and receive messages with $name again.'
+              : 'They will not be able to message or call you on Happy Desk.',
+          style: GoogleFonts.plusJakartaSans(color: const Color(0xFF9CA3AF), fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: Colors.white60, fontWeight: FontWeight.w700)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _isBlocked ? const Color(0xFF00C49A) : const Color(0xFFDC2626),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() => _isBlocked = !_isBlocked);
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(_isBlocked ? '$name has been blocked' : '$name has been unblocked'),
+                  backgroundColor: _isBlocked ? const Color(0xFFDC2626) : const Color(0xFF00C49A),
+                ),
+              );
+            },
+            child: Text(_isBlocked ? 'Unblock' : 'Block', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteChat() {
+    final name = widget.teammate['name'] ?? 'Teammate';
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: const Color(0xFF171B2B),
+        title: Text(
+          'Delete Chat?',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: Colors.white, fontSize: 18),
+        ),
+        content: Text(
+          'This will permanently delete all messages in your conversation with $name.',
+          style: GoogleFonts.plusJakartaSans(color: const Color(0xFF9CA3AF), fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: Colors.white60, fontWeight: FontWeight.w700)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await SupabaseService.instance.deleteDirectMessageConversation(partnerName: name);
+              if (!mounted) return;
+              Navigator.pop(context);
+            },
+            child: Text('Delete', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -759,9 +861,82 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 color: Color(0xFF95416C),
                 size: 18,
               ),
+          PopupMenuButton<String>(
+            icon: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFAF9F8),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.more_vert_rounded,
+                color: Color(0xFF2D3142),
+                size: 20,
+              ),
             ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            color: const Color(0xFF171B2B),
+            onSelected: (val) {
+              if (val == 'mute') _toggleMute();
+              if (val == 'block') _confirmBlockUser();
+              if (val == 'delete') _confirmDeleteChat();
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'mute',
+                child: Row(
+                  children: [
+                    Icon(
+                      _isMuted ? Icons.notifications_active_rounded : Icons.notifications_off_rounded,
+                      color: const Color(0xFFFF9E7A),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      _isMuted ? 'Unmute Notifications' : 'Mute Notifications',
+                      style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'block',
+                child: Row(
+                  children: [
+                    Icon(
+                      _isBlocked ? Icons.check_circle_outline_rounded : Icons.block_rounded,
+                      color: const Color(0xFFFF99C8),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      _isBlocked ? 'Unblock Teammate' : 'Block Teammate',
+                      style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(height: 1),
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.delete_outline_rounded,
+                      color: Color(0xFFDC2626),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Delete Chat',
+                      style: GoogleFonts.plusJakartaSans(color: const Color(0xFFEF4444), fontSize: 13.5, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
         ],
       ),
       body: Column(
