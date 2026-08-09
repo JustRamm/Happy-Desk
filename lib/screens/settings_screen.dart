@@ -12,6 +12,7 @@ import 'about_screen.dart';
 import 'founder_config_screen.dart';
 import 'reset_password_screen.dart';
 import '../services/user_preferences_store.dart';
+import '../services/sign_out_flag.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -59,11 +60,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
+              // Scenario 6: Mark as user-initiated BEFORE logout() so the global
+              // auth listener suppresses the "session ended" snackbar.
+              markUserInitiatedSignOut();
               await UserPreferencesStore.logout();
               if (context.mounted) {
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(
-                    builder: (context) => const AuthScreen(initialIsLogin: true),
+                    builder: (context) =>
+                        const AuthScreen(initialIsLogin: true),
                   ),
                   (route) => false,
                 );
@@ -78,9 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             child: Text(
               'Log Out',
-              style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.w700,
-              ),
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -121,7 +124,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 14),
 
-              Text('Current Team Workspace', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700)),
+              Text(
+                'Current Team Workspace',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 6),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -132,13 +141,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.business_rounded, color: AppTheme.primaryRust, size: 22),
+                    const Icon(
+                      Icons.business_rounded,
+                      color: AppTheme.primaryRust,
+                      size: 22,
+                    ),
                     const SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('U & ME Engineering Team', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700)),
-                        Text('Role: Team Lead & Admin', style: GoogleFonts.beVietnamPro(fontSize: 12, color: Colors.grey.shade600)),
+                        Text(
+                          'U & ME Engineering Team',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          'Role: Team Lead & Admin',
+                          style: GoogleFonts.beVietnamPro(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -146,10 +171,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 16),
 
-              Text('Team Invite Code', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700)),
+              Text(
+                'Team Invite Code',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFF0EB),
                   borderRadius: BorderRadius.circular(16),
@@ -157,17 +191,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('HAPPY-DESK-2026', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.primaryRust)),
+                    Text(
+                      'HAPPY-DESK-2026',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.primaryRust,
+                      ),
+                    ),
                     IconButton(
-                      icon: const Icon(Icons.copy_rounded, color: AppTheme.primaryRust, size: 20),
+                      icon: const Icon(
+                        Icons.copy_rounded,
+                        color: AppTheme.primaryRust,
+                        size: 20,
+                      ),
                       onPressed: () {
-                        Clipboard.setData(const ClipboardData(text: 'HAPPY-DESK-2026'));
+                        Clipboard.setData(
+                          const ClipboardData(text: 'HAPPY-DESK-2026'),
+                        );
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: const Text('Invite code HAPPY-DESK-2026 copied to clipboard!'),
+                            content: const Text(
+                              'Invite code HAPPY-DESK-2026 copied to clipboard!',
+                            ),
                             backgroundColor: AppTheme.primaryRust,
                             behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                           ),
                         );
                       },
@@ -291,7 +342,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const NotificationSettingsScreen(),
+                          builder: (context) =>
+                              const NotificationSettingsScreen(),
                         ),
                       );
                     },
@@ -302,7 +354,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: 'Push Notifications',
                     subtitle: 'Daily shift reminders & kudos',
                     value: _pushNotifications,
-                    onChanged: (val) => setState(() => _pushNotifications = val),
+                    onChanged: (val) =>
+                        setState(() => _pushNotifications = val),
                   ),
                   _buildDivider(),
                   _buildSwitchTile(
@@ -393,7 +446,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: OutlinedButton.icon(
                   onPressed: _showLogoutDialog,
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFE53E3E), width: 1.5),
+                    side: const BorderSide(
+                      color: Color(0xFFE53E3E),
+                      width: 1.5,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(22),
                     ),
@@ -460,9 +516,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
-      child: Column(
-        children: children,
-      ),
+      child: Column(children: children),
     );
   }
 

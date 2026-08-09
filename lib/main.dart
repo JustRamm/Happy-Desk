@@ -4,19 +4,29 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:camera/camera.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/mochi_prompt_service.dart';
 import 'services/supabase_service.dart';
 import 'services/user_preferences_store.dart';
 import 'services/session_manager_service.dart';
 import 'services/offline_sync_service.dart';
+import 'services/sign_out_flag.dart';
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'screens/error/global_crash_screen.dart';
 import 'screens/error/no_connectivity_screen.dart';
+import 'screens/auth_screen.dart';
 import 'theme/app_theme.dart';
 import 'screens/onboarding_wrapper_screen.dart';
 
 List<CameraDescription> availableDeviceCameras = [];
+
+/// Global navigator key — allows navigation from outside the widget tree
+/// (used by the Supabase auth-state listener in Scenarios 7 & 9).
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+
+// Scenario 6: markUserInitiatedSignOut() and userInitiatedSignOut flag
+// are now located in services/sign_out_flag.dart.
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +46,7 @@ void main() async {
 
   // Initialize Background-to-Foreground Resume Session Manager
   SessionManagerService.instance.initialize();
-  
+
   // Initialize Background Offline Caching & Sync Queue
   OfflineSyncService.instance.initialize();
 
@@ -83,24 +93,99 @@ class HappyDeskApp extends StatefulWidget {
 
 class _HappyDeskAppState extends State<HappyDeskApp> {
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
+  StreamSubscription<AuthState>? _authSubscription;
   bool _isOffline = false;
 
   @override
   void initState() {
     super.initState();
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
-      final isOffline = results.isEmpty || results.contains(ConnectivityResult.none);
-      if (isOffline != _isOffline) {
-        setState(() {
-          _isOffline = isOffline;
-        });
-      }
-    });
+
+    // ── Connectivity Listener ─────────────────────────────────────────────
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen(
+      (List<ConnectivityResult> results) {
+        final isOffline = results.isEmpty || results.contains(ConnectivityResult.none);
+        if (isOffline != _isOffline) {
+          setState(() => _isOffline = isOffline);
+        }
+      },
+    );
+
+    // ── Scenarios 7 & 9: Global Auth State Listener ───────────────────────
+    // Listens for JWT expiry, remote session revocation, and admin bans.
+    // Fires silently for the full app lifetime — no polling required.
+    _authSubscription = SupabaseService.instance.client.auth.onAuthStateChange.listen(
+      (AuthState authState) async {
+        final event = authState.event;
+        debugPrint('[HappyDeskApp] onAuthStateChange: $event');
+
+        switch (event) {
+          // ── Scenario 7 / 9: Unexpected sign-out ─────────────────────────
+          case AuthChangeEvent.signedOut:
+            if (userInitiatedSignOut) {
+              // User tapped "Log Out" themselves — suppress duplicate handling
+              userInitiatedSignOut = false;
+              return;
+            }
+            // JWT expired beyond auto-refresh, remote revocation, or account ban.
+            await UserPreferencesStore.setIsLoggedIn(false);
+            final nav = appNavigatorKey.currentState;
+            if (nav != null) {
+              nav.pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (_) => const AuthScreen(initialIsLogin: true),
+                ),
+                (route) => false,
+              );
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                final ctx = appNavigatorKey.currentContext;
+                if (ctx != null && ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Your session has ended. Please sign in again.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      backgroundColor: const Color(0xFFDC2626),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      duration: const Duration(seconds: 4),
+                    ),
+                  );
+                }
+              });
+            }
+            break;
+
+          // ── Scenario 7 (success path): Silent token refresh ──────────────
+          case AuthChangeEvent.tokenRefreshed:
+            await UserPreferencesStore.setIsLoggedIn(true);
+            debugPrint('[HappyDeskApp] Token refreshed silently — session active.');
+            break;
+
+          // ── Any new sign-in: keep local cache in sync ────────────────────
+          case AuthChangeEvent.signedIn:
+            await UserPreferencesStore.setIsLoggedIn(true);
+            break;
+
+          default:
+            break;
+        }
+      },
+      onError: (Object error) {
+        debugPrint('[HappyDeskApp] Auth stream error: $error');
+      },
+    );
   }
 
   @override
   void dispose() {
     _connectivitySubscription.cancel();
+    _authSubscription?.cancel();
     super.dispose();
   }
 
@@ -110,11 +195,13 @@ class _HappyDeskAppState extends State<HappyDeskApp> {
       title: 'U & ME',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
+      navigatorKey: appNavigatorKey, // Enables navigation from auth listener
       home: const OnboardingWrapperScreen(),
       builder: (context, child) {
         return Stack(
           children: [
             child ?? const SizedBox.shrink(),
+            // ── Scenario 13: Offline banner (overlay, never blocks routing) ─
             if (_isOffline)
               Positioned(
                 top: MediaQuery.of(context).padding.top + 8,

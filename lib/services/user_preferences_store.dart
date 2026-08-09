@@ -39,6 +39,7 @@ class UserPreferencesStore {
   static const String _keyHasCompletedOnboarding = 'has_completed_onboarding';
   static const String _keyUserNickname = 'user_nickname';
   static const String _keyHasAskedNickname = 'has_asked_nickname';
+  static const String _keyLastActiveTabIndex = 'last_active_tab_index';
 
   // In-memory sync fallback cache
   static String _nameCache = '';
@@ -61,6 +62,7 @@ class UserPreferencesStore {
   static bool _isLeaderCache = false;
   static bool _isLoggedInCache = false;
   static bool _hasCompletedOnboardingCache = false;
+  static int _lastActiveTabIndexCache = 0;
 
   static const String _keyCompanyVision = 'company_vision';
   static String _companyVisionCache = '';
@@ -86,6 +88,7 @@ class UserPreferencesStore {
     _userIdCache = prefs.getString(_keyUserId) ?? '';
     _isLoggedInCache = prefs.getBool(_keyIsLoggedIn) ?? false;
     _hasCompletedOnboardingCache = prefs.getBool(_keyHasCompletedOnboarding) ?? false;
+    _lastActiveTabIndexCache = prefs.getInt(_keyLastActiveTabIndex) ?? 0;
 
     if (SupabaseService.instance.currentUser != null) {
       _isLoggedInCache = true;
@@ -126,8 +129,10 @@ class UserPreferencesStore {
 
   static Future<void> logout() async {
     _isLoggedInCache = false;
+    _lastActiveTabIndexCache = 0;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyIsLoggedIn, false);
+    await prefs.setInt(_keyLastActiveTabIndex, 0);
     await SupabaseService.instance.signOut();
   }
 
@@ -204,6 +209,16 @@ class UserPreferencesStore {
     _isLeaderCache = prefs.getBool(_keyIsLeader) ?? false;
     _companyCodeCache = prefs.getString(_keyCompanyCode) ?? '';
     _teamCodeCache = prefs.getString(_keyTeamCode) ?? '';
+    _lastActiveTabIndexCache = prefs.getInt(_keyLastActiveTabIndex) ?? 0;
+  }
+
+  // ── Last Active Tab (Scenario 4) ────────────────────────────────────────────
+  static int getLastActiveTabIndex() => _lastActiveTabIndexCache;
+
+  static Future<void> setLastActiveTabIndex(int index) async {
+    _lastActiveTabIndexCache = index;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyLastActiveTabIndex, index);
   }
 
   static Future<void> setUserName(String val) async {

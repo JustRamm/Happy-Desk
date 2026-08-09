@@ -1748,9 +1748,80 @@ class __MochiListeningIndicatorState extends State<_MochiListeningIndicator>
   Timer? _dotsTimer;
   int _dotCount = 1;
 
+  // ── Phrase sets by tone ────────────────────────────────────────────────────
+  static const List<String> _genZPhrases = [
+    'no cap, mochi is on it',
+    'bestie mode activated',
+    'processing your feels rn',
+    'not gonna ghost you',
+    'lowkey working on this',
+    'mochi said bet',
+    'cooking something up fr',
+    'brain not braining yet',
+    'okay okay okay',
+    'slay, mochi is thinking',
+  ];
+
+  static const List<String> _playfulPhrases = [
+    'Mochi is buffering',
+    'Loading wisdom',
+    'Consulting the vibes',
+    'Brain.exe is running',
+    'Almost cooked',
+    'Warming up the good thoughts',
+    'Mochi is caffeinating',
+    'Thinking really hard (ow)',
+    'Ideas incoming',
+    'Plot twist incoming',
+  ];
+
+  static const List<String> _warmPhrases = [
+    'Mochi is listening',
+    'Taking a breath with you',
+    'Holding space for you',
+    'Let me sit with that',
+    'Finding the right words',
+    'Here with you',
+    'Reflecting on what you shared',
+    'One moment, you matter',
+    'Thinking it through',
+    'Almost there',
+  ];
+
+  late List<String> _phrases;
+  int _phraseIndex = 0;
+
+  /// Picks a phrase list based on the user's saved communication preference,
+  /// then shuffles it so order feels fresh every session.
+  List<String> _buildPhraseList() {
+    final pref = UserPreferencesStore.getUserCommunicationPreference()
+        .toLowerCase();
+    List<String> base;
+    if (pref.contains('gen z') ||
+        pref.contains('genz') ||
+        pref.contains('casual') ||
+        pref.contains('chill') ||
+        pref.contains('informal')) {
+      base = List<String>.from(_genZPhrases);
+    } else if (pref.contains('playful') ||
+        pref.contains('funny') ||
+        pref.contains('witty') ||
+        pref.contains('humour') ||
+        pref.contains('humor') ||
+        pref.contains('fun')) {
+      base = List<String>.from(_playfulPhrases);
+    } else {
+      base = List<String>.from(_warmPhrases);
+    }
+    base.shuffle();
+    return base;
+  }
+
   @override
   void initState() {
     super.initState();
+    _phrases = _buildPhraseList();
+
     _bounceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -1766,7 +1837,9 @@ class __MochiListeningIndicatorState extends State<_MochiListeningIndicator>
         if (_dotCount < 4) {
           _dotCount++;
         } else {
-          _dotCount = 2; // Cycle back: 1 -> 2 -> 3 -> 4 -> 2 -> 3 -> 4...
+          // Dot cycle completed — advance to the next phrase
+          _dotCount = 2;
+          _phraseIndex = (_phraseIndex + 1) % _phrases.length;
         }
       });
     });
@@ -1782,6 +1855,7 @@ class __MochiListeningIndicatorState extends State<_MochiListeningIndicator>
   @override
   Widget build(BuildContext context) {
     final dots = '.' * _dotCount;
+    final phrase = _phrases[_phraseIndex];
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -1807,7 +1881,7 @@ class __MochiListeningIndicatorState extends State<_MochiListeningIndicator>
             ),
             const SizedBox(width: 10),
             Text(
-              'Mochi is listening$dots',
+              '$phrase$dots',
               style: GoogleFonts.beVietnamPro(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,

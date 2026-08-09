@@ -17,14 +17,23 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
   bool _isLoading = true;
   bool _showSplashWidget = true;
 
+  /// True only for genuine first-timers: no prior onboarding AND not logged in.
+  /// Avoids building OnboardingScreen for returning/signed-in users (Scenario 12).
+  bool get _isFirstTimeUser =>
+      !UserPreferencesStore.hasCompletedOnboarding() &&
+      !UserPreferencesStore.isLoggedIn();
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Precache all assets during splash animation so OnboardingScreen is 100% pre-loaded!
-    precacheImage(const AssetImage('assets/images/onboarding.png'), context);
-    precacheImage(const AssetImage('assets/images/onboarding_page_2.png'), context);
-    precacheImage(const AssetImage('assets/images/onboarding_page_3.png'), context);
-    vg.loadPicture(const SvgAssetLoader('assets/brand/U&ME.svg'), null);
+    // Only precache onboarding assets if the user will actually see onboarding.
+    // Skip for returning users and signed-in users to avoid wasted I/O.
+    if (_isFirstTimeUser) {
+      precacheImage(const AssetImage('assets/images/onboarding.png'), context);
+      precacheImage(const AssetImage('assets/images/onboarding_page_2.png'), context);
+      precacheImage(const AssetImage('assets/images/onboarding_page_3.png'), context);
+      vg.loadPicture(const SvgAssetLoader('assets/brand/U&ME.svg'), null);
+    }
   }
 
   void _finishLoading() {
@@ -32,14 +41,14 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
       setState(() {
         _isLoading = false;
       });
-      // After fade-out animation completes (400ms), route based on 4 user session scenarios
+      // After fade-out animation completes (400ms), route based on user session state
       Future.delayed(const Duration(milliseconds: 400), () {
         if (!mounted) return;
         setState(() {
           _showSplashWidget = false;
         });
 
-        // Scenario 4: Signed in -> Route Splash Screen -> Home (MainNavigationScreen)
+        // Scenario 3: Signed in → Route directly to HomeScreen (last active tab)
         if (UserPreferencesStore.isLoggedIn()) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
@@ -47,7 +56,7 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
             ),
           );
         }
-        // Scenario 3: Logged out previously & closed app -> Route Splash Screen -> Signin (AuthScreen)
+        // Scenario 2: Returning logged-out user → Route directly to AuthScreen
         else if (UserPreferencesStore.hasCompletedOnboarding()) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
@@ -55,7 +64,8 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
             ),
           );
         }
-        // Scenario 1: First time install -> Show Splash Screen -> Onboarding Screen
+        // Scenario 1 / 12: First-time user (or onboarding interrupted) → show Onboarding
+        // No navigation needed — OnboardingScreen is already rendered below the splash.
       });
     }
   }
@@ -74,10 +84,15 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // 1. Fully Pre-Loaded Onboarding Screen with stationary Header, Button, and Slider
-          OnboardingScreen(
-            onNavigateToAuth: (isLogin) => _navigateToAuth(isLogin: isLogin),
-          ),
+          // 1. Pre-loaded Onboarding Screen (only for first-time users — Scenario 12)
+          //    Returning or signed-in users get an invisible placeholder to avoid
+          //    unnecessary widget tree builds during the splash animation.
+          if (_isFirstTimeUser)
+            OnboardingScreen(
+              onNavigateToAuth: (isLogin) => _navigateToAuth(isLogin: isLogin),
+            )
+          else
+            const SizedBox.shrink(),
 
           // 2. Splash Loading Screen Overlay (fades out seamlessly upon completion)
           if (_showSplashWidget)
@@ -93,3 +108,4 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
     );
   }
 }
+

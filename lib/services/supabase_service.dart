@@ -1356,8 +1356,13 @@ class SupabaseService {
     return channel;
   }
 
-  // Sign out
+  // Sign out (global scope: invalidates all concurrent sessions on other devices)
   Future<void> signOut() async {
-    await client.auth.signOut();
+    try {
+      await client.auth.signOut(scope: SignOutScope.global);
+    } catch (_) {
+      // Fallback: local sign-out if global scope is unavailable
+      await client.auth.signOut();
+    }
   }
 }
