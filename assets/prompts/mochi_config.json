@@ -3,7 +3,7 @@
   "model": "gemini-flash-latest",
   "generation": {
     "temperature": 0.78,
-    "maxOutputTokens": 600
+    "maxOutputTokens": 1024
   },
   "moodTags": [
     "work",

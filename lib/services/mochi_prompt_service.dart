@@ -383,12 +383,33 @@ Field instructions:
       visibleLines.add(line);
     }
 
+    final rawVisible = visibleLines.join('\n').trim();
+    final cleanVisible = ensureCompleteSentence(rawVisible);
+
     return MochiParsedReply(
-      visibleText: visibleLines.join('\n').trim(),
+      visibleText: cleanVisible,
       moodLog: moodLog,
       extractedNickname: extractedNickname,
       nicknameDeclined: nicknameDeclined,
     );
+  }
+
+  /// Safety post-processor guaranteeing Mochi never displays cut-off, incomplete sentences.
+  String ensureCompleteSentence(String rawText) {
+    final trimmed = rawText.trim();
+    if (trimmed.isEmpty) return trimmed;
+
+    final validTerminators = RegExp(r'[.!?!\)"\}\]\u201D\u2019]$');
+    if (validTerminators.hasMatch(trimmed)) {
+      return trimmed;
+    }
+
+    final lastPunctuationIndex = trimmed.lastIndexOf(RegExp(r'[.!?]'));
+    if (lastPunctuationIndex != -1 && lastPunctuationIndex > 8) {
+      return trimmed.substring(0, lastPunctuationIndex + 1).trim();
+    }
+
+    return '$trimmed.';
   }
 }
 
@@ -440,7 +461,7 @@ class MochiConfig {
       version: json['version'] as String? ?? '1.0',
       model: json['model'] as String? ?? 'gemini-flash-latest',
       temperature: (generation['temperature'] as num?)?.toDouble() ?? 0.7,
-      maxOutputTokens: generation['maxOutputTokens'] as int? ?? 300,
+      maxOutputTokens: generation['maxOutputTokens'] as int? ?? 1024,
       moodTags: List<String>.from(json['moodTags'] as List? ?? []),
       exercises: List<String>.from(json['exercises'] as List? ?? []),
       offTopicKeywords: List<String>.from(
