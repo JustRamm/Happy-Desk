@@ -1,0 +1,52 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mochiBody" x1="40" y1="40" x2="200" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="85%" stop-color="#FFF3EF" />
+      <stop offset="100%" stop-color="#FFDBD0" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="120" y1="8" x2="120" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="mochiShadow" x="15" y="175" width="210" height="55" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+
+  <!-- Ambient Shadow -->
+  <ellipse cx="120" cy="202" rx="76" ry="15" fill="#AB3500" fill-opacity="0.16" filter="url(#mochiShadow)" />
+
+  <!-- Soft Fluffy Lavender Pillow -->
+  <rect x="30" y="175" width="180" height="28" rx="14" fill="#DDD6FE" stroke="#7C3AED" stroke-width="3.5"/>
+
+  <!-- Main Mochi Body Sleeping -->
+  <path d="M34 148C24 93 56 48 120 48C184 48 216 93 206 148C198 188 166 204 120 204C74 204 42 188 34 148Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Hands Tucked In Sleeping -->
+  <path d="M70 162C60 152 70 142 80 155Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4" stroke-linecap="round"/>
+  <path d="M170 162C180 152 170 142 160 155Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Soft Rosy Pastel Cheeks -->
+  <ellipse cx="70" cy="140" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+  <ellipse cx="170" cy="140" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+
+  <!-- Peaceful Sleeping Closed Eyes - - -->
+  <path d="M72 122H92" stroke="#4C1D95" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M148 122H168" stroke="#4C1D95" stroke-width="4.5" stroke-linecap="round"/>
+
+  <!-- Tiny Cute Snorly Bubble Mouth -->
+  <circle cx="120" cy="136" r="3.5" fill="#4C1D95"/>
+  <!-- Sleep Bubble -->
+  <circle cx="126" cy="130" r="7" fill="#93C5FD" fill-opacity="0.7" stroke="#3B82F6" stroke-width="1.5"/>
+
+  <!-- Floating Zzz 💤 -->
+  <text x="175" y="65" font-family="sans-serif" font-weight="900" font-size="22" fill="#8B5CF6">Z</text>
+  <text x="192" y="48" font-family="sans-serif" font-weight="900" font-size="16" fill="#A78BFA">z</text>
+  <text x="204" y="35" font-family="sans-serif" font-weight="900" font-size="12" fill="#C4B5FD">z</text>
+
+  <!-- Serene Sprout Leaf Resting -->
+  <path d="M120 48C120 26 102 10 82 17C82 36 100 48 120 48Z" fill="url(#leafGrad)" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48C120 26 138 10 158 17C158 36 140 48 120 48Z" fill="#6EE7B7" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48V32" stroke="#047857" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,53 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mochiBody" x1="40" y1="40" x2="200" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="85%" stop-color="#FFF3EF" />
+      <stop offset="100%" stop-color="#FFDBD0" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="120" y1="8" x2="120" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="mochiShadow" x="15" y="175" width="210" height="55" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+
+  <!-- Ambient Shadow -->
+  <ellipse cx="120" cy="202" rx="76" ry="15" fill="#AB3500" fill-opacity="0.16" filter="url(#mochiShadow)" />
+
+  <!-- Hands Wiping Face -->
+  <path d="M60 152C50 142 62 132 72 145Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M180 152C190 142 178 132 168 145Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Main Mochi Body -->
+  <path d="M34 148C24 93 56 48 120 48C184 48 216 93 206 148C198 188 166 204 120 204C74 204 42 188 34 148Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Rosy Pastel Cheeks -->
+  <ellipse cx="72" cy="140" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+  <ellipse cx="168" cy="140" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+
+  <!-- Big Sparkling Glistening Crying Eyes -->
+  <!-- Left Eye -->
+  <ellipse cx="84" cy="116" rx="11" ry="13" fill="#4C1D95" />
+  <circle cx="82" cy="110" r="5" fill="white" />
+  <circle cx="88" cy="120" r="2.5" fill="white" />
+
+  <!-- Right Eye -->
+  <ellipse cx="156" cy="116" rx="11" ry="13" fill="#4C1D95" />
+  <circle cx="154" cy="110" r="5" fill="white" />
+  <circle cx="160" cy="120" r="2.5" fill="white" />
+
+  <!-- Flowing Glistening Teardrops -->
+  <path d="M78 126C78 145 70 165 74 175C78 165 84 145 84 126Z" fill="#60A5FA" opacity="0.9"/>
+  <path d="M162 126C162 145 170 165 166 175C162 165 156 145 156 126Z" fill="#60A5FA" opacity="0.9"/>
+
+  <!-- Trembling Pouting Mouth -->
+  <path d="M110 138Q120 132 130 138" stroke="#4C1D95" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+  <!-- Serene Sprout Leaf Drooping Slightly -->
+  <path d="M120 48C120 26 102 10 82 17C82 36 100 48 120 48Z" fill="url(#leafGrad)" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48C120 26 138 10 158 17C158 36 140 48 120 48Z" fill="#6EE7B7" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48V32" stroke="#047857" stroke-width="3" stroke-linecap="round"/>
+</svg>

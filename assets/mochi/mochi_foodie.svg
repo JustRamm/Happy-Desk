@@ -1,0 +1,58 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mochiBody" x1="40" y1="40" x2="200" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="85%" stop-color="#FFF3EF" />
+      <stop offset="100%" stop-color="#FFDBD0" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="120" y1="8" x2="120" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="mochiShadow" x="15" y="175" width="210" height="55" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+
+  <!-- Ambient Shadow -->
+  <ellipse cx="120" cy="202" rx="76" ry="15" fill="#AB3500" fill-opacity="0.16" filter="url(#mochiShadow)" />
+
+  <!-- Main Mochi Body -->
+  <path d="M34 148C24 93 56 48 120 48C184 48 216 93 206 148C198 188 166 204 120 204C74 204 42 188 34 148Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Hands Holding Grilled Drumstick 🍗 -->
+  <path d="M40 148C26 155 24 170 38 172Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round"/>
+  <!-- Drumstick Meat -->
+  <path d="M165 130C185 120 200 135 185 155C170 170 145 155 155 140Z" fill="#D97706" stroke="#92400E" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- Drumstick Bone -->
+  <path d="M150 150L135 162" stroke="#FEF3C7" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="132" cy="164" r="4" fill="#FEF3C7"/>
+  <circle cx="137" cy="167" r="4" fill="#FEF3C7"/>
+  <!-- Hand Holding Drumstick -->
+  <path d="M162 145C175 140 178 155 165 162Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4"/>
+
+  <!-- Rosy Pastel Cheeks -->
+  <ellipse cx="72" cy="138" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+  <ellipse cx="168" cy="138" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+
+  <!-- Yummy Excited Eyes -->
+  <ellipse cx="84" cy="114" rx="10" ry="12" fill="#4C1D95" />
+  <circle cx="87" cy="108" r="4.5" fill="white" />
+  <circle cx="81" cy="118" r="2" fill="white" />
+
+  <ellipse cx="152" cy="114" rx="10" ry="12" fill="#4C1D95" />
+  <circle cx="155" cy="108" r="4.5" fill="white" />
+  <circle cx="149" cy="118" r="2" fill="white" />
+
+  <!-- Drooling Open Mouth 🤤 -->
+  <path d="M106 132C106 150 134 150 134 132Z" fill="#9333EA" stroke="#4C1D95" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- Droop Drop -->
+  <path d="M130 144C134 150 130 155 128 152Z" fill="#60A5FA"/>
+
+  <!-- Cute Chef Hat 👨‍🍳 -->
+  <path d="M90 42C80 30 100 15 120 18C140 15 160 30 150 42Z" fill="white" stroke="#AB3500" stroke-width="3.5" stroke-linejoin="round"/>
+  <rect x="95" y="38" width="50" height="10" fill="white" stroke="#AB3500" stroke-width="3"/>
+
+  <!-- Serene Sprout Leaf Peeking Out -->
+  <path d="M120 48C120 26 102 10 82 17C82 36 100 48 120 48Z" fill="url(#leafGrad)" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

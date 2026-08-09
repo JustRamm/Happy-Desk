@@ -1,0 +1,51 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mochiBody" x1="40" y1="40" x2="200" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="85%" stop-color="#FFF3EF" />
+      <stop offset="100%" stop-color="#FFDBD0" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="120" y1="8" x2="120" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="mochiShadow" x="15" y="175" width="210" height="55" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+
+  <!-- Ambient Shadow -->
+  <ellipse cx="120" cy="202" rx="76" ry="15" fill="#AB3500" fill-opacity="0.16" filter="url(#mochiShadow)" />
+
+  <!-- Main Mochi Body -->
+  <path d="M34 148C24 93 56 48 120 48C184 48 216 93 206 148C198 188 166 204 120 204C74 204 42 188 34 148Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Hands Holding Coffee Mug -->
+  <path d="M85 158C75 148 85 138 95 150Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4" stroke-linecap="round"/>
+  <path d="M155 158C165 148 155 138 145 150Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Steaming Coffee Mug ☕ -->
+  <rect x="95" y="142" width="50" height="38" rx="8" fill="#FF6B35" stroke="#AB3500" stroke-width="3.5"/>
+  <!-- Mug Handle -->
+  <path d="M145 148C155 148 158 160 145 168" stroke="#AB3500" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+  <!-- Coffee Heart -->
+  <path d="M120 156C120 152 124 150 126 153C128 150 132 152 132 156C132 161 126 164 126 164C126 164 120 161 120 156Z" fill="white"/>
+
+  <!-- Rising Steam -->
+  <path d="M110 132Q115 125 110 118" stroke="#AB3500" stroke-width="2.5" stroke-linecap="round" opacity="0.6" fill="none"/>
+  <path d="M120 130Q125 122 120 115" stroke="#AB3500" stroke-width="2.5" stroke-linecap="round" opacity="0.6" fill="none"/>
+  <path d="M130 132Q135 125 130 118" stroke="#AB3500" stroke-width="2.5" stroke-linecap="round" opacity="0.6" fill="none"/>
+
+  <!-- Rosy Pastel Cheeks -->
+  <ellipse cx="72" cy="135" rx="15" ry="9" fill="#F472B6" fill-opacity="0.7" />
+  <ellipse cx="168" cy="135" rx="15" ry="9" fill="#F472B6" fill-opacity="0.7" />
+
+  <!-- Cozy Happy Eyes ^ ^ -->
+  <path d="M70 114C77 104 89 104 96 114" stroke="#4C1D95" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M144 114C151 104 163 104 170 114" stroke="#4C1D95" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Serene Sprout Leaf -->
+  <path d="M120 48C120 26 102 10 82 17C82 36 100 48 120 48Z" fill="url(#leafGrad)" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48C120 26 138 10 158 17C158 36 140 48 120 48Z" fill="#6EE7B7" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48V32" stroke="#047857" stroke-width="3" stroke-linecap="round"/>
+</svg>

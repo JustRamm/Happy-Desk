@@ -1,0 +1,42 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mochiBody" x1="20" y1="80" x2="220" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="85%" stop-color="#FFF3EF" />
+      <stop offset="100%" stop-color="#FFDBD0" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="120" y1="58" x2="120" y2="92" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="mochiShadow" x="10" y="180" width="220" height="50" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+
+  <!-- Wide Ambient Shadow for Puddle -->
+  <ellipse cx="120" cy="205" rx="90" ry="14" fill="#AB3500" fill-opacity="0.16" filter="url(#mochiShadow)" />
+
+  <!-- Squishy Melted Puddle Mochi Body -->
+  <path d="M22 165C12 130 50 95 120 95C190 95 228 130 218 165C210 195 175 206 120 206C65 206 30 195 22 165Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Melted Side Drips -->
+  <path d="M38 185C28 190 35 200 48 196Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4" stroke-linecap="round"/>
+  <path d="M202 185C212 190 205 200 192 196Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Rosy Pastel Cheeks -->
+  <ellipse cx="68" cy="155" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+  <ellipse cx="172" cy="155" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+
+  <!-- Blissful Melting Eyes u u -->
+  <path d="M68 135C75 145 87 145 94 135" stroke="#4C1D95" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M146 135C153 145 165 145 172 135" stroke="#4C1D95" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Cute Soft Smile -->
+  <path d="M110 152Q120 160 130 152" stroke="#4C1D95" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+  <!-- Serene Sprout Leaf sitting on squishy top -->
+  <path d="M120 95C120 73 102 57 82 64C82 83 100 95 120 95Z" fill="url(#leafGrad)" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 95C120 73 138 57 158 64C158 83 140 95 120 95Z" fill="#6EE7B7" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 95V79" stroke="#047857" stroke-width="3" stroke-linecap="round"/>
+</svg>

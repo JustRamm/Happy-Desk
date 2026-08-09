@@ -1,0 +1,58 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mochiBody" x1="40" y1="40" x2="200" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="85%" stop-color="#FFF3EF" />
+      <stop offset="100%" stop-color="#FFDBD0" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="120" y1="8" x2="120" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="crownGrad" x1="120" y1="20" x2="120" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FDE047" />
+      <stop offset="100%" stop-color="#EAB308" />
+    </linearGradient>
+    <filter id="mochiShadow" x="15" y="175" width="210" height="55" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+
+  <!-- Ambient Shadow -->
+  <ellipse cx="120" cy="202" rx="76" ry="15" fill="#AB3500" fill-opacity="0.16" filter="url(#mochiShadow)" />
+
+  <!-- Natural Side Hand Nubs -->
+  <path d="M40 148C26 155 24 170 38 172Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M200 148C214 155 216 170 202 172Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Main Mochi Body -->
+  <path d="M34 148C24 93 56 48 120 48C184 48 216 93 206 148C198 188 166 204 120 204C74 204 42 188 34 148Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Rosy Pastel Cheeks -->
+  <ellipse cx="72" cy="140" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+  <ellipse cx="168" cy="140" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+
+  <!-- Proud Royal Eyes ^ ^ -->
+  <path d="M70 118C77 108 89 108 96 118" stroke="#4C1D95" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M144 118C151 108 163 108 170 118" stroke="#4C1D95" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Happy Smile -->
+  <path d="M106 134C106 148 134 148 134 134Z" fill="#9333EA" stroke="#4C1D95" stroke-width="3.5" stroke-linejoin="round"/>
+
+  <!-- Serene Sprout Leaf Behind Crown -->
+  <path d="M120 48C120 26 102 10 82 17C82 36 100 48 120 48Z" fill="url(#leafGrad)" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48C120 26 138 10 158 17C158 36 140 48 120 48Z" fill="#6EE7B7" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Golden Crown 👑 -->
+  <path d="M85 54L95 28L120 44L145 28L155 54Z" fill="url(#crownGrad)" stroke="#854D0E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Crown Base Band -->
+  <path d="M85 54H155V60H85Z" fill="#CA8A04" stroke="#854D0E" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Crown Jewels -->
+  <circle cx="95" cy="28" r="4" fill="#EF4444" stroke="#791E1E" stroke-width="1.5"/>
+  <circle cx="120" cy="44" r="5" fill="#3B82F6" stroke="#1E3A8A" stroke-width="1.5"/>
+  <circle cx="145" cy="28" r="4" fill="#EF4444" stroke="#791E1E" stroke-width="1.5"/>
+  <circle cx="120" cy="57" r="3" fill="#10B981"/>
+
+  <!-- Royalty Sparkles -->
+  <path d="M185 24L187 30L193 31L187 32L185 38L183 32L177 31L183 30L185 24Z" fill="#F59E0B"/>
+</svg>

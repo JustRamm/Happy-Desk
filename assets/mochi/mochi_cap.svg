@@ -1,0 +1,52 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mochiBody" x1="40" y1="40" x2="200" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="85%" stop-color="#FFF3EF" />
+      <stop offset="100%" stop-color="#FFDBD0" />
+    </linearGradient>
+    <linearGradient id="capGrad" x1="60" y1="20" x2="160" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+    <filter id="mochiShadow" x="15" y="175" width="210" height="55" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+
+  <!-- Ambient Shadow -->
+  <ellipse cx="120" cy="202" rx="76" ry="15" fill="#AB3500" fill-opacity="0.16" filter="url(#mochiShadow)" />
+
+  <!-- Natural Side Hand Nubs -->
+  <path d="M40 148C26 155 24 170 38 172Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M200 148C214 155 216 170 202 172Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Main Mochi Body -->
+  <path d="M34 148C24 93 56 48 120 48C184 48 216 93 206 148C198 188 166 204 120 204C74 204 42 188 34 148Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Rosy Pastel Cheeks -->
+  <ellipse cx="72" cy="140" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+  <ellipse cx="168" cy="140" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+
+  <!-- Side-Eye Gaze 👀 -->
+  <!-- Left Eye -->
+  <ellipse cx="80" cy="116" rx="10" ry="12" fill="#4C1D95" />
+  <circle cx="76" cy="112" r="4.5" fill="white" />
+  <circle cx="82" cy="120" r="2" fill="white" />
+
+  <!-- Right Eye -->
+  <ellipse cx="156" cy="116" rx="10" ry="12" fill="#4C1D95" />
+  <circle cx="152" cy="112" r="4.5" fill="white" />
+  <circle cx="158" cy="120" r="2" fill="white" />
+
+  <!-- Smirk Mouth -->
+  <path d="M110 138Q124 144 134 134" stroke="#4C1D95" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+  <!-- Cool Sideways Baseball Cap 🧢 -->
+  <!-- Cap Crown -->
+  <path d="M65 58C65 32 90 22 135 32C145 35 152 44 155 58Z" fill="url(#capGrad)" stroke="#1E3A8A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Cap Visor / Bill -->
+  <path d="M135 38C165 28 190 35 198 48C175 52 148 48 135 38Z" fill="#60A5FA" stroke="#1E3A8A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Cap Button -->
+  <circle cx="110" cy="27" r="4" fill="#FFFFFF" stroke="#1E3A8A" stroke-width="1.5"/>
+</svg>

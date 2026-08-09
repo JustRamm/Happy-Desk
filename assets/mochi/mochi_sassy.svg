@@ -1,0 +1,52 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mochiBody" x1="40" y1="40" x2="200" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="85%" stop-color="#FFF3EF" />
+      <stop offset="100%" stop-color="#FFDBD0" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="120" y1="8" x2="120" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="mochiShadow" x="15" y="175" width="210" height="55" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+
+  <!-- Ambient Shadow -->
+  <ellipse cx="120" cy="202" rx="76" ry="15" fill="#AB3500" fill-opacity="0.16" filter="url(#mochiShadow)" />
+
+  <!-- Sassy Hand Pose -->
+  <path d="M40 148C26 155 24 170 38 172Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M190 140C205 130 215 142 202 155Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Main Mochi Body -->
+  <path d="M34 148C24 93 56 48 120 48C184 48 216 93 206 148C198 188 166 204 120 204C74 204 42 188 34 148Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Rosy Pastel Cheeks -->
+  <ellipse cx="72" cy="140" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+  <ellipse cx="168" cy="140" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+
+  <!-- Cool Chic Heart Sunglasses 😎 -->
+  <!-- Left Heart Lens -->
+  <path d="M55 110C55 102 62 96 70 100C78 96 85 102 85 110C85 120 70 128 70 128C70 128 55 120 55 110Z" fill="#1F2937" stroke="#EC4899" stroke-width="3"/>
+  <!-- Right Heart Lens -->
+  <path d="M155 110C155 102 162 96 170 100C178 96 185 102 185 110C185 120 170 128 170 128C170 128 155 120 155 110Z" fill="#1F2937" stroke="#EC4899" stroke-width="3"/>
+  <!-- Sunglasses Bridge -->
+  <path d="M85 108H155" stroke="#EC4899" stroke-width="3"/>
+  <!-- Glare Highlights -->
+  <path d="M60 104L72 100" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  <path d="M160 104L172 100" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+
+  <!-- Confident Smirk -->
+  <path d="M106 138Q120 148 134 136" stroke="#4C1D95" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+  <!-- Serene Sprout Leaf -->
+  <path d="M120 48C120 26 102 10 82 17C82 36 100 48 120 48Z" fill="url(#leafGrad)" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48C120 26 138 10 158 17C158 36 140 48 120 48Z" fill="#6EE7B7" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48V32" stroke="#047857" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Sassy Polish Sparkles 💅 -->
+  <path d="M196 28L198 34L204 35L198 36L196 42L194 36L188 35L194 34L196 28Z" fill="#EC4899"/>
+</svg>

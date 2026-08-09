@@ -1,0 +1,50 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mochiBody" x1="40" y1="40" x2="200" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="85%" stop-color="#FFF3EF" />
+      <stop offset="100%" stop-color="#FFDBD0" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="120" y1="8" x2="120" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="mochiShadow" x="15" y="175" width="210" height="55" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+
+  <!-- Ambient Shadow -->
+  <ellipse cx="120" cy="202" rx="76" ry="15" fill="#AB3500" fill-opacity="0.16" filter="url(#mochiShadow)" />
+
+  <!-- Hands Holding Tummy Laughing -->
+  <path d="M75 162C65 152 75 142 85 155Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M165 162C175 152 165 142 155 155Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Main Mochi Body (Tilted/Squished Laughing Shape) -->
+  <path d="M34 148C24 93 56 48 120 48C184 48 216 93 206 148C198 188 166 204 120 204C74 204 42 188 34 148Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Rosy Pastel Cheeks -->
+  <ellipse cx="70" cy="138" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+  <ellipse cx="170" cy="138" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+
+  <!-- 'xD' Laughing Eyes > < -->
+  <path d="M72 110L90 122M72 122L90 110" stroke="#4C1D95" stroke-width="5" stroke-linecap="round"/>
+  <path d="M150 110L168 122M150 122L168 110" stroke="#4C1D95" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Tears of Joy Shooting Out -->
+  <path d="M60 112C52 105 48 115 54 122C60 128 66 118 60 112Z" fill="#3B82F6" opacity="0.85"/>
+  <path d="M180 112C188 105 192 115 186 122C180 128 174 118 180 112Z" fill="#3B82F6" opacity="0.85"/>
+
+  <!-- Wide Open Laughing Mouth :D -->
+  <path d="M100 134C100 158 140 158 140 134Z" fill="#9333EA" stroke="#4C1D95" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M110 148C116 142 124 142 130 148C124 154 116 154 110 148Z" fill="#F472B6"/>
+
+  <!-- Serene Sprout Leaf Tilted -->
+  <path d="M120 48C120 26 102 10 82 17C82 36 100 48 120 48Z" fill="url(#leafGrad)" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48C120 26 138 10 158 17C158 36 140 48 120 48Z" fill="#6EE7B7" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48V32" stroke="#047857" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Laughter Sparkles -->
+  <path d="M195 40L197 45L202 46L197 47L195 52L193 47L188 46L193 45L195 40Z" fill="#F472B6"/>
+</svg>

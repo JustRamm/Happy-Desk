@@ -1,0 +1,51 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mochiBody" x1="40" y1="40" x2="200" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="85%" stop-color="#FFF3EF" />
+      <stop offset="100%" stop-color="#FFDBD0" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="120" y1="8" x2="120" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="mochiShadow" x="15" y="175" width="210" height="55" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+
+  <!-- Ambient Shadow -->
+  <ellipse cx="120" cy="202" rx="76" ry="15" fill="#AB3500" fill-opacity="0.16" filter="url(#mochiShadow)" />
+
+  <!-- Hands on Cheeks Shocked 🫨 -->
+  <path d="M50 135C38 125 45 150 55 155Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M190 135C202 125 195 150 185 155Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round"/>
+
+  <!-- Main Mochi Body -->
+  <path d="M34 148C24 93 56 48 120 48C184 48 216 93 206 148C198 188 166 204 120 204C74 204 42 188 34 148Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Rosy Pastel Cheeks -->
+  <ellipse cx="68" cy="140" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+  <ellipse cx="172" cy="140" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+
+  <!-- Huge Wide Shook Eyes 🫨 O O -->
+  <ellipse cx="80" cy="112" rx="14" ry="16" fill="#4C1D95" />
+  <circle cx="78" cy="106" r="6" fill="white" />
+  <circle cx="85" cy="118" r="3" fill="white" />
+
+  <ellipse cx="160" cy="112" rx="14" ry="16" fill="#4C1D95" />
+  <circle cx="158" cy="106" r="6" fill="white" />
+  <circle cx="165" cy="118" r="3" fill="white" />
+
+  <!-- Huge Jaw Dropped Open Mouth O -->
+  <ellipse cx="120" cy="148" rx="12" ry="18" fill="#4C1D95" />
+
+  <!-- Shook Vibrating Motion Lines -->
+  <path d="M18 100L10 95M18 115L8 115M18 130L10 135" stroke="#F59E0B" stroke-width="3" stroke-linecap="round"/>
+  <path d="M222 100L230 95M222 115L232 115M222 130L230 135" stroke="#F59E0B" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Serene Sprout Leaf Standing Upstraight -->
+  <path d="M120 48C120 26 102 10 82 17C82 36 100 48 120 48Z" fill="url(#leafGrad)" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48C120 26 138 10 158 17C158 36 140 48 120 48Z" fill="#6EE7B7" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48V32" stroke="#047857" stroke-width="3" stroke-linecap="round"/>
+</svg>
