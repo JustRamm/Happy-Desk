@@ -5,6 +5,10 @@
       <stop offset="85%" stop-color="#FFF3EF" />
       <stop offset="100%" stop-color="#FFDBD0" />
     </linearGradient>
+    <linearGradient id="drumstickGrad" x1="40" y1="130" x2="90" y2="170" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
     <linearGradient id="leafGrad" x1="120" y1="8" x2="120" y2="52" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#34D399" />
       <stop offset="100%" stop-color="#059669" />
@@ -20,39 +24,49 @@
   <!-- Main Mochi Body -->
   <path d="M34 148C24 93 56 48 120 48C184 48 216 93 206 148C198 188 166 204 120 204C74 204 42 188 34 148Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- Hands Holding Grilled Drumstick 🍗 -->
-  <path d="M40 148C26 155 24 170 38 172Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5" stroke-linecap="round"/>
-  <!-- Drumstick Meat -->
-  <path d="M165 130C185 120 200 135 185 155C170 170 145 155 155 140Z" fill="#D97706" stroke="#92400E" stroke-width="3.5" stroke-linejoin="round"/>
-  <!-- Drumstick Bone -->
-  <path d="M150 150L135 162" stroke="#FEF3C7" stroke-width="6" stroke-linecap="round"/>
-  <circle cx="132" cy="164" r="4" fill="#FEF3C7"/>
-  <circle cx="137" cy="167" r="4" fill="#FEF3C7"/>
-  <!-- Hand Holding Drumstick -->
-  <path d="M162 145C175 140 178 155 165 162Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4"/>
+  <!-- Foodie Red Checkered Bib Napkin 🍗 -->
+  <path d="M70 145C85 160 120 165 120 165C120 165 155 160 170 145C160 135 120 138 120 138C120 138 80 135 70 145Z" fill="#EF4444" stroke="#991B1B" stroke-width="2.5"/>
+  <path d="M90 140L100 162M120 138L120 165M150 140L140 162" stroke="#FFFFFF" stroke-width="2" opacity="0.6"/>
+
+  <!-- Left Hand Holding Hot Grilled Alfaham Drumstick 🍗 -->
+  <path d="M40 140C26 148 24 165 38 168Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5"/>
+  <!-- Bone -->
+  <rect x="30" y="162" width="16" height="6" rx="3" fill="#FFFBEB" stroke="#78350F" stroke-width="2" transform="rotate(-30 30 162)"/>
+  <!-- Meat -->
+  <ellipse cx="50" cy="150" rx="16" ry="12" fill="url(#drumstickGrad)" stroke="#78350F" stroke-width="2.5" transform="rotate(-20 50 150)"/>
+
+  <!-- Right Hand Holding Fork with Meatball/Bite 🍴 -->
+  <path d="M190 138C208 128 218 148 200 165Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4.5"/>
+  <!-- Fork -->
+  <path d="M195 130V155M191 130V140M199 130V140" stroke="#64748B" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Food Bite on Fork -->
+  <circle cx="195" cy="126" r="7" fill="#EF4444" stroke="#991B1B" stroke-width="2"/>
 
   <!-- Rosy Pastel Cheeks -->
-  <ellipse cx="72" cy="138" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
-  <ellipse cx="168" cy="138" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+  <ellipse cx="70" cy="138" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+  <ellipse cx="170" cy="138" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
 
-  <!-- Yummy Excited Eyes -->
-  <ellipse cx="84" cy="114" rx="10" ry="12" fill="#4C1D95" />
-  <circle cx="87" cy="108" r="4.5" fill="white" />
-  <circle cx="81" cy="118" r="2" fill="white" />
+  <!-- Giant Heart Eyes 😍 (Food Cravings!) -->
+  <path d="M70 110C70 102 77 96 85 100C93 96 100 102 100 110C100 120 85 128 85 128C85 128 70 120 70 110Z" fill="#EF4444" stroke="#991B1B" stroke-width="2"/>
+  <path d="M140 110C140 102 147 96 155 100C163 96 170 102 170 110C170 120 155 128 155 128C155 128 140 120 140 110Z" fill="#EF4444" stroke="#991B1B" stroke-width="2"/>
+  <circle cx="78" cy="104" r="3" fill="white" opacity="0.8"/>
+  <circle cx="148" cy="104" r="3" fill="white" opacity="0.8"/>
 
-  <ellipse cx="152" cy="114" rx="10" ry="12" fill="#4C1D95" />
-  <circle cx="155" cy="108" r="4.5" fill="white" />
-  <circle cx="149" cy="118" r="2" fill="white" />
+  <!-- Open Drooling Mouth 🤤 -->
+  <path d="M104 130C104 150 136 150 136 130Z" fill="#9333EA" stroke="#4C1D95" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M110 142C116 136 124 136 130 142Z" fill="#F472B6"/>
+  <!-- Glistening Drool Drop 🤤 -->
+  <path d="M132 144C130 154 138 156 135 146Z" fill="#60A5FA" opacity="0.9"/>
 
-  <!-- Drooling Open Mouth 🤤 -->
-  <path d="M106 132C106 150 134 150 134 132Z" fill="#9333EA" stroke="#4C1D95" stroke-width="3.5" stroke-linejoin="round"/>
-  <!-- Droop Drop -->
-  <path d="M130 144C134 150 130 155 128 152Z" fill="#60A5FA"/>
+  <!-- Tall White Chef Toque Hat 👨‍🍳 -->
+  <path d="M75 50C65 30 85 10 120 10C155 10 175 30 165 50Z" fill="#FFFFFF" stroke="#475569" stroke-width="4" stroke-linejoin="round"/>
+  <rect x="80" y="44" width="80" height="12" rx="3" fill="#F1F5F9" stroke="#475569" stroke-width="3"/>
 
-  <!-- Cute Chef Hat 👨‍🍳 -->
-  <path d="M90 42C80 30 100 15 120 18C140 15 160 30 150 42Z" fill="white" stroke="#AB3500" stroke-width="3.5" stroke-linejoin="round"/>
-  <rect x="95" y="38" width="50" height="10" fill="white" stroke="#AB3500" stroke-width="3"/>
+  <!-- Delicious Hot Food Aroma Steam ♨️ -->
+  <path d="M30 130Q35 120 30 110" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round" opacity="0.7" fill="none"/>
+  <path d="M45 125Q50 115 45 105" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round" opacity="0.7" fill="none"/>
 
-  <!-- Serene Sprout Leaf Peeking Out -->
+  <!-- Serene Sprout Leaf -->
   <path d="M120 48C120 26 102 10 82 17C82 36 100 48 120 48Z" fill="url(#leafGrad)" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 48C120 26 138 10 158 17C158 36 140 48 120 48Z" fill="#6EE7B7" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

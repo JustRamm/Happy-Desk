@@ -5,6 +5,14 @@
       <stop offset="85%" stop-color="#FFF3EF" />
       <stop offset="100%" stop-color="#FFDBD0" />
     </linearGradient>
+    <linearGradient id="blanketGrad" x1="40" y1="140" x2="200" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A78BFA" />
+      <stop offset="100%" stop-color="#7C3AED" />
+    </linearGradient>
+    <linearGradient id="pillowGrad" x1="30" y1="160" x2="210" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EFF6FF" />
+      <stop offset="100%" stop-color="#DBEAFE" />
+    </linearGradient>
     <linearGradient id="leafGrad" x1="120" y1="8" x2="120" y2="52" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#34D399" />
       <stop offset="100%" stop-color="#059669" />
@@ -17,36 +25,46 @@
   <!-- Ambient Shadow -->
   <ellipse cx="120" cy="202" rx="76" ry="15" fill="#AB3500" fill-opacity="0.16" filter="url(#mochiShadow)" />
 
-  <!-- Soft Fluffy Lavender Pillow -->
-  <rect x="30" y="175" width="180" height="28" rx="14" fill="#DDD6FE" stroke="#7C3AED" stroke-width="3.5"/>
+  <!-- Soft Fluffy Cushion Pillow Beneath -->
+  <rect x="25" y="165" width="190" height="38" rx="19" fill="url(#pillowGrad)" stroke="#93C5FD" stroke-width="3.5"/>
 
-  <!-- Main Mochi Body Sleeping -->
+  <!-- Main Mochi Body (Sleeping Tucked In) -->
   <path d="M34 148C24 93 56 48 120 48C184 48 216 93 206 148C198 188 166 204 120 204C74 204 42 188 34 148Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- Hands Tucked In Sleeping -->
-  <path d="M70 162C60 152 70 142 80 155Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4" stroke-linecap="round"/>
-  <path d="M170 162C180 152 170 142 160 155Z" fill="url(#mochiBody)" stroke="#AB3500" stroke-width="4" stroke-linecap="round"/>
+  <!-- Warm Purple Blanket Tucked Up to Cheeks 😴 -->
+  <path d="M32 145C32 145 60 135 120 135C180 135 208 145 208 145C208 185 175 202 120 202C65 202 32 185 32 145Z" fill="url(#blanketGrad)" stroke="#5B21B6" stroke-width="4.5" stroke-linejoin="round"/>
+  <!-- Blanket Fold Line & Star Pattern -->
+  <path d="M34 145Q120 138 206 145" stroke="#DDD6FE" stroke-width="3"/>
+  <circle cx="80" cy="170" r="3" fill="#FDE68A" opacity="0.8"/>
+  <circle cx="160" cy="175" r="4" fill="#FDE68A" opacity="0.8"/>
+  <circle cx="120" cy="180" r="2.5" fill="#FDE68A" opacity="0.8"/>
 
-  <!-- Soft Rosy Pastel Cheeks -->
-  <ellipse cx="70" cy="140" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
-  <ellipse cx="170" cy="140" rx="16" ry="10" fill="#F472B6" fill-opacity="0.7" />
+  <!-- Rosy Pastel Sleeping Cheeks -->
+  <ellipse cx="70" cy="128" rx="15" ry="9" fill="#F472B6" fill-opacity="0.7" />
+  <ellipse cx="170" cy="128" rx="15" ry="9" fill="#F472B6" fill-opacity="0.7" />
 
-  <!-- Peaceful Sleeping Closed Eyes - - -->
-  <path d="M72 122H92" stroke="#4C1D95" stroke-width="4.5" stroke-linecap="round"/>
-  <path d="M148 122H168" stroke="#4C1D95" stroke-width="4.5" stroke-linecap="round"/>
+  <!-- Ultra-Peaceful Closed Sleeping Eyes u u -->
+  <path d="M68 112C75 120 87 120 94 112" stroke="#4C1D95" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M146 112C153 120 165 120 172 112" stroke="#4C1D95" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- Tiny Cute Snorly Bubble Mouth -->
-  <circle cx="120" cy="136" r="3.5" fill="#4C1D95"/>
-  <!-- Sleep Bubble -->
-  <circle cx="126" cy="130" r="7" fill="#93C5FD" fill-opacity="0.7" stroke="#3B82F6" stroke-width="1.5"/>
+  <!-- Tiny Cute Sleeping Mouth -->
+  <ellipse cx="120" cy="125" rx="4" ry="5" fill="#4C1D95"/>
+
+  <!-- Classic Anime Sleeping Snot Bubble 🫧 (Iconic Sleep Symbol!) -->
+  <circle cx="132" cy="116" r="14" fill="#60A5FA" fill-opacity="0.4" stroke="#93C5FD" stroke-width="2"/>
+  <circle cx="128" cy="112" r="4" fill="white" fill-opacity="0.8"/>
+
+  <!-- Cute Drooping Nightcap 💤 -->
+  <path d="M65 65C65 42 90 28 135 38C150 42 165 55 178 75C170 78 152 70 135 52C110 48 78 54 65 65Z" fill="#7C3AED" stroke="#4C1D95" stroke-width="4" stroke-linejoin="round"/>
+  <!-- Nightcap Tip Star Pom-pom -->
+  <circle cx="178" cy="75" r="7" fill="#FDE68A" stroke="#CA8A04" stroke-width="2"/>
 
   <!-- Floating Zzz 💤 -->
-  <text x="175" y="65" font-family="sans-serif" font-weight="900" font-size="22" fill="#8B5CF6">Z</text>
-  <text x="192" y="48" font-family="sans-serif" font-weight="900" font-size="16" fill="#A78BFA">z</text>
-  <text x="204" y="35" font-family="sans-serif" font-weight="900" font-size="12" fill="#C4B5FD">z</text>
+  <text x="180" y="45" font-family="sans-serif" font-weight="900" font-size="22" fill="#8B5CF6">Z</text>
+  <text x="198" y="30" font-family="sans-serif" font-weight="900" font-size="16" fill="#A78BFA">z</text>
+  <text x="210" y="20" font-family="sans-serif" font-weight="900" font-size="12" fill="#C4B5FD">z</text>
 
-  <!-- Serene Sprout Leaf Resting -->
+  <!-- Serene Sprout Leaf -->
   <path d="M120 48C120 26 102 10 82 17C82 36 100 48 120 48Z" fill="url(#leafGrad)" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M120 48C120 26 138 10 158 17C158 36 140 48 120 48Z" fill="#6EE7B7" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M120 48V32" stroke="#047857" stroke-width="3" stroke-linecap="round"/>
 </svg>

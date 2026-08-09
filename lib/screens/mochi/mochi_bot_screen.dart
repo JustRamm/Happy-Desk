@@ -2169,13 +2169,30 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            message.text,
+            message.text.replaceAll('[OREO_CAT]', '').trim(),
             style: GoogleFonts.beVietnamPro(
               fontSize: 13.5,
               height: 1.45,
               color: message.isUser ? Colors.white : const Color(0xFF171B2B),
             ),
           ),
+          if (!message.isUser && (message.text.contains('[OREO_CAT]') || message.text.toLowerCase().contains('oreo'))) ...[
+            const SizedBox(height: 10),
+            Container(
+              height: 120,
+              width: 120,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF0EB),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFFFDBD0)),
+              ),
+              child: SvgPicture.asset(
+                'assets/mochi/oreo_cat.svg',
+                fit: BoxFit.contain,
+              ),
+            ),
+          ],
           if (!message.isUser && message.actionType != null) ...[
             const SizedBox(height: 12),
             if (message.actionType == 'breathing')
