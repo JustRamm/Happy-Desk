@@ -861,6 +861,8 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 color: Color(0xFF95416C),
                 size: 18,
               ),
+            ),
+          ),
           PopupMenuButton<String>(
             icon: Container(
               padding: const EdgeInsets.all(6),
