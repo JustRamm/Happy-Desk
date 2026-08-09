@@ -2,7 +2,7 @@
 /// unexpected session terminations (JWT expiry, remote revocation, etc.).
 ///
 /// Set [markUserInitiatedSignOut] before calling logout() so the global
-/// auth listener in [HappyDeskApp] can suppress the "session ended" snackbar
+/// auth listener in [UAndMeApp] can suppress the "session ended" snackbar
 /// (Scenario 6).
 library sign_out_flag;
 

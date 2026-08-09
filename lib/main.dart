@@ -91,17 +91,17 @@ void main() async {
     return GlobalCrashScreen(errorDetails: details);
   };
 
-  runApp(const HappyDeskApp());
+  runApp(const UAndMeApp());
 }
 
-class HappyDeskApp extends StatefulWidget {
-  const HappyDeskApp({super.key});
+class UAndMeApp extends StatefulWidget {
+  const UAndMeApp({super.key});
 
   @override
-  State<HappyDeskApp> createState() => _HappyDeskAppState();
+  State<UAndMeApp> createState() => _UAndMeAppState();
 }
 
-class _HappyDeskAppState extends State<HappyDeskApp> {
+class _UAndMeAppState extends State<UAndMeApp> {
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   StreamSubscription<AuthState>? _authSubscription;
   bool _isOffline = false;
@@ -128,7 +128,7 @@ class _HappyDeskAppState extends State<HappyDeskApp> {
         _authSubscription = SupabaseService.instance.client.auth.onAuthStateChange.listen(
           (AuthState authState) async {
             final event = authState.event;
-            debugPrint('[HappyDeskApp] onAuthStateChange: $event');
+            debugPrint('[UAndMeApp] onAuthStateChange: $event');
 
             switch (event) {
               case AuthChangeEvent.signedOut:
@@ -158,11 +158,11 @@ class _HappyDeskAppState extends State<HappyDeskApp> {
             }
           },
           onError: (Object error) {
-            debugPrint('[HappyDeskApp] Auth stream error: $error');
+            debugPrint('[UAndMeApp] Auth stream error: $error');
           },
         );
       } catch (e) {
-        debugPrint('[HappyDeskApp] Could not subscribe to Auth state: $e');
+        debugPrint('[UAndMeApp] Could not subscribe to Auth state: $e');
       }
     }
   }

@@ -578,7 +578,7 @@ class SupabaseService {
         'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1',
       );
       final response = await http.get(url, headers: {
-        'User-Agent': 'HappyDeskApp/1.0.0 (contact@mindempowered.com)',
+        'User-Agent': 'UAndMeApp/1.0.0 (contact@mindempowered.com)',
       }).timeout(const Duration(seconds: 4));
 
       if (response.statusCode == 200) {
