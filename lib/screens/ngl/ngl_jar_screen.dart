@@ -72,13 +72,14 @@ class _NglJarScreenState extends State<NglJarScreen> {
       );
       return;
     }
+    final targetNote = Map<String, dynamic>.from(_myOpenedNotes.first);
     HapticFeedback.mediumImpact();
     SoundService.playJarOpenSound();
     showDialog(
       context: context,
       barrierDismissible: true,
       builder: (context) => _RolledPaperUnsealDialog(
-        note: _myOpenedNotes[0],
+        note: targetNote,
         onUnsealed: () {
           setState(() {
             _todayNoteUnsealed = true;
