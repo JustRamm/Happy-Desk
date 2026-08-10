@@ -471,24 +471,29 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
 
     final isEarlyCrisis = _promptService.isCrisisOrSelfHarmText(text);
 
-    try {
-      final results = await Future.wait([
-        _analyzeIntentWithGemini(text),
-        SupabaseService.instance.getNglJarMessages().catchError(
-          (_) => <Map<String, dynamic>>[],
-        ),
-        SupabaseService.instance.getWeeklyHeroNominations().catchError(
-          (_) => <Map<String, dynamic>>[],
-        ),
-      ]);
+    final isSimple = _isSimpleMessage(text);
+    if (isSimple) {
+      intentAnalysis = MochiIntentAnalysis.fallback(text);
+    } else {
+      try {
+        final results = await Future.wait([
+          _analyzeIntentWithGemini(text),
+          SupabaseService.instance.getNglJarMessages().catchError(
+            (_) => <Map<String, dynamic>>[],
+          ),
+          SupabaseService.instance.getWeeklyHeroNominations().catchError(
+            (_) => <Map<String, dynamic>>[],
+          ),
+        ]);
 
-      intentAnalysis = results[0] as MochiIntentAnalysis;
-      nglNotes = results[1] as List<Map<String, dynamic>>;
-      final allHero = results[2] as List<Map<String, dynamic>>;
-      final myName = UserPreferencesStore.getUserName();
-      myHeroNoms = allHero.where((n) => n['nominee_name'] == myName).toList();
-    } catch (e) {
-      debugPrint('Error in parallel pre-fetch: $e');
+        intentAnalysis = results[0] as MochiIntentAnalysis;
+        nglNotes = results[1] as List<Map<String, dynamic>>;
+        final allHero = results[2] as List<Map<String, dynamic>>;
+        final myName = UserPreferencesStore.getUserName();
+        myHeroNoms = allHero.where((n) => n['nominee_name'] == myName).toList();
+      } catch (e) {
+        debugPrint('Error in parallel pre-fetch: $e');
+      }
     }
 
     if (isEarlyCrisis) {
@@ -523,6 +528,8 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
         });
       }
     }
+
+    final String? sessionForThisRequest = _currentSessionId;
 
     try {
       final String reply = await _fetchGeminiResponse(
@@ -578,28 +585,31 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
           ? parsed.visibleText
           : reply;
 
-      // Save user & model turns to Supabase per-timestamp history
+      // Save user & model turns to Supabase per-timestamp history for target session
       SupabaseService.instance.saveMochiChatMessage(
         message: text,
         isUser: true,
-        sessionId: _currentSessionId,
+        sessionId: sessionForThisRequest,
       );
       SupabaseService.instance.saveMochiChatMessage(
         message: textToDisplay,
         isUser: false,
         actionType: determinedAction,
-        sessionId: _currentSessionId,
+        sessionId: sessionForThisRequest,
       );
 
       final chunks = _splitBotResponse(textToDisplay);
 
-      if (!mounted) return;
+      if (!mounted || _currentSessionId != sessionForThisRequest) {
+        if (mounted) setState(() => _isTyping = false);
+        return;
+      }
       setState(() {
         _isTyping = false;
       });
 
       for (int i = 0; i < chunks.length; i++) {
-        if (!mounted) return;
+        if (!mounted || _currentSessionId != sessionForThisRequest) return;
         setState(() {
           _messages.add(
             _ChatMessage(
@@ -613,12 +623,13 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
         _scrollToBottom();
         _saveMessages();
         if (i < chunks.length - 1) {
+          if (!mounted || _currentSessionId != sessionForThisRequest) return;
           setState(() {
             _isTyping = true;
           });
           _scrollToBottom();
           await Future.delayed(const Duration(seconds: 1));
-          if (!mounted) return;
+          if (!mounted || _currentSessionId != sessionForThisRequest) return;
           setState(() {
             _isTyping = false;
           });
@@ -1694,6 +1705,7 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
       _messages.clear();
       _currentSessionId = null;
       _sessionStartedAt = DateTime.now();
+      _isTyping = false;
     });
 
     // 6. Confirmation snackbar
@@ -2300,40 +2312,43 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
             Expanded(
               child: _messages.isEmpty
                   ? _buildGeminiStyleLandingView()
-                  : ListView.builder(
-                      controller: _scrollController,
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.only(
-                        left: 20,
-                        right: 20,
-                        top: 8,
-                        bottom: 16,
-                      ),
-                      itemCount: _messages.length + (_isTyping ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index < _messages.length) {
-                          final msg = _messages[index];
-                          // Render Mochi avatar ONLY on the last (latest) message of a bot group
-                          final bool isNextAlsoBot =
-                              (index + 1 < _messages.length) &&
-                              !_messages[index + 1].isUser;
-                          final bool showAvatar = !msg.isUser && !isNextAlsoBot;
+                  : CustomPaint(
+                      painter: _MochiDoodleWallpaperPainter(),
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.only(
+                          left: 20,
+                          right: 20,
+                          top: 8,
+                          bottom: 16,
+                        ),
+                        itemCount: _messages.length + (_isTyping ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (index < _messages.length) {
+                            final msg = _messages[index];
+                            // Render Mochi avatar ONLY on the last (latest) message of a bot group
+                            final bool isNextAlsoBot =
+                                (index + 1 < _messages.length) &&
+                                !_messages[index + 1].isUser;
+                            final bool showAvatar = !msg.isUser && !isNextAlsoBot;
 
-                          final bubble = _buildMessageBubble(
-                            msg,
-                            showAvatar: showAvatar,
-                          );
-                          if (msg.isNew) {
-                            return _AnimatedMessageBubble(
-                              message: msg,
-                              child: bubble,
+                            final bubble = _buildMessageBubble(
+                              msg,
+                              showAvatar: showAvatar,
                             );
+                            if (msg.isNew) {
+                              return _AnimatedMessageBubble(
+                                message: msg,
+                                child: bubble,
+                              );
+                            }
+                            return bubble;
+                          } else {
+                            return _buildTypingIndicator();
                           }
-                          return bubble;
-                        } else {
-                          return _buildTypingIndicator();
-                        }
-                      },
+                        },
+                      ),
                     ),
             ),
 
@@ -2444,21 +2459,193 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
   }
 
   Widget _buildMessageBubble(_ChatMessage message, {bool showAvatar = true}) {
+    final text = message.text.replaceAll('[OREO_CAT]', '').trim();
+    final bool hasExtras = (!message.isUser &&
+            (message.text.contains('[OREO_CAT]') ||
+                message.text.toLowerCase().contains('oreo'))) ||
+        (!message.isUser && message.actionType != null);
+    final bool isShortText =
+        !hasExtras && text.length <= 32 && !text.contains('\n');
+
+    final timestampWidget = Text(
+      message.time,
+      style: GoogleFonts.beVietnamPro(
+        fontSize: 10,
+        color: message.isUser
+            ? Colors.white.withValues(alpha: 0.78)
+            : const Color(0xFF8D7168),
+        fontWeight: FontWeight.w500,
+      ),
+    );
+
+    Widget messageContent;
+    if (isShortText) {
+      messageContent = Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Flexible(
+            child: Text(
+              text,
+              style: GoogleFonts.beVietnamPro(
+                fontSize: 13.5,
+                height: 1.35,
+                color: message.isUser ? Colors.white : const Color(0xFF171B2B),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 1),
+            child: timestampWidget,
+          ),
+        ],
+      );
+    } else {
+      messageContent = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            text,
+            style: GoogleFonts.beVietnamPro(
+              fontSize: 13.5,
+              height: 1.45,
+              color: message.isUser ? Colors.white : const Color(0xFF171B2B),
+            ),
+          ),
+          if (!message.isUser &&
+              (message.text.contains('[OREO_CAT]') ||
+                  message.text.toLowerCase().contains('oreo'))) ...[
+            const SizedBox(height: 10),
+            Container(
+              height: 120,
+              width: 120,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF0EB),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFFFDBD0)),
+              ),
+              child: SvgPicture.asset(
+                _selectOreoSvgForText(message.text),
+                fit: BoxFit.contain,
+              ),
+            ),
+          ],
+          if (!message.isUser && message.actionType != null) ...[
+            const SizedBox(height: 12),
+            if (message.actionType == 'breathing')
+              ElevatedButton.icon(
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  BoxBreathingModal.show(context);
+                },
+                icon: const Icon(Icons.self_improvement_rounded, size: 16),
+                label: Text(
+                  'Start 60s Breathing Reset',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFF0EB),
+                  foregroundColor: const Color(0xFFAB3500),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: Color(0xFFFFD6C7)),
+                  ),
+                ),
+              ),
+            if (message.actionType == 'stretches')
+              ElevatedButton.icon(
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  DeskStretchesModal.show(context);
+                },
+                icon: const Icon(Icons.fitness_center_rounded, size: 16),
+                label: Text(
+                  'Start 3-Min Desk Stretches',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF3F2FF),
+                  foregroundColor: const Color(0xFF95416C),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: Color(0xFFE4E7FE)),
+                  ),
+                ),
+              ),
+            if (message.actionType == 'cbt_reframe')
+              ElevatedButton.icon(
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  _handleSendMessage(
+                    'Can you help me examine the evidence for this thought and reframe it?',
+                  );
+                },
+                icon: const Icon(Icons.psychology_rounded, size: 16),
+                label: Text(
+                  'Examine Evidence & Reframe Thought',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEFF6FF),
+                  foregroundColor: const Color(0xFF1D4ED8),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: Color(0xFFBFDBFE)),
+                  ),
+                ),
+              ),
+          ],
+          const SizedBox(height: 3),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: timestampWidget,
+          ),
+        ],
+      );
+    }
+
     final bubble = IntrinsicWidth(
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 6),
         constraints: BoxConstraints(
-          minWidth: 48,
+          minWidth: 44,
           maxWidth: MediaQuery.of(context).size.width * 0.78,
         ),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: message.isUser ? const Color(0xFF95416C) : Colors.white,
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(22),
-            topRight: const Radius.circular(22),
-            bottomLeft: Radius.circular(message.isUser ? 22 : 4),
-            bottomRight: Radius.circular(message.isUser ? 4 : 22),
+            topLeft: const Radius.circular(18),
+            topRight: const Radius.circular(18),
+            bottomLeft: Radius.circular(message.isUser ? 18 : 4),
+            bottomRight: Radius.circular(message.isUser ? 4 : 18),
           ),
           border: message.isUser
               ? null
@@ -2466,149 +2653,12 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              message.text.replaceAll('[OREO_CAT]', '').trim(),
-              style: GoogleFonts.beVietnamPro(
-                fontSize: 13.5,
-                height: 1.45,
-                color: message.isUser ? Colors.white : const Color(0xFF171B2B),
-              ),
-            ),
-            if (!message.isUser &&
-                (message.text.contains('[OREO_CAT]') ||
-                    message.text.toLowerCase().contains('oreo'))) ...[
-              const SizedBox(height: 10),
-              Container(
-                height: 120,
-                width: 120,
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF0EB),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFFFDBD0)),
-                ),
-                child: SvgPicture.asset(
-                  _selectOreoSvgForText(message.text),
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ],
-            if (!message.isUser && message.actionType != null) ...[
-              const SizedBox(height: 12),
-              if (message.actionType == 'breathing')
-                ElevatedButton.icon(
-                  onPressed: () {
-                    HapticFeedback.selectionClick();
-                    BoxBreathingModal.show(context);
-                  },
-                  icon: const Icon(Icons.self_improvement_rounded, size: 16),
-                  label: Text(
-                    'Start 60s Breathing Reset',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFF0EB),
-                    foregroundColor: const Color(0xFFAB3500),
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: const BorderSide(color: Color(0xFFFFD6C7)),
-                    ),
-                  ),
-                ),
-              if (message.actionType == 'stretches')
-                ElevatedButton.icon(
-                  onPressed: () {
-                    HapticFeedback.selectionClick();
-                    DeskStretchesModal.show(context);
-                  },
-                  icon: const Icon(Icons.fitness_center_rounded, size: 16),
-                  label: Text(
-                    'Start 3-Min Desk Stretches',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF3F2FF),
-                    foregroundColor: const Color(0xFF95416C),
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: const BorderSide(color: Color(0xFFE4E7FE)),
-                    ),
-                  ),
-                ),
-              if (message.actionType == 'cbt_reframe')
-                ElevatedButton.icon(
-                  onPressed: () {
-                    HapticFeedback.selectionClick();
-                    _handleSendMessage(
-                      'Can you help me examine the evidence for this thought and reframe it?',
-                    );
-                  },
-                  icon: const Icon(Icons.psychology_rounded, size: 16),
-                  label: Text(
-                    'Examine Evidence & Reframe Thought',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEFF6FF),
-                    foregroundColor: const Color(0xFF1D4ED8),
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: const BorderSide(color: Color(0xFFBFDBFE)),
-                    ),
-                  ),
-                ),
-            ],
-            const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  message.time,
-                  style: GoogleFonts.beVietnamPro(
-                    fontSize: 10,
-                    color: message.isUser
-                        ? Colors.white70
-                        : const Color(0xFF8D7168),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+        child: messageContent,
       ),
     );
 
@@ -2838,4 +2888,201 @@ class _ChatMessage {
     actionType: json['actionType'],
     isNew: false,
   );
+}
+
+class _MochiDoodlePoint {
+  final double xRatio;
+  final double yRatio;
+  final int type;
+  final double scale;
+  final double rotation;
+
+  _MochiDoodlePoint(this.xRatio, this.yRatio, this.type, this.scale, this.rotation);
+}
+
+class _MochiDoodleWallpaperPainter extends CustomPainter {
+  static final List<_MochiDoodlePoint> _points = _generatePoints();
+
+  static List<_MochiDoodlePoint> _generatePoints() {
+    final list = <_MochiDoodlePoint>[];
+    final rng = math.Random(42);
+    int typeIdx = 0;
+
+    for (double y = 0.05; y < 0.95; y += 0.11) {
+      for (double x = 0.06; x < 0.94; x += 0.22) {
+        final jitterX = (rng.nextDouble() - 0.5) * 0.06;
+        final jitterY = (rng.nextDouble() - 0.5) * 0.05;
+        final scale = 0.75 + rng.nextDouble() * 0.45;
+        final rotation = (rng.nextDouble() - 0.5) * 0.6;
+        list.add(_MochiDoodlePoint(
+          (x + jitterX).clamp(0.04, 0.96),
+          (y + jitterY).clamp(0.04, 0.96),
+          typeIdx % 12,
+          scale,
+          rotation,
+        ));
+        typeIdx++;
+      }
+    }
+    return list;
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final strokePaint = Paint()
+      ..color = const Color(0xFF95416C).withValues(alpha: 0.06)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.3
+      ..strokeCap = StrokeCap.round;
+
+    final fillPaint = Paint()
+      ..color = const Color(0xFFFF6B35).withValues(alpha: 0.035)
+      ..style = PaintingStyle.fill;
+
+    for (final pt in _points) {
+      final double drawX = pt.xRatio * size.width;
+      final double drawY = pt.yRatio * size.height;
+
+      canvas.save();
+      canvas.translate(drawX, drawY);
+      canvas.rotate(pt.rotation);
+      canvas.scale(pt.scale);
+
+      switch (pt.type) {
+        case 0: _drawPaw(canvas, strokePaint, fillPaint); break;
+        case 1: _drawCup(canvas, strokePaint); break;
+        case 2: _drawMochiFace(canvas, strokePaint); break;
+        case 3: _drawSparkle(canvas, strokePaint); break;
+        case 4: _drawStickyNote(canvas, strokePaint); break;
+        case 5: _drawHeart(canvas, strokePaint, fillPaint); break;
+        case 6: _drawPaperPlane(canvas, strokePaint); break;
+        case 7: _drawBobaCup(canvas, strokePaint); break;
+        case 8: _drawClock(canvas, strokePaint); break;
+        case 9: _drawEnvelope(canvas, strokePaint); break;
+        case 10: _drawFish(canvas, strokePaint); break;
+        case 11: _drawPlant(canvas, strokePaint, fillPaint); break;
+      }
+
+      canvas.restore();
+    }
+  }
+
+  void _drawPaw(Canvas canvas, Paint stroke, Paint fill) {
+    canvas.drawCircle(const Offset(0, 4), 5.5, fill);
+    canvas.drawCircle(const Offset(0, 4), 5.5, stroke);
+    canvas.drawCircle(const Offset(-5, -4), 2.2, stroke);
+    canvas.drawCircle(const Offset(0, -7), 2.2, stroke);
+    canvas.drawCircle(const Offset(5, -4), 2.2, stroke);
+  }
+
+  void _drawCup(Canvas canvas, Paint stroke) {
+    final rect = RRect.fromRectAndRadius(const Rect.fromLTRB(-6, -4, 6, 6), const Radius.circular(3));
+    canvas.drawRRect(rect, stroke);
+    final handle = Path()
+      ..moveTo(6, -2)
+      ..arcToPoint(const Offset(6, 4), radius: const Radius.circular(4));
+    canvas.drawPath(handle, stroke);
+  }
+
+  void _drawMochiFace(Canvas canvas, Paint stroke) {
+    canvas.drawCircle(Offset.zero, 8, stroke);
+    canvas.drawCircle(const Offset(-3, -2), 1, stroke);
+    canvas.drawCircle(const Offset(3, -2), 1, stroke);
+    final smile = Path()
+      ..moveTo(-3, 2)
+      ..quadraticBezierTo(0, 5, 3, 2);
+    canvas.drawPath(smile, stroke);
+  }
+
+  void _drawSparkle(Canvas canvas, Paint stroke) {
+    final path = Path()
+      ..moveTo(0, -6)
+      ..lineTo(0, 6)
+      ..moveTo(-6, 0)
+      ..lineTo(6, 0);
+    canvas.drawPath(path, stroke);
+  }
+
+  void _drawStickyNote(Canvas canvas, Paint stroke) {
+    final path = Path()
+      ..moveTo(-6, -6)
+      ..lineTo(6, -6)
+      ..lineTo(6, 4)
+      ..lineTo(3, 6)
+      ..lineTo(-6, 6)
+      ..close();
+    canvas.drawPath(path, stroke);
+  }
+
+  void _drawHeart(Canvas canvas, Paint stroke, Paint fill) {
+    final path = Path()
+      ..moveTo(0, 5)
+      ..cubicTo(-7, -2, -4, -6, 0, -3)
+      ..cubicTo(4, -6, 7, -2, 0, 5);
+    canvas.drawPath(path, fill);
+    canvas.drawPath(path, stroke);
+  }
+
+  void _drawPaperPlane(Canvas canvas, Paint stroke) {
+    final path = Path()
+      ..moveTo(-6, 4)
+      ..lineTo(7, 0)
+      ..lineTo(-6, -6)
+      ..lineTo(-3, -1)
+      ..close()
+      ..moveTo(-3, -1)
+      ..lineTo(7, 0);
+    canvas.drawPath(path, stroke);
+  }
+
+  void _drawBobaCup(Canvas canvas, Paint stroke) {
+    final rect = RRect.fromRectAndRadius(const Rect.fromLTRB(-5, -6, 5, 6), const Radius.circular(2));
+    canvas.drawRRect(rect, stroke);
+    canvas.drawLine(const Offset(0, -6), const Offset(2, -10), stroke);
+  }
+
+  void _drawClock(Canvas canvas, Paint stroke) {
+    canvas.drawCircle(Offset.zero, 7, stroke);
+    canvas.drawLine(Offset.zero, const Offset(0, -4), stroke);
+    canvas.drawLine(Offset.zero, const Offset(3, 0), stroke);
+  }
+
+  void _drawEnvelope(Canvas canvas, Paint stroke) {
+    final rect = RRect.fromRectAndRadius(const Rect.fromLTRB(-7, -5, 7, 5), const Radius.circular(2));
+    canvas.drawRRect(rect, stroke);
+    final flap = Path()
+      ..moveTo(-7, -5)
+      ..lineTo(0, 0)
+      ..lineTo(7, -5);
+    canvas.drawPath(flap, stroke);
+  }
+
+  void _drawFish(Canvas canvas, Paint stroke) {
+    final path = Path()
+      ..moveTo(-6, 0)
+      ..quadraticBezierTo(0, -5, 5, 0)
+      ..quadraticBezierTo(0, 5, -6, 0)
+      ..lineTo(-9, -4)
+      ..lineTo(-9, 4)
+      ..close();
+    canvas.drawPath(path, stroke);
+  }
+
+  void _drawPlant(Canvas canvas, Paint stroke, Paint fill) {
+    final pot = Path()
+      ..moveTo(-4, 2)
+      ..lineTo(4, 2)
+      ..lineTo(3, 7)
+      ..lineTo(-3, 7)
+      ..close();
+    canvas.drawPath(pot, stroke);
+    final leaf = Path()
+      ..moveTo(0, 2)
+      ..quadraticBezierTo(-5, -3, -2, -7)
+      ..quadraticBezierTo(2, -3, 0, 2);
+    canvas.drawPath(leaf, stroke);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -8,6 +8,8 @@ Write an updated memory summary Mochi can use in future conversations to feel li
 
 Include only when present in the transcript:
 - Recurring themes, stressors, and workplace context
+- Emotional situations handled (e.g. loneliness, late-night sadness, burnout, panic, breakup) and how the user/Mochi coped with or resolved them
+- Mochi's personal backstory updates / Oreo cat stories shared with the user (e.g. Oreo's new habit, Mochi's new tea phase, desk updates)
 - Goals or intentions the user mentioned
 - What has helped or not helped them
 - Open threads worth following up on naturally (not forced)

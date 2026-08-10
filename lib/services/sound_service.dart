@@ -166,6 +166,12 @@ class SoundService {
     );
   }
 
+  /// Play Haptic Click sound
+  static Future<void> playClickSound() async {
+    await HapticFeedback.mediumImpact();
+    await SystemSound.play(SystemSoundType.click);
+  }
+
   /// Play NGL Anonymous Message Sent sound
   static Future<void> playNglSendSound() async {
     await _playSoundUrl(

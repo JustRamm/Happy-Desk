@@ -26,6 +26,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   int _selectedAvatarIndex = 0;
   File? _customImageFile;
+  String _storedAvatarUrl = '';
   final ImagePicker _picker = ImagePicker();
 
   final List<String> _avatarOptions = [
@@ -183,9 +184,57 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  Widget _buildAvatarWidget(String avatarUrl, String userName) {
+    if (_customImageFile != null) {
+      return Image.file(
+        _customImageFile!,
+        fit: BoxFit.cover,
+      );
+    }
+    if (avatarUrl.startsWith('http')) {
+      return Image.network(
+        avatarUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildInitialsAvatar(userName),
+      );
+    } else if (avatarUrl.isNotEmpty && File(avatarUrl).existsSync()) {
+      return Image.file(
+        File(avatarUrl),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildInitialsAvatar(userName),
+      );
+    }
+    return _buildInitialsAvatar(userName);
+  }
+
+  Widget _buildInitialsAvatar(String name) {
+    final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?';
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFF0EB), Color(0xFFFFDBD0)],
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initial,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 36,
+          fontWeight: FontWeight.w800,
+          color: AppTheme.primaryRust,
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
+    _storedAvatarUrl = UserPreferencesStore.getUserAvatarUrl() ?? '';
     _nameController = TextEditingController(text: UserPreferencesStore.getUserName());
     _roleController = TextEditingController(text: UserPreferencesStore.getUserRole());
     _bioController = TextEditingController(text: UserPreferencesStore.getUserBio());
@@ -214,6 +263,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             _bioController.text = profile['bio'] ?? _bioController.text;
             _emailController.text = profile['email'] ?? user.email ?? '';
             _phoneController.text = profile['phone'] ?? '';
+            if (profile['avatar_url'] != null && (profile['avatar_url'] as String).isNotEmpty) {
+              _storedAvatarUrl = profile['avatar_url'] as String;
+            }
             
             final compId = profile['company_id'] as String?;
             if (compId != null) {
@@ -408,15 +460,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ],
                             ),
                             child: ClipOval(
-                              child: _customImageFile != null
-                                  ? Image.file(
-                                      _customImageFile!,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : Image.asset(
-                                      _avatarOptions[_selectedAvatarIndex],
-                                      fit: BoxFit.cover,
-                                    ),
+                              child: _buildAvatarWidget(
+                                _storedAvatarUrl,
+                                _nameController.text,
+                              ),
                             ),
                           ),
                           Container(

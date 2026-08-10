@@ -28,6 +28,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   // Currently staged attachment preview before sending
   Map<String, dynamic>? _stagedAttachment;
   bool _isPlayingVoice = false;
+  bool _isRecordingVoice = false;
+  int _recordingSeconds = 0;
+  Timer? _recordingTimer;
   final bool _isTeammateTyping = false;
   bool _isPartnerClockedIn = false;
   String? _partnerAvatarUrl;
@@ -241,11 +244,73 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
   @override
   void dispose() {
+    _recordingTimer?.cancel();
     if (_chatChannel != null) {
       SupabaseService.instance.client.removeChannel(_chatChannel!);
     }
     _messageController.dispose();
     super.dispose();
+  }
+
+  void _startVoiceRecording() {
+    HapticFeedback.mediumImpact();
+    SoundService.playClickSound();
+    setState(() {
+      _isRecordingVoice = true;
+      _recordingSeconds = 0;
+      _stagedAttachment = null;
+    });
+    _recordingTimer?.cancel();
+    _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _recordingSeconds++;
+        });
+      }
+    });
+  }
+
+  void _cancelVoiceRecording() {
+    HapticFeedback.lightImpact();
+    _recordingTimer?.cancel();
+    setState(() {
+      _isRecordingVoice = false;
+      _recordingSeconds = 0;
+    });
+  }
+
+  void _sendVoiceRecording() {
+    _recordingTimer?.cancel();
+    HapticFeedback.mediumImpact();
+    SoundService.playMessageSentSound();
+
+    final int sec = _recordingSeconds > 0 ? _recordingSeconds : 1;
+    final int minutes = sec ~/ 60;
+    final int remainingSec = sec % 60;
+    final String formattedDuration =
+        '$minutes:${remainingSec.toString().padLeft(2, '0')}';
+    final name = widget.teammate['name'] ?? 'Teammate';
+
+    setState(() {
+      _messages.add({
+        'text': '',
+        'isUser': true,
+        'time': 'Now',
+        'status': 'sent',
+        'attachmentType': 'voice',
+        'attachmentName': 'voice_note.aac',
+        'voiceDuration': formattedDuration,
+      });
+      _isRecordingVoice = false;
+      _recordingSeconds = 0;
+    });
+
+    try {
+      SupabaseService.instance.sendDirectMessage(
+        receiverName: name,
+        message: '🎙 Voice Note ($formattedDuration)',
+      );
+    } catch (_) {}
   }
 
   void _stageAttachment(Map<String, dynamic> attachment) {
@@ -845,19 +910,18 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     }
                     final msg = _messages[index];
                     final isUser = msg['isUser'] == true;
-                    final attachmentType = msg['attachmentType'];
 
                     return Align(
                       alignment:
                           isUser ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
-                        margin: const EdgeInsets.only(bottom: 14),
+                        margin: const EdgeInsets.only(bottom: 6),
                         constraints: BoxConstraints(
-                          minWidth: 48,
+                          minWidth: 44,
                           maxWidth: MediaQuery.of(context).size.width * 0.75,
                         ),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
+                            horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           gradient: isUser
                               ? const LinearGradient(
@@ -868,10 +932,10 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                               : null,
                           color: isUser ? null : Colors.white,
                           borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(20),
-                            topRight: const Radius.circular(20),
-                            bottomLeft: Radius.circular(isUser ? 20 : 4),
-                            bottomRight: Radius.circular(isUser ? 4 : 20),
+                            topLeft: const Radius.circular(18),
+                            topRight: const Radius.circular(18),
+                            bottomLeft: Radius.circular(isUser ? 18 : 4),
+                            bottomRight: Radius.circular(isUser ? 4 : 18),
                           ),
                           border: isUser
                               ? null
@@ -881,61 +945,12 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                               color: isUser
                                   ? const Color(0x33FF6B35)
                                   : Colors.black.withValues(alpha: 0.03),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: isUser
-                              ? CrossAxisAlignment.end
-                              : CrossAxisAlignment.start,
-                          children: [
-                            // Text Content (if present)
-                            if (msg['text'] != null &&
-                                (msg['text'] as String).isNotEmpty) ...[
-                              Text(
-                                msg['text'],
-                                style: GoogleFonts.beVietnamPro(
-                                  fontSize: 14,
-                                  color: isUser
-                                      ? Colors.white
-                                      : const Color(0xFF2D3142),
-                                  height: 1.45,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                            ],
-
-                            // Attachment Renderers
-                            if (attachmentType == 'file')
-                              _buildFileBubble(msg, isUser),
-                            if (attachmentType == 'image')
-                              _buildImageBubble(msg, isUser),
-                            if (attachmentType == 'voice')
-                              _buildVoiceBubble(msg, isUser),
-
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Text(
-                                  msg['time'],
-                                  style: GoogleFonts.beVietnamPro(
-                                    fontSize: 10.5,
-                                    color: isUser ? Colors.white70 : const Color(0xFF8D7168),
-                                  ),
-                                ),
-                                if (isUser) ...[
-                                  const SizedBox(width: 4),
-                                  _buildStatusIcon(msg['status'] ?? 'sent'),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
+                        child: _buildMessageContent(msg, isUser),
                       ),
                     );
                   },
@@ -984,101 +999,200 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               ),
             ),
 
-          // Bottom Input Bar with Attachment Dropdown (+) and Voice Mic on Placeholder
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                top: BorderSide(color: Color(0xFFE4E7FE)),
+          // Bottom Input Bar — Switches to Live WhatsApp/Instagram Voice Recording Bar when recording!
+          if (_isRecordingVoice)
+            _buildVoiceRecordingBar()
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  top: BorderSide(color: Color(0xFFE4E7FE)),
+                ),
               ),
-            ),
-            child: SafeArea(
-              child: Row(
-                children: [
-                  // Attachment (+) Upward Dropdown Menu
-                  _buildAttachmentDropdown(),
+              child: SafeArea(
+                child: Row(
+                  children: [
+                    // Attachment (+) Upward Dropdown Menu
+                    _buildAttachmentDropdown(),
 
-                  const SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
-                  // Text Field Input Container with Mic Icon on Chat Placeholder
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.only(left: 16, right: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAF8FF),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: const Color(0xFFE4E7FE)),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _messageController,
-                              style: GoogleFonts.beVietnamPro(fontSize: 14),
-                              onTap: () {
-                                SystemChannels.textInput.invokeMethod('TextInput.show');
-                              },
-                              decoration: InputDecoration(
-                                hintText: 'Type your message...',
-                                hintStyle: GoogleFonts.beVietnamPro(
-                                  fontSize: 13.5,
-                                  color: const Color(0xFF8D7168),
+                    // Text Field Input Container with Mic Icon on Chat Placeholder
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.only(left: 16, right: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFAF8FF),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: const Color(0xFFE4E7FE)),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _messageController,
+                                style: GoogleFonts.beVietnamPro(fontSize: 14),
+                                onTap: () {
+                                  SystemChannels.textInput.invokeMethod('TextInput.show');
+                                },
+                                decoration: InputDecoration(
+                                  hintText: 'Type your message...',
+                                  hintStyle: GoogleFonts.beVietnamPro(
+                                    fontSize: 13.5,
+                                    color: const Color(0xFF8D7168),
+                                  ),
+                                  border: InputBorder.none,
                                 ),
-                                border: InputBorder.none,
+                                onSubmitted: (_) => _sendMessage(),
                               ),
-                              onSubmitted: (_) => _sendMessage(),
                             ),
-                          ),
 
-                          // Voice Note Mic Icon Button directly on Chat Placeholder!
-                          IconButton(
-                            tooltip: 'Record Voice Note',
-                            onPressed: () {
-                              HapticFeedback.lightImpact();
-                              _stageAttachment({
-                                'type': 'voice',
-                                'name': 'voice_note.aac',
-                                'duration': '0:15',
-                              });
-                            },
-                            icon: const Icon(
-                              Icons.mic_rounded,
-                              color: Color(0xFFFF6B35),
-                              size: 22,
+                            // Voice Note Mic Icon Button directly on Chat Placeholder!
+                            IconButton(
+                              tooltip: 'Record Voice Note',
+                              onPressed: _startVoiceRecording,
+                              icon: const Icon(
+                                Icons.mic_rounded,
+                                color: Color(0xFFFF6B35),
+                                size: 22,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
-                  // Send Button
-                  GestureDetector(
-                    onTap: _sendMessage,
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFF6B35),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.send_rounded,
-                        color: Colors.white,
-                        size: 20,
+                    // Send Button
+                    GestureDetector(
+                      onTap: _sendMessage,
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFF6B35),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.send_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
+  }
+
+  Widget _buildMessageContent(Map<String, dynamic> msg, bool isUser) {
+    final text = msg['text'] as String? ?? '';
+    final attachmentType = msg['attachmentType'];
+    final hasText = text.isNotEmpty;
+    final timeStr = msg['time'] as String? ?? '';
+
+    final timestampWidget = Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          timeStr,
+          style: GoogleFonts.beVietnamPro(
+            fontSize: 10,
+            color: isUser
+                ? Colors.white.withValues(alpha: 0.78)
+                : const Color(0xFF8D7168),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        if (isUser) ...[
+          const SizedBox(width: 3),
+          _buildStatusIcon(msg['status'] ?? 'sent'),
+        ],
+      ],
+    );
+
+    if (attachmentType != null) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment:
+            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          if (hasText) ...[
+            Text(
+              text,
+              style: GoogleFonts.beVietnamPro(
+                fontSize: 14,
+                color: isUser ? Colors.white : const Color(0xFF2D3142),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 6),
+          ],
+          if (attachmentType == 'file') _buildFileBubble(msg, isUser),
+          if (attachmentType == 'image') _buildImageBubble(msg, isUser),
+          if (attachmentType == 'voice') _buildVoiceBubble(msg, isUser),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: timestampWidget,
+          ),
+        ],
+      );
+    }
+
+    final bool isShortText = text.length <= 32 && !text.contains('\n');
+
+    if (isShortText) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Flexible(
+            child: Text(
+              text,
+              style: GoogleFonts.beVietnamPro(
+                fontSize: 14,
+                color: isUser ? Colors.white : const Color(0xFF2D3142),
+                height: 1.35,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 1),
+            child: timestampWidget,
+          ),
+        ],
+      );
+    } else {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            text,
+            style: GoogleFonts.beVietnamPro(
+              fontSize: 14,
+              color: isUser ? Colors.white : const Color(0xFF2D3142),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: timestampWidget,
+          ),
+        ],
+      );
+    }
   }
 
   /// File Document Attachment Card
@@ -1400,6 +1514,99 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
       ),
     );
   }
+  Widget _buildVoiceRecordingBar() {
+    final int minutes = _recordingSeconds ~/ 60;
+    final int seconds = _recordingSeconds % 60;
+    final String timeStr = '$minutes:${seconds.toString().padLeft(2, '0')}';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: Color(0xFFE4E7FE)),
+        ),
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            // Trash / Cancel Recording Button
+            IconButton(
+              tooltip: 'Cancel recording',
+              onPressed: _cancelVoiceRecording,
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFEE2E2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Color(0xFFDC2626),
+                  size: 20,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // Live Recording Visualizer Box (Pulsing Red Dot, Time Counter, Animated Waveform)
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF0EB),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFFFD8CC)),
+                ),
+                child: Row(
+                  children: [
+                    const _PulsingRedDot(),
+                    const SizedBox(width: 8),
+                    Text(
+                      timeStr,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFFAB3500),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: List.generate(8, (index) {
+                          return _LiveWaveformBar(index: index);
+                        }),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // Send Voice Note Button
+            GestureDetector(
+              onTap: _sendVoiceRecording,
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFF6B35),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.send_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _DoodlePoint {
@@ -1416,6 +1623,100 @@ class _DoodlePoint {
     required this.scale,
     required this.type,
   });
+}
+
+class _PulsingRedDot extends StatefulWidget {
+  const _PulsingRedDot();
+
+  @override
+  State<_PulsingRedDot> createState() => _PulsingRedDotState();
+}
+
+class _PulsingRedDotState extends State<_PulsingRedDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Opacity(
+          opacity: 0.3 + (_controller.value * 0.7),
+          child: Container(
+            width: 10,
+            height: 10,
+            decoration: const BoxDecoration(
+              color: Color(0xFFDC2626),
+              shape: BoxShape.circle,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _LiveWaveformBar extends StatefulWidget {
+  final int index;
+  const _LiveWaveformBar({required this.index});
+
+  @override
+  State<_LiveWaveformBar> createState() => _LiveWaveformBarState();
+}
+
+class _LiveWaveformBarState extends State<_LiveWaveformBar>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 400 + (widget.index * 120) % 500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final double baseHeight = 6.0 + ((widget.index * 5) % 12);
+        final double currentHeight = baseHeight + (_controller.value * 14.0);
+        return Container(
+          width: 3,
+          height: currentHeight.clamp(6.0, 22.0),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFF6B35),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _DoodleWallpaperPainter extends CustomPainter {
