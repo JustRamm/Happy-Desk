@@ -1087,7 +1087,45 @@ class SupabaseService {
           .eq('user_id', user.id)
           .order('ended_at', ascending: false)
           .limit(50);
-      return List<Map<String, dynamic>>.from(res);
+      final sessions = List<Map<String, dynamic>>.from(res);
+      if (sessions.isNotEmpty) return sessions;
+
+      // Synthetic Fallback: Reconstruct sessions dynamically from mochi_chat_messages
+      final rawMsgs = await getMochiChatHistory();
+      if (rawMsgs.isEmpty) return [];
+
+      final Map<String, List<Map<String, dynamic>>> grouped = {};
+      for (final msg in rawMsgs) {
+        final sessId = (msg['session_id'] as String?) ?? 'default_session';
+        grouped.putIfAbsent(sessId, () => []).add(msg);
+      }
+
+      final List<Map<String, dynamic>> syntheticSessions = [];
+      grouped.forEach((sessId, msgs) {
+        final firstMsg = msgs.firstWhere(
+          (m) => m['is_user'] == true,
+          orElse: () => msgs.first,
+        );
+        final title = (firstMsg['message'] as String? ?? 'Past Conversation').trim();
+        final startedAt = msgs.first['created_at'] as String? ?? DateTime.now().toIso8601String();
+        final endedAt = msgs.last['created_at'] as String? ?? DateTime.now().toIso8601String();
+
+        syntheticSessions.add({
+          'id': sessId,
+          'title': title.length > 60 ? '${title.substring(0, 57)}...' : title,
+          'total_messages': msgs.length,
+          'started_at': startedAt,
+          'ended_at': endedAt,
+          'local_messages': msgs,
+        });
+      });
+
+      syntheticSessions.sort((a, b) {
+        final dateA = a['ended_at']?.toString() ?? '';
+        final dateB = b['ended_at']?.toString() ?? '';
+        return dateB.compareTo(dateA);
+      });
+      return syntheticSessions;
     } catch (e) {
       debugPrint('[Mochi] getMochiSessions error: $e');
       return [];
@@ -1098,13 +1136,28 @@ class SupabaseService {
   Future<List<Map<String, dynamic>>> getMochiSessionMessages(
       String sessionId) async {
     await init();
+    final user = currentUser;
     try {
-      final res = await client
-          .from('mochi_chat_messages')
-          .select('message, is_user, action_type, created_at')
-          .eq('session_id', sessionId)
-          .order('created_at', ascending: true);
-      return List<Map<String, dynamic>>.from(res);
+      if (sessionId != 'default_session') {
+        final res = await client
+            .from('mochi_chat_messages')
+            .select('message, is_user, action_type, created_at')
+            .eq('session_id', sessionId)
+            .order('created_at', ascending: true);
+        final list = List<Map<String, dynamic>>.from(res);
+        if (list.isNotEmpty) return list;
+      }
+
+      // Secondary fallback by user_id if session_id match returned 0
+      if (user != null) {
+        final userRes = await client
+            .from('mochi_chat_messages')
+            .select('message, is_user, action_type, created_at')
+            .eq('user_id', user.id)
+            .order('created_at', ascending: true);
+        return List<Map<String, dynamic>>.from(userRes);
+      }
+      return [];
     } catch (e) {
       debugPrint('[Mochi] getMochiSessionMessages error: $e');
       return [];

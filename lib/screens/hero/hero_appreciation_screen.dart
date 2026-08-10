@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
 import '../system/notifications_screen.dart';
@@ -153,6 +154,7 @@ class _HeroAppreciationScreenState extends State<HeroAppreciationScreen> with Si
       );
     } catch (_) {}
 
+    HapticFeedback.mediumImpact();
     setState(() {
       _hasNominatedThisWeek = true;
     });
@@ -173,6 +175,7 @@ class _HeroAppreciationScreenState extends State<HeroAppreciationScreen> with Si
   }
 
   void _generateAiStory() {
+    HapticFeedback.lightImpact();
     final name = _selectedCoworker != null
         ? _selectedCoworker!.split(' ')[0]
         : 'My teammate';

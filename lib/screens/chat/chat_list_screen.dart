@@ -9,7 +9,6 @@ import 'new_chat_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/supabase_service.dart';
 import '../../services/user_preferences_store.dart';
-import '../../services/sound_service.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -370,13 +369,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         child: InkWell(
                           onLongPress: () => _toggleChatSelection(fullName),
                           onTap: () async {
+                            HapticFeedback.lightImpact();
                             if (_selectedChatPartners.isNotEmpty) {
-                              _toggleChatSelection(fullName);
+                              _toggleChatSelection(chat['name'] ?? '');
                               return;
                             }
-                            SoundService.playMessageOpenSound();
                             setState(() {
-                              chat['unread'] = false;
+                              chat['unreadCount'] = 0;
                             });
                             await SupabaseService.instance
                                 .markDirectMessagesAsRead(chat['name'] ?? '');
@@ -528,19 +527,45 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                         ),
                                       ),
                                       const SizedBox(height: 3),
-                                      Text(
-                                        chat['lastMessage'],
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: GoogleFonts.beVietnamPro(
-                                          fontSize: 12.5,
-                                          color: isUnread
-                                              ? const Color(0xFF171B2B)
-                                              : const Color(0xFF594139),
-                                          fontWeight: isUnread
-                                              ? FontWeight.w600
-                                              : FontWeight.w400,
-                                        ),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              chat['lastMessage'],
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.beVietnamPro(
+                                                fontSize: 12.5,
+                                                color: isUnread
+                                                    ? const Color(0xFF171B2B)
+                                                    : const Color(0xFF594139),
+                                                fontWeight: isUnread
+                                                    ? FontWeight.w600
+                                                    : FontWeight.w400,
+                                              ),
+                                            ),
+                                          ),
+                                          if (isUnread) ...[
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                gradient: const LinearGradient(
+                                                  colors: [Color(0xFFFF6B35), Color(0xFFAB3500)],
+                                                ),
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              child: Text(
+                                                'NEW',
+                                                style: GoogleFonts.plusJakartaSans(
+                                                  fontSize: 9.5,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ],
                                   ),

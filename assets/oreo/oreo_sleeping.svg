@@ -1,0 +1,73 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Soft Latte Brown Cat Body Gradient -->
+    <linearGradient id="catLatte" x1="40" y1="30" x2="200" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A5795C" />
+      <stop offset="100%" stop-color="#7C543A" />
+    </linearGradient>
+    <!-- Soft Cream Muzzle/Chest Gradient -->
+    <linearGradient id="catCream" x1="120" y1="110" x2="120" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#FFF5EA" />
+    </linearGradient>
+    <filter id="shadow" x="20" y="170" width="200" height="45" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="6" />
+    </filter>
+  </defs>
+
+  <!-- Ambient Ground Shadow -->
+  <ellipse cx="120" cy="190" rx="75" ry="14" fill="#4A2E1B" fill-opacity="0.18" filter="url(#shadow)" />
+
+  <!-- Curled Sleeping Body -->
+  <path d="M50 140C40 100 70 75 120 75C175 75 200 105 195 145C190 180 150 188 120 188C70 188 55 165 50 140Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Cream White Underbelly Patch -->
+  <path d="M80 150C90 175 140 180 160 165C170 150 150 140 120 140C95 140 85 145 80 150Z" fill="url(#catCream)" stroke="#4A2E1B" stroke-width="2"/>
+
+  <!-- Tucked Paws under Head -->
+  <ellipse cx="90" cy="165" rx="14" ry="10" fill="url(#catCream)" stroke="#4A2E1B" stroke-width="2.5"/>
+  <ellipse cx="112" cy="167" rx="14" ry="10" fill="url(#catCream)" stroke="#4A2E1B" stroke-width="2.5"/>
+
+  <!-- Cat Head resting on paws -->
+  <path d="M60 115C50 80 80 70 120 75C140 78 150 95 142 125C135 150 105 155 80 148C65 144 63 130 60 115Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Left Relaxed Ear -->
+  <path d="M72 82L52 58C52 58 78 60 88 74Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M72 77L59 64C59 64 76 66 80 73Z" fill="#FFB8D1"/>
+
+  <!-- Right Relaxed Ear -->
+  <path d="M118 76L128 50C128 50 138 68 132 82Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 74L127 58C127 58 133 70 129 78Z" fill="#FFB8D1"/>
+
+  <!-- Cream White Muzzle Patch -->
+  <ellipse cx="95" cy="132" rx="22" ry="14" fill="url(#catCream)" stroke="#4A2E1B" stroke-width="2.5"/>
+
+  <!-- Soft Pink Cheek -->
+  <ellipse cx="72" cy="128" rx="10" ry="6" fill="#FFB8D1" fill-opacity="0.8"/>
+
+  <!-- Closed Sleeping Eyes (Happy curves u u) -->
+  <path d="M78 114Q85 122 92 114" stroke="#4A2E1B" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M104 116Q111 124 118 116" stroke="#4A2E1B" stroke-width="3" stroke-linecap="round" fill="none"/>
+
+  <!-- Tiny Pink Heart Nose & Sleeping Smile -->
+  <path d="M96 126C94 124 91 124 91 126C91 128 96 130 96 130C96 130 101 128 101 126C101 124 98 124 96 126Z" fill="#FF70A6"/>
+  <path d="M92 133Q96 137 100 133" stroke="#4A2E1B" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+
+  <!-- Subtle Whiskers -->
+  <path d="M76 132L60 132M77 137L62 140" stroke="#4A2E1B" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Tail Wrapping Around Body -->
+  <path d="M190 135C200 165 170 185 130 185C110 185 120 176 138 176C165 176 185 160 178 135Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- White Tail Tip -->
+  <path d="M130 185C110 185 120 176 138 176C128 176 120 182 130 185Z" fill="#FFFFFF" stroke="#4A2E1B" stroke-width="2"/>
+
+  <!-- Floating Sleeping Zzz's 💤 -->
+  <g opacity="0.85">
+    <path d="M155 60H167L155 74H167" stroke="#A5795C" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M172 40H188L172 56H188" stroke="#7C543A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M190 20H210L190 38H210" stroke="#4A2E1B" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+
+  <!-- Cute Sparkles ✨ -->
+  <path d="M50 40L52 45L57 46L52 47L50 52L48 47L43 46L48 45L50 40Z" fill="#F59E0B"/>
+</svg>

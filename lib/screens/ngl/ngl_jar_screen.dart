@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_theme.dart';
 import 'compose_ngl_screen.dart';
@@ -71,6 +72,7 @@ class _NglJarScreenState extends State<NglJarScreen> {
       );
       return;
     }
+    HapticFeedback.mediumImpact();
     SoundService.playJarOpenSound();
     showDialog(
       context: context,
@@ -90,6 +92,7 @@ class _NglJarScreenState extends State<NglJarScreen> {
   }
 
   void _openComposeNote() async {
+    HapticFeedback.lightImpact();
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const ComposeNglScreen()),
@@ -920,7 +923,7 @@ class _RolledPaperUnsealDialogState extends State<_RolledPaperUnsealDialog>
                 child: SizeTransition(
                   sizeFactor: _unrollAnimation,
                   axis: Axis.vertical,
-                  axisAlignment: 0.0,
+                  alignment: Alignment.center,
                   child: Container(
                     width: double.infinity,
                     constraints: const BoxConstraints(maxHeight: 460),

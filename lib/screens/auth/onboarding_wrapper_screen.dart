@@ -4,6 +4,7 @@ import 'splash_screen.dart';
 import 'onboarding_screen.dart';
 import 'auth_screen.dart';
 import '../main/main_navigation_screen.dart';
+import '../../main.dart';
 import '../../services/user_preferences_store.dart';
 
 class OnboardingWrapperScreen extends StatefulWidget {
@@ -36,36 +37,31 @@ class _OnboardingWrapperScreenState extends State<OnboardingWrapperScreen> {
     }
   }
 
-  void _finishLoading() {
-    if (mounted) {
+  Future<void> _finishLoading() async {
+    // Await background initialization to ensure user profile/session state is loaded
+    await appInitFuture;
+
+    if (!mounted) return;
+
+    // Route seamlessly based on user session state
+    if (UserPreferencesStore.isLoggedIn()) {
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const MainNavigationScreen(),
+          transitionDuration: Duration.zero,
+        ),
+      );
+    } else if (UserPreferencesStore.hasCompletedOnboarding()) {
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const AuthScreen(initialIsLogin: true),
+          transitionDuration: Duration.zero,
+        ),
+      );
+    } else {
       setState(() {
         _isLoading = false;
-      });
-      // After fade-out animation completes (200ms), route based on user session state
-      Future.delayed(const Duration(milliseconds: 200), () {
-        if (!mounted) return;
-        setState(() {
-          _showSplashWidget = false;
-        });
-
-        // Scenario 3: Signed in → Route directly to HomeScreen (last active tab)
-        if (UserPreferencesStore.isLoggedIn()) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const MainNavigationScreen(),
-            ),
-          );
-        }
-        // Scenario 2: Returning logged-out user → Route directly to AuthScreen
-        else if (UserPreferencesStore.hasCompletedOnboarding()) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const AuthScreen(initialIsLogin: true),
-            ),
-          );
-        }
-        // Scenario 1 / 12: First-time user (or onboarding interrupted) → show Onboarding
-        // No navigation needed — OnboardingScreen is already rendered below the splash.
+        _showSplashWidget = false;
       });
     }
   }

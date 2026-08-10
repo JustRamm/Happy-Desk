@@ -1,0 +1,91 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Soft Latte Brown Cat Body Gradient -->
+    <linearGradient id="catLatte" x1="40" y1="30" x2="200" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A5795C" />
+      <stop offset="100%" stop-color="#7C543A" />
+    </linearGradient>
+    <!-- Soft Cream Muzzle/Chest Gradient -->
+    <linearGradient id="catCream" x1="120" y1="110" x2="120" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#FFF5EA" />
+    </linearGradient>
+    <filter id="shadow" x="10" y="180" width="220" height="45" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="6" />
+    </filter>
+  </defs>
+
+  <!-- Ambient Ground Shadow -->
+  <ellipse cx="120" cy="202" rx="80" ry="10" fill="#4A2E1B" fill-opacity="0.18" filter="url(#shadow)" />
+
+  <!-- Fluffy Upward Curly Tail (Happy & Wagging) -->
+  <path d="M60 142C40 128 28 94 44 72C52 60 64 68 56 82C46 96 56 122 74 135Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- White Tail Tip -->
+  <path d="M44 72C52 60 64 68 56 82C51 74 46 70 44 72Z" fill="#FFFFFF" stroke="#4A2E1B" stroke-width="2"/>
+
+  <!-- BACK LEGS (Background / Shadowed) -->
+  <!-- Back-Left Leg (Stepping backward) -->
+  <path d="M70 148C65 164 62 182 68 193C72 197 82 197 84 192C80 179 81 162 86 150Z" fill="#7C543A" stroke="#4A2E1B" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <ellipse cx="76" cy="194" rx="9" ry="6" fill="url(#catCream)" stroke="#4A2E1B" stroke-width="2"/>
+
+  <!-- Front-Left Leg (Stepping mid-stride) -->
+  <path d="M136 142C132 158 130 178 136 191C140 195 150 195 152 190C147 178 148 158 154 144Z" fill="#7C543A" stroke="#4A2E1B" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <ellipse cx="144" cy="192" rx="9" ry="6" fill="url(#catCream)" stroke="#4A2E1B" stroke-width="2"/>
+
+  <!-- MAIN CHUBBY BODY (Side View Torso) -->
+  <path d="M52 138C45 115 68 102 118 102C160 102 182 115 175 140C170 164 142 170 110 170C70 170 55 160 52 138Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Cream White Chest Bib & Belly -->
+  <path d="M125 104C150 110 172 122 168 144C158 164 126 166 112 166C136 150 140 122 125 104Z" fill="url(#catCream)" stroke="#4A2E1B" stroke-width="2"/>
+
+  <!-- FOREGROUND LEGS (Chubby, soft, cute paws) -->
+  <!-- Back-Right Leg (Stepping forward) -->
+  <path d="M88 148C92 162 98 178 104 195C110 200 122 198 120 191C112 176 104 160 98 148Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <ellipse cx="112" cy="195" rx="10" ry="6" fill="url(#catCream)" stroke="#4A2E1B" stroke-width="2.5"/>
+
+  <!-- Front-Right Leg (Proud forward step) -->
+  <path d="M155 138C162 154 172 174 180 193C186 198 198 196 194 188C184 170 172 148 166 134Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <ellipse cx="188" cy="194" rx="10" ry="6" fill="url(#catCream)" stroke="#4A2E1B" stroke-width="2.5"/>
+
+  <!-- ICONIC ADORABLE OREO FACE & HEAD (Matches oreo_cat.svg perfectly!) -->
+  <!-- Round Cat Head -->
+  <path d="M40 92C30 47 65 30 120 30C175 30 210 47 200 92C192 127 165 134 120 134C75 134 48 127 40 92Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Attached Left Pointy Cat Ear -->
+  <path d="M60 40L42 8C42 8 75 14 84 34Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M58 34L48 16C48 16 68 20 72 30Z" fill="#FFB8D1"/>
+
+  <!-- Attached Right Pointy Cat Ear -->
+  <path d="M180 40L198 8C198 8 165 14 156 34Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M182 34L192 16C192 16 172 20 168 30Z" fill="#FFB8D1"/>
+
+  <!-- Cream White Muzzle Patch -->
+  <ellipse cx="120" cy="107" rx="36" ry="20" fill="url(#catCream)" stroke="#4A2E1B" stroke-width="2.5"/>
+
+  <!-- Soft Pastel Pink Cheeks -->
+  <ellipse cx="66" cy="100" rx="14" ry="8" fill="#FFB8D1" fill-opacity="0.8" />
+  <ellipse cx="174" cy="100" rx="14" ry="8" fill="#FFB8D1" fill-opacity="0.8" />
+
+  <!-- Big Adorable Shiny Kitten Eyes -->
+  <!-- Left Eye -->
+  <ellipse cx="84" cy="82" rx="12" ry="15" fill="#2A1B12" />
+  <circle cx="80" cy="75" r="5.5" fill="white" />
+  <circle cx="88" cy="88" r="2.5" fill="white" />
+
+  <!-- Right Eye -->
+  <ellipse cx="156" cy="82" rx="12" ry="15" fill="#2A1B12" />
+  <circle cx="152" cy="75" r="5.5" fill="white" />
+  <circle cx="160" cy="88" r="2.5" fill="white" />
+
+  <!-- Tiny Pink Heart Nose & Cute Smiling Cat Mouth :3 -->
+  <path d="M120 96C118 93 114 93 114 96C114 99 120 102 120 102C120 102 126 99 126 96C126 93 122 93 120 96Z" fill="#FF70A6"/>
+  <path d="M112 105Q120 111 120 105Q120 111 128 105" stroke="#4A2E1B" stroke-width="3" stroke-linecap="round" fill="none"/>
+
+  <!-- Subtle Whiskers on Muzzle -->
+  <path d="M68 104L46 102M66 112L44 114" stroke="#4A2E1B" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M172 104L194 102M174 112L196 114" stroke="#4A2E1B" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Cute Sparkles ✨ -->
+  <path d="M188 30L190 35L195 36L190 37L188 42L186 37L181 36L186 35L188 30Z" fill="#F59E0B"/>
+  <path d="M52 30L54 35L59 36L54 37L52 42L50 37L45 36L50 35L52 30Z" fill="#F59E0B"/>
+</svg>

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -303,6 +304,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: _currentIndex,
         onItemTapped: (index) {
+          HapticFeedback.selectionClick();
           if (_currentIndex == 1 && index != 1) {
             _mochiScreenKey.currentState?.summarizeSessionIfNeeded();
           }

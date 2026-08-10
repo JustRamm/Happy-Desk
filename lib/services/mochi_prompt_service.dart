@@ -179,6 +179,7 @@ class MochiPromptService {
     String? weeklyHeroSummary,
     String? lifeContextSummary,
     String? openThreadsSummary,
+    int consecutiveByeCount = 0,
   }) {
     if (_basePrompt == null) {
       throw StateError('Call ensureLoaded() before building the prompt.');
@@ -192,16 +193,33 @@ class MochiPromptService {
     buffer.writeln('## Live context (runtime)');
     final now = DateTime.now();
     final hour = now.hour;
-    String timeOfDayVibe = 'Evening / Night (Cozy, unbothered, deep listening, sipping warm tea ☕)';
-    if (hour >= 5 && hour < 12) {
-      timeOfDayVibe = 'Morning (Caffeinated, organized, complaining about freezing office AC ❄️, ready to tackle the day)';
-    } else if (hour >= 12 && hour < 17) {
-      timeOfDayVibe = 'Mid-day / Afternoon (3 PM slump 😴, craving good food/snacks, hunting for lost desk pens, giving side-eye to toxic Slack pings 👀)';
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+    final formattedTime = '$displayHour:$minute $period';
+
+    String timeOfDayVibe = 'Night (8 PM - 12 AM: Quiet, cozy late check-in)';
+    if (hour >= 0 && hour < 5) {
+      timeOfDayVibe = 'Late Night / Midnight (12 AM - 5 AM: Gently surprised & caring — e.g. "Wait — it\'s $formattedTime right now! Why are you up so late? Everything okay? 💙")';
+    } else if (hour >= 5 && hour < 8) {
+      timeOfDayVibe = 'Early Morning (5 AM - 8 AM: Slow-to-wake, groggy, warm welcome)';
+    } else if (hour >= 8 && hour < 12) {
+      timeOfDayVibe = 'Morning (8 AM - 12 PM: Bright, energetic, ready to tackle the day)';
+    } else if (hour >= 12 && hour < 16) {
+      timeOfDayVibe = 'Afternoon / Mid-day (12 PM - 4 PM: 3 PM slump 😴, craving local food/snacks, hunting for lost desk pens, side-eyeing Slack pings 👀)';
+    } else if (hour >= 16 && hour < 20) {
+      timeOfDayVibe = 'Evening (4 PM - 8 PM: Winding down after work, softer energy)';
     }
 
     buffer.writeln(
-      'Shift: Clocked In = $isClockedIn | On Break = $isOnBreak | Shift Start = $clockInTime | Current Time-of-Day Vibe = $timeOfDayVibe.',
+      'Shift: Clocked In = $isClockedIn | On Break = $isOnBreak | Shift Start = $clockInTime | Exact Local Time = $formattedTime | Current Time-of-Day Vibe = $timeOfDayVibe.',
     );
+
+    if (consecutiveByeCount > 0) {
+      buffer.writeln(
+        'Consecutive Goodbye Turn Count: $consecutiveByeCount. (Rule: If count == 1, give a warm 1-sentence sendoff. If count == 2, playfully track Bye #2 e.g. "Bye #2! 😭👋 Are we trying to set a world record for the longest goodbye?". If count >= 3, playfully award Bye #$consecutiveByeCount trophy e.g. "Bye #$consecutiveByeCount! 🏆 You win the final bye competition! Bye for real!" and strictly yield the final word).',
+      );
+    }
 
     if (userProfileSummary != null && userProfileSummary.trim().isNotEmpty) {
       buffer.writeln('User profile context: $userProfileSummary');

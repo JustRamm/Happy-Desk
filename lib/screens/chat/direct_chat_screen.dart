@@ -248,126 +248,6 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     super.dispose();
   }
 
-  void _showAttachmentOptions() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Share Content',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF2D3142),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded,
-                        color: Color(0xFF8D7168)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildAttachmentTile(
-                    icon: Icons.image_rounded,
-                    label: 'Image / Media',
-                    color: const Color(0xFFFF6B35),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _stageAttachment({
-                        'type': 'image',
-                        'name': 'office_presentation.png',
-                        'url':
-                            'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80',
-                      });
-                    },
-                  ),
-                  _buildAttachmentTile(
-                    icon: Icons.insert_drive_file_rounded,
-                    label: 'Document',
-                    color: const Color(0xFF00C49A),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _stageAttachment({
-                        'type': 'file',
-                        'name': 'Q3_Happiness_Metrics_Report.pdf',
-                        'size': '1.8 MB',
-                      });
-                    },
-                  ),
-                  _buildAttachmentTile(
-                    icon: Icons.mic_rounded,
-                    label: 'Voice Note',
-                    color: const Color(0xFFFF99C8),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _stageAttachment({
-                        'type': 'voice',
-                        'name': 'Voice Note',
-                        'duration': '0:15',
-                      });
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildAttachmentTile({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 26),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF2D3142),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _stageAttachment(Map<String, dynamic> attachment) {
     setState(() {
       _stagedAttachment = attachment;
@@ -378,6 +258,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     final text = _messageController.text.trim();
     if (text.isEmpty && _stagedAttachment == null) return;
 
+    HapticFeedback.lightImpact();
     SoundService.playMessageSentSound();
     final name = widget.teammate['name'] ?? 'Teammate';
     final String? mediaUrl = _stagedAttachment != null ? _stagedAttachment!['url'] : null;
@@ -943,112 +824,122 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
       ),
       body: Column(
         children: [
-          // Messages Feed
+          // Messages Feed with Subtle Mochi & Office Doodle Wallpaper
           Expanded(
-            child: RefreshIndicator(
-              color: const Color(0xFFFF6B35),
-              backgroundColor: Colors.white,
-              onRefresh: () async {
-                await Future.delayed(const Duration(milliseconds: 1000));
-              },
-              child: ListView.builder(
-                padding: const EdgeInsets.all(20),
-                physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics()),
-                itemCount: _messages.length + (_isTeammateTyping ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (_isTeammateTyping && index == _messages.length) {
-                    return _buildTypingIndicatorBubble();
-                  }
-                  final msg = _messages[index];
-                  final isUser = msg['isUser'] == true;
-                  final attachmentType = msg['attachmentType'];
+            child: CustomPaint(
+              painter: _DoodleWallpaperPainter(),
+              child: RefreshIndicator(
+                color: const Color(0xFFFF6B35),
+                backgroundColor: Colors.white,
+                onRefresh: () async {
+                  await Future.delayed(const Duration(milliseconds: 1000));
+                },
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics()),
+                  itemCount: _messages.length + (_isTeammateTyping ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (_isTeammateTyping && index == _messages.length) {
+                      return _buildTypingIndicatorBubble();
+                    }
+                    final msg = _messages[index];
+                    final isUser = msg['isUser'] == true;
+                    final attachmentType = msg['attachmentType'];
 
-                  return Align(
-                    alignment:
-                        isUser ? Alignment.centerRight : Alignment.centerLeft,
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 14),
-                      constraints: BoxConstraints(
-                        minWidth: 48,
-                        maxWidth: MediaQuery.of(context).size.width * 0.75,
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isUser ? const Color(0xFFFF6B35) : Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: const Radius.circular(20),
-                          topRight: const Radius.circular(20),
-                          bottomLeft: Radius.circular(isUser ? 20 : 4),
-                          bottomRight: Radius.circular(isUser ? 4 : 20),
+                    return Align(
+                      alignment:
+                          isUser ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 14),
+                        constraints: BoxConstraints(
+                          minWidth: 48,
+                          maxWidth: MediaQuery.of(context).size.width * 0.75,
                         ),
-                        border: isUser
-                            ? null
-                            : Border.all(color: const Color(0xFFE4E7FE)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: isUser
-                                ? const Color(0x33FF6B35)
-                                : Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          gradient: isUser
+                              ? const LinearGradient(
+                                  colors: [Color(0xFFFF6B35), Color(0xFFFF8552)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                )
+                              : null,
+                          color: isUser ? null : Colors.white,
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(20),
+                            topRight: const Radius.circular(20),
+                            bottomLeft: Radius.circular(isUser ? 20 : 4),
+                            bottomRight: Radius.circular(isUser ? 4 : 20),
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: isUser
-                            ? CrossAxisAlignment.end
-                            : CrossAxisAlignment.start,
-                        children: [
-                          // Text Content (if present)
-                          if (msg['text'] != null &&
-                              (msg['text'] as String).isNotEmpty) ...[
-                            Text(
-                              msg['text'],
-                              style: GoogleFonts.beVietnamPro(
-                                fontSize: 14,
-                                color: isUser
-                                    ? Colors.white
-                                    : const Color(0xFF2D3142),
-                                height: 1.45,
-                              ),
+                          border: isUser
+                              ? null
+                              : Border.all(color: const Color(0xFFE4E7FE)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isUser
+                                  ? const Color(0x33FF6B35)
+                                  : Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
                             ),
-                            const SizedBox(height: 8),
                           ],
-
-                          // Attachment Renderers
-                          if (attachmentType == 'file')
-                            _buildFileBubble(msg, isUser),
-                          if (attachmentType == 'image')
-                            _buildImageBubble(msg, isUser),
-                          if (attachmentType == 'voice')
-                            _buildVoiceBubble(msg, isUser),
-
-                          const SizedBox(height: 4),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: isUser
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
+                          children: [
+                            // Text Content (if present)
+                            if (msg['text'] != null &&
+                                (msg['text'] as String).isNotEmpty) ...[
                               Text(
-                                msg['time'],
+                                msg['text'],
                                 style: GoogleFonts.beVietnamPro(
-                                  fontSize: 10.5,
-                                  color: isUser ? Colors.white70 : const Color(0xFF8D7168),
+                                  fontSize: 14,
+                                  color: isUser
+                                      ? Colors.white
+                                      : const Color(0xFF2D3142),
+                                  height: 1.45,
                                 ),
                               ),
-                              if (isUser) ...[
-                                const SizedBox(width: 4),
-                                _buildStatusIcon(msg['status'] ?? 'sent'),
-                              ],
+                              const SizedBox(height: 8),
                             ],
-                          ),
-                        ],
+
+                            // Attachment Renderers
+                            if (attachmentType == 'file')
+                              _buildFileBubble(msg, isUser),
+                            if (attachmentType == 'image')
+                              _buildImageBubble(msg, isUser),
+                            if (attachmentType == 'voice')
+                              _buildVoiceBubble(msg, isUser),
+
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text(
+                                  msg['time'],
+                                  style: GoogleFonts.beVietnamPro(
+                                    fontSize: 10.5,
+                                    color: isUser ? Colors.white70 : const Color(0xFF8D7168),
+                                  ),
+                                ),
+                                if (isUser) ...[
+                                  const SizedBox(width: 4),
+                                  _buildStatusIcon(msg['status'] ?? 'sent'),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -1093,7 +984,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               ),
             ),
 
-          // Bottom Input Bar with Attachment (+) and Send Buttons
+          // Bottom Input Bar with Attachment Dropdown (+) and Voice Mic on Placeholder
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: const BoxDecoration(
@@ -1105,50 +996,59 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
             child: SafeArea(
               child: Row(
                 children: [
-                  // Attachment (+) Button
-                  IconButton(
-                    tooltip: 'Attach File or Media',
-                    onPressed: _showAttachmentOptions,
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFAF8FF),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.add_rounded,
-                        color: Color(0xFFFF6B35),
-                        size: 24,
-                      ),
-                    ),
-                  ),
+                  // Attachment (+) Upward Dropdown Menu
+                  _buildAttachmentDropdown(),
 
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 8),
 
-                  // Text Field Input
+                  // Text Field Input Container with Mic Icon on Chat Placeholder
                   Expanded(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.only(left: 16, right: 6),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFAF8FF),
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(color: const Color(0xFFE4E7FE)),
                       ),
-                      child: TextField(
-                        controller: _messageController,
-                        style: GoogleFonts.beVietnamPro(fontSize: 14),
-                        onTap: () {
-                          SystemChannels.textInput.invokeMethod('TextInput.show');
-                        },
-                        decoration: InputDecoration(
-                          hintText: 'Type your message...',
-                          hintStyle: GoogleFonts.beVietnamPro(
-                            fontSize: 13.5,
-                            color: const Color(0xFF8D7168),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _messageController,
+                              style: GoogleFonts.beVietnamPro(fontSize: 14),
+                              onTap: () {
+                                SystemChannels.textInput.invokeMethod('TextInput.show');
+                              },
+                              decoration: InputDecoration(
+                                hintText: 'Type your message...',
+                                hintStyle: GoogleFonts.beVietnamPro(
+                                  fontSize: 13.5,
+                                  color: const Color(0xFF8D7168),
+                                ),
+                                border: InputBorder.none,
+                              ),
+                              onSubmitted: (_) => _sendMessage(),
+                            ),
                           ),
-                          border: InputBorder.none,
-                        ),
-                        onSubmitted: (_) => _sendMessage(),
+
+                          // Voice Note Mic Icon Button directly on Chat Placeholder!
+                          IconButton(
+                            tooltip: 'Record Voice Note',
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              _stageAttachment({
+                                'type': 'voice',
+                                'name': 'voice_note.aac',
+                                'duration': '0:15',
+                              });
+                            },
+                            icon: const Icon(
+                              Icons.mic_rounded,
+                              color: Color(0xFFFF6B35),
+                              size: 22,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1408,6 +1308,311 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
       ),
     );
   }
+
+  Widget _buildAttachmentDropdown() {
+    return PopupMenuButton<String>(
+      tooltip: 'Attach Content',
+      offset: const Offset(0, -125),
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: Color(0xFFE4E7FE)),
+      ),
+      color: Colors.white,
+      onSelected: (value) {
+        HapticFeedback.lightImpact();
+        if (value == 'image') {
+          _stageAttachment({
+            'type': 'image',
+            'name': 'office_presentation.png',
+            'url':
+                'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80',
+          });
+        } else if (value == 'file') {
+          _stageAttachment({
+            'type': 'file',
+            'name': 'project_summary.pdf',
+            'size': '2.4 MB',
+          });
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'image',
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFF0EB),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.image_rounded, color: Color(0xFFFF6B35), size: 18),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Image / Media',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF2D3142),
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'file',
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF3F2FF),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.insert_drive_file_rounded, color: Color(0xFF95416C), size: 18),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Document / File',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF2D3142),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: const BoxDecoration(
+          color: Color(0xFFFAF8FF),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.add_rounded,
+          color: Color(0xFFFF6B35),
+          size: 24,
+        ),
+      ),
+    );
+  }
+}
+
+class _DoodlePoint {
+  final double xRatio;
+  final double yRatio;
+  final double rotation;
+  final double scale;
+  final int type;
+
+  const _DoodlePoint({
+    required this.xRatio,
+    required this.yRatio,
+    required this.rotation,
+    required this.scale,
+    required this.type,
+  });
+}
+
+class _DoodleWallpaperPainter extends CustomPainter {
+  static final List<_DoodlePoint> _points = _generateOrganicScatter();
+
+  static List<_DoodlePoint> _generateOrganicScatter() {
+    final list = <_DoodlePoint>[];
+    final random = math.Random(1337);
+
+    const int cols = 5;
+    const int rows = 14;
+    const double colW = 1.0 / cols;
+    const double rowH = 1.0 / rows;
+
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        final double jitterX = (random.nextDouble() - 0.5) * colW * 0.7;
+        final double jitterY = (random.nextDouble() - 0.5) * rowH * 0.7;
+        final double xRatio = (c + 0.5) * colW + jitterX;
+        final double yRatio = (r + 0.5) * rowH + jitterY;
+        final double rotation = (random.nextDouble() - 0.5) * 0.8;
+        final double scale = 0.75 + random.nextDouble() * 0.5;
+        final int type = random.nextInt(12);
+
+        list.add(_DoodlePoint(
+          xRatio: xRatio.clamp(0.05, 0.95),
+          yRatio: yRatio.clamp(0.03, 0.97),
+          rotation: rotation,
+          scale: scale,
+          type: type,
+        ));
+      }
+    }
+    return list;
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final strokePaint = Paint()
+      ..color = const Color(0xFF95416C).withValues(alpha: 0.055)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.3
+      ..strokeCap = StrokeCap.round;
+
+    final fillPaint = Paint()
+      ..color = const Color(0xFFFF6B35).withValues(alpha: 0.03)
+      ..style = PaintingStyle.fill;
+
+    for (final pt in _points) {
+      final double drawX = pt.xRatio * size.width;
+      final double drawY = pt.yRatio * size.height;
+
+      canvas.save();
+      canvas.translate(drawX, drawY);
+      canvas.rotate(pt.rotation);
+      canvas.scale(pt.scale);
+
+      switch (pt.type) {
+        case 0: _drawPaw(canvas, strokePaint, fillPaint); break;
+        case 1: _drawCup(canvas, strokePaint); break;
+        case 2: _drawMochiFace(canvas, strokePaint); break;
+        case 3: _drawSparkle(canvas, strokePaint); break;
+        case 4: _drawStickyNote(canvas, strokePaint); break;
+        case 5: _drawHeart(canvas, strokePaint, fillPaint); break;
+        case 6: _drawPaperPlane(canvas, strokePaint); break;
+        case 7: _drawBobaCup(canvas, strokePaint); break;
+        case 8: _drawClock(canvas, strokePaint); break;
+        case 9: _drawEnvelope(canvas, strokePaint); break;
+        case 10: _drawFish(canvas, strokePaint); break;
+        case 11: _drawPlant(canvas, strokePaint, fillPaint); break;
+      }
+
+      canvas.restore();
+    }
+  }
+
+  void _drawPaw(Canvas canvas, Paint stroke, Paint fill) {
+    canvas.drawCircle(const Offset(0, 4), 5.5, fill);
+    canvas.drawCircle(const Offset(0, 4), 5.5, stroke);
+    canvas.drawCircle(const Offset(-5, -4), 2.2, stroke);
+    canvas.drawCircle(const Offset(0, -7), 2.2, stroke);
+    canvas.drawCircle(const Offset(5, -4), 2.2, stroke);
+  }
+
+  void _drawCup(Canvas canvas, Paint stroke) {
+    final rect = RRect.fromRectAndRadius(const Rect.fromLTRB(-6, -4, 6, 6), const Radius.circular(3));
+    canvas.drawRRect(rect, stroke);
+    final handle = Path()
+      ..moveTo(6, -2)
+      ..arcToPoint(const Offset(6, 4), radius: const Radius.circular(4));
+    canvas.drawPath(handle, stroke);
+  }
+
+  void _drawMochiFace(Canvas canvas, Paint stroke) {
+    canvas.drawCircle(Offset.zero, 8, stroke);
+    canvas.drawCircle(const Offset(-3, -2), 1, stroke);
+    canvas.drawCircle(const Offset(3, -2), 1, stroke);
+    final smile = Path()
+      ..moveTo(-3, 2)
+      ..quadraticBezierTo(0, 5, 3, 2);
+    canvas.drawPath(smile, stroke);
+  }
+
+  void _drawSparkle(Canvas canvas, Paint stroke) {
+    final path = Path()
+      ..moveTo(0, -6)
+      ..lineTo(0, 6)
+      ..moveTo(-6, 0)
+      ..lineTo(6, 0);
+    canvas.drawPath(path, stroke);
+  }
+
+  void _drawStickyNote(Canvas canvas, Paint stroke) {
+    final path = Path()
+      ..moveTo(-6, -6)
+      ..lineTo(6, -6)
+      ..lineTo(6, 4)
+      ..lineTo(3, 6)
+      ..lineTo(-6, 6)
+      ..close();
+    canvas.drawPath(path, stroke);
+  }
+
+  void _drawHeart(Canvas canvas, Paint stroke, Paint fill) {
+    final path = Path()
+      ..moveTo(0, 5)
+      ..cubicTo(-7, -2, -4, -6, 0, -3)
+      ..cubicTo(4, -6, 7, -2, 0, 5);
+    canvas.drawPath(path, fill);
+    canvas.drawPath(path, stroke);
+  }
+
+  void _drawPaperPlane(Canvas canvas, Paint stroke) {
+    final path = Path()
+      ..moveTo(-6, 4)
+      ..lineTo(7, 0)
+      ..lineTo(-6, -6)
+      ..lineTo(-3, -1)
+      ..close()
+      ..moveTo(-3, -1)
+      ..lineTo(7, 0);
+    canvas.drawPath(path, stroke);
+  }
+
+  void _drawBobaCup(Canvas canvas, Paint stroke) {
+    final rect = RRect.fromRectAndRadius(const Rect.fromLTRB(-5, -6, 5, 6), const Radius.circular(2));
+    canvas.drawRRect(rect, stroke);
+    // Straw
+    canvas.drawLine(const Offset(0, -6), const Offset(2, -10), stroke);
+  }
+
+  void _drawClock(Canvas canvas, Paint stroke) {
+    canvas.drawCircle(Offset.zero, 7, stroke);
+    canvas.drawLine(Offset.zero, const Offset(0, -4), stroke);
+    canvas.drawLine(Offset.zero, const Offset(3, 0), stroke);
+  }
+
+  void _drawEnvelope(Canvas canvas, Paint stroke) {
+    final rect = RRect.fromRectAndRadius(const Rect.fromLTRB(-7, -5, 7, 5), const Radius.circular(2));
+    canvas.drawRRect(rect, stroke);
+    final flap = Path()
+      ..moveTo(-7, -5)
+      ..lineTo(0, 0)
+      ..lineTo(7, -5);
+    canvas.drawPath(flap, stroke);
+  }
+
+  void _drawFish(Canvas canvas, Paint stroke) {
+    final path = Path()
+      ..moveTo(-6, 0)
+      ..quadraticBezierTo(0, -5, 5, 0)
+      ..quadraticBezierTo(0, 5, -6, 0)
+      ..lineTo(-9, -4)
+      ..lineTo(-9, 4)
+      ..close();
+    canvas.drawPath(path, stroke);
+  }
+
+  void _drawPlant(Canvas canvas, Paint stroke, Paint fill) {
+    // Pot
+    final pot = Path()
+      ..moveTo(-4, 2)
+      ..lineTo(4, 2)
+      ..lineTo(3, 7)
+      ..lineTo(-3, 7)
+      ..close();
+    canvas.drawPath(pot, stroke);
+    // Leaf arc
+    final leaf = Path()
+      ..moveTo(0, 2)
+      ..quadraticBezierTo(-5, -3, -2, -7)
+      ..quadraticBezierTo(2, -3, 0, 2);
+    canvas.drawPath(leaf, stroke);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _BouncingDots extends StatefulWidget {

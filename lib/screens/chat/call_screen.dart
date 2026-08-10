@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -326,6 +327,7 @@ class _CallScreenState extends State<CallScreen>
   }
 
   void _toggleVideo() {
+    HapticFeedback.selectionClick();
     setState(() {
       _isVideoEnabled = !_isVideoEnabled;
       if (_localStream != null) {
@@ -337,6 +339,7 @@ class _CallScreenState extends State<CallScreen>
   }
 
   void _toggleMute() {
+    HapticFeedback.selectionClick();
     setState(() {
       _isMuted = !_isMuted;
       if (_localStream != null) {
@@ -348,6 +351,7 @@ class _CallScreenState extends State<CallScreen>
   }
 
   void _toggleSpeaker() {
+    HapticFeedback.selectionClick();
     setState(() {
       _isSpeakerOn = !_isSpeakerOn;
       webrtc.Helper.setSpeakerphoneOn(_isSpeakerOn);

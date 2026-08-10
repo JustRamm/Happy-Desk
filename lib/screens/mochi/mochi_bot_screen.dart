@@ -45,6 +45,16 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
   String _cbtTrendSummary = '';
   String _lifeContextSummary = '';
   String _openThreadsSummary = '';
+  int _consecutiveByeCount = 0;
+
+  bool _isGoodbyeText(String text) {
+    final lower = text.toLowerCase().trim();
+    final byeKeywords = [
+      'bye', 'goodbye', 'good night', 'gn', 'cya', 'see ya', 'ttyl',
+      'gotta go', 'take care', 'talk later', 'ok bye', 'byee', 'bye bye'
+    ];
+    return byeKeywords.any((k) => lower == k || lower.contains(k));
+  }
 
   String? _currentSessionId;
   DateTime _sessionStartedAt = DateTime.now();
@@ -102,7 +112,10 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
   String _generateSmartSessionTitle(List<_ChatMessage> messages) {
     if (messages.isEmpty) return 'Mindful Chat';
 
-    final userTexts = messages.where((m) => m.isUser).map((m) => m.text).toList();
+    final userTexts = messages
+        .where((m) => m.isUser)
+        .map((m) => m.text)
+        .toList();
     if (userTexts.isEmpty) return 'Mindful Chat';
 
     final combined = userTexts.join(' ').toLowerCase();
@@ -198,8 +211,6 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
     }
   }
 
-
-
   void summarizeSessionIfNeeded() {
     if (_messages.length < 4) return;
 
@@ -231,21 +242,38 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
     if (savedJson != null && savedJson.isNotEmpty) {
       try {
         final List<dynamic> list = jsonDecode(savedJson);
-        setState(() {
-          _messages.clear();
-          for (var item in list) {
-            _messages.add(_ChatMessage.fromJson(item));
-          }
-        });
-        _scrollToBottom();
-        return;
+        if (list.isNotEmpty && mounted) {
+          setState(() {
+            _messages.clear();
+            for (var item in list) {
+              _messages.add(_ChatMessage.fromJson(item));
+            }
+          });
+          _scrollToBottom();
+          return;
+        }
       } catch (_) {}
     }
 
-    // Keep messages empty for the clean Gemini-style landing screen
-    setState(() {
-      _messages.clear();
-    });
+    // FRESH INSTALL / RE-INSTALL HYDRATION FROM SUPABASE:
+    // If local storage is empty, fetch the user's latest session from Supabase!
+    try {
+      final remoteSessions = await SupabaseService.instance.getMochiSessions();
+      if (remoteSessions.isNotEmpty && mounted) {
+        final latestSession = remoteSessions.first;
+        await _loadSession(latestSession);
+        return;
+      }
+    } catch (e) {
+      debugPrint('Error restoring remote Mochi session on fresh install: $e');
+    }
+
+    // Fallback: Keep messages empty for the clean Gemini-style landing screen
+    if (mounted) {
+      setState(() {
+        _messages.clear();
+      });
+    }
   }
 
   Future<void> _saveMessages() async {
@@ -283,18 +311,77 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
   bool _isSimpleMessage(String text) {
     final t = text.trim().toLowerCase();
     const simplePatterns = {
-      'hi', 'hello', 'halo', 'hey', 'hlo', 'gm', 'good morning',
-      'good afternoon', 'hey mochi', 'hi mochi', 'heyy', 'heya',
-      'bye', 'goodbye', 'bye mochi', 'see ya', 'see you', 'cya',
-      'gn', 'good night', 'goodnight', 'talk later', 'ttyl', 'brb',
-      'thanks', 'thankyou', 'thank you', 'thx', 'tysm', 'ty', 'thank u',
-      'ok', 'okay', 'k', 'got it', 'sure', 'cool', 'nice', 'alright',
-      'fine', 'bet', 'noted', 'gotcha', 'sounds good',
-      'how are you', 'how r u', 'how are u', 'how is it going',
-      "how's it going", "how's everything", 'whats up', "what's up",
-      'sup', 'how was your day', "how's your day", 'how r you',
-      'hmm', 'hmm...', 'ugh', 'bruh', 'bro', 'nvm', 'lol', 'haha',
-      'hehe', 'lmao', 'omg', ':)', ':D', '😊', '🙂',
+      'hi',
+      'hello',
+      'halo',
+      'hey',
+      'hlo',
+      'gm',
+      'good morning',
+      'good afternoon',
+      'hey mochi',
+      'hi mochi',
+      'heyy',
+      'heya',
+      'bye',
+      'goodbye',
+      'bye mochi',
+      'see ya',
+      'see you',
+      'cya',
+      'gn',
+      'good night',
+      'goodnight',
+      'talk later',
+      'ttyl',
+      'brb',
+      'thanks',
+      'thankyou',
+      'thank you',
+      'thx',
+      'tysm',
+      'ty',
+      'thank u',
+      'ok',
+      'okay',
+      'k',
+      'got it',
+      'sure',
+      'cool',
+      'nice',
+      'alright',
+      'fine',
+      'bet',
+      'noted',
+      'gotcha',
+      'sounds good',
+      'how are you',
+      'how r u',
+      'how are u',
+      'how is it going',
+      "how's it going",
+      "how's everything",
+      'whats up',
+      "what's up",
+      'sup',
+      'how was your day',
+      "how's your day",
+      'how r you',
+      'hmm',
+      'hmm...',
+      'ugh',
+      'bruh',
+      'bro',
+      'nvm',
+      'lol',
+      'haha',
+      'hehe',
+      'lmao',
+      'omg',
+      ':)',
+      ':D',
+      '😊',
+      '🙂',
     };
     return simplePatterns.contains(t);
   }
@@ -319,11 +406,16 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
     // Ensure we have a session ID linked to this chat
     if (_currentSessionId == null) {
       _sessionStartedAt = DateTime.now();
-      _currentSessionId = await SupabaseService.instance.saveMochiSession(
+      final user = SupabaseService.instance.currentUser;
+      final uidPart = user != null && user.id.length >= 6 ? user.id.substring(0, 6) : 'anon';
+      final fallbackId = '${DateTime.now().millisecondsSinceEpoch}_$uidPart';
+
+      final createdId = await SupabaseService.instance.saveMochiSession(
         title: text,
         totalMessages: 1,
         startedAt: _sessionStartedAt,
       );
+      _currentSessionId = createdId ?? fallbackId;
     } else {
       SupabaseService.instance.updateMochiSession(
         sessionId: _currentSessionId!,
@@ -382,8 +474,12 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
     try {
       final results = await Future.wait([
         _analyzeIntentWithGemini(text),
-        SupabaseService.instance.getNglJarMessages().catchError((_) => <Map<String, dynamic>>[]),
-        SupabaseService.instance.getWeeklyHeroNominations().catchError((_) => <Map<String, dynamic>>[]),
+        SupabaseService.instance.getNglJarMessages().catchError(
+          (_) => <Map<String, dynamic>>[],
+        ),
+        SupabaseService.instance.getWeeklyHeroNominations().catchError(
+          (_) => <Map<String, dynamic>>[],
+        ),
       ]);
 
       intentAnalysis = results[0] as MochiIntentAnalysis;
@@ -415,12 +511,15 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
         ? myHeroNoms.map((n) => '- "${n['reason']}"').join('\n')
         : 'None';
 
-    final userExtractedNick = _promptService.maybeExtractNicknameFromUserText(text);
+    final userExtractedNick = _promptService.maybeExtractNicknameFromUserText(
+      text,
+    );
     if (userExtractedNick != null && userExtractedNick.isNotEmpty) {
       await UserPreferencesStore.setUserNickname(userExtractedNick);
       if (mounted) {
         setState(() {
-          _userProfileSummary = UserPreferencesStore.getFullUserProfileSummary();
+          _userProfileSummary =
+              UserPreferencesStore.getFullUserProfileSummary();
         });
       }
     }
@@ -435,18 +534,21 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
       );
       final parsed = _promptService.parseModelReply(reply);
 
-      if (parsed.extractedNickname != null && parsed.extractedNickname!.isNotEmpty) {
+      if (parsed.extractedNickname != null &&
+          parsed.extractedNickname!.isNotEmpty) {
         await UserPreferencesStore.setUserNickname(parsed.extractedNickname!);
         if (mounted) {
           setState(() {
-            _userProfileSummary = UserPreferencesStore.getFullUserProfileSummary();
+            _userProfileSummary =
+                UserPreferencesStore.getFullUserProfileSummary();
           });
         }
       } else if (parsed.nicknameDeclined) {
         await UserPreferencesStore.setHasAskedForNickname(true);
         if (mounted) {
           setState(() {
-            _userProfileSummary = UserPreferencesStore.getFullUserProfileSummary();
+            _userProfileSummary =
+                UserPreferencesStore.getFullUserProfileSummary();
           });
         }
       }
@@ -472,7 +574,9 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
         }
       }
 
-      final textToDisplay = parsed.visibleText.isNotEmpty ? parsed.visibleText : reply;
+      final textToDisplay = parsed.visibleText.isNotEmpty
+          ? parsed.visibleText
+          : reply;
 
       // Save user & model turns to Supabase per-timestamp history
       SupabaseService.instance.saveMochiChatMessage(
@@ -750,12 +854,24 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
     // Family Sickness, Illness & Emergency Care
     // Require BOTH a family-member word AND a crisis word to avoid triggering on normal
     // sentences that happen to contain 'mom', 'dad', 'sick', 'family', etc.
-    final hasFamilyMember = lower.contains('mom') || lower.contains('mother') ||
-        lower.contains('dad') || lower.contains('father') || lower.contains('parent') ||
-        lower.contains('sibling') || lower.contains('brother') || lower.contains('sister');
-    final hasCrisisWord = lower.contains('hospital') || lower.contains('cancer') ||
-        lower.contains('accident') || lower.contains('surgery') ||
-        (lower.contains('sick') && (lower.contains('really') || lower.contains('very') || lower.contains('seriously')));
+    final hasFamilyMember =
+        lower.contains('mom') ||
+        lower.contains('mother') ||
+        lower.contains('dad') ||
+        lower.contains('father') ||
+        lower.contains('parent') ||
+        lower.contains('sibling') ||
+        lower.contains('brother') ||
+        lower.contains('sister');
+    final hasCrisisWord =
+        lower.contains('hospital') ||
+        lower.contains('cancer') ||
+        lower.contains('accident') ||
+        lower.contains('surgery') ||
+        (lower.contains('sick') &&
+            (lower.contains('really') ||
+                lower.contains('very') ||
+                lower.contains('seriously')));
     if ((hasFamilyMember && hasCrisisWord) ||
         lower.contains('passed away') ||
         lower.contains('funeral')) {
@@ -829,7 +945,8 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
         lower.contains('dating my manager') ||
         lower.contains('romance') ||
         lower.contains('feelings for') ||
-        (lower.contains('unethical') && (lower.contains('relationship') || lower.contains('dating')))) {
+        (lower.contains('unethical') &&
+            (lower.contains('relationship') || lower.contains('dating')))) {
       return "Here's the straight answer: Do not act on romantic feelings while they are still your direct manager or boss.\n\nFalling for a manager happens, but pursuing a connection across a direct reporting line creates significant workplace and ethical risks:\n\n• Power Dynamic & Ethics: It compromises objective performance reviews, task assignments, and team credibility.\n• HR Policies: Most organizations have strict non-fraternization policies for direct reporting lines.\n\nIf the feelings are serious, either maintain strict professional boundaries or explore transferring to a different team before pursuing anything further.";
     }
 
@@ -858,10 +975,12 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
       'good evening',
       'howdy',
       'yo',
-      'sup'
+      'sup',
     ];
     if (greetingWords.contains(lower) ||
-        greetingWords.any((g) => lower.startsWith('$g ') || lower.endsWith(' $g'))) {
+        greetingWords.any(
+          (g) => lower.startsWith('$g ') || lower.endsWith(' $g'),
+        )) {
       final namePart = firstName.isNotEmpty ? ' $firstName' : '';
       return "Hey$namePart! How's your day going so far?";
     }
@@ -979,7 +1098,8 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
       final remainder = trimmed.substring(lastMatchEnd).trim();
       if (remainder.isNotEmpty) {
         if (rawSentences.isNotEmpty) {
-          rawSentences[rawSentences.length - 1] = '${rawSentences.last} $remainder';
+          rawSentences[rawSentences.length - 1] =
+              '${rawSentences.last} $remainder';
         } else {
           rawSentences.add(remainder);
         }
@@ -1025,7 +1145,8 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
     } else if (lower.contains('talk less') ||
         lower.contains('more sparse') ||
         lower.contains('shorter replies')) {
-    } else if (lower.contains('talk more') || lower.contains('more talkative')) {
+    } else if (lower.contains('talk more') ||
+        lower.contains('more talkative')) {
       await UserPreferencesStore.setMochiStylePreference(
         'Be slightly more talkative and expansive.',
       );
@@ -1033,7 +1154,11 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
   }
 
   // Meta complaint / repetition check
-  String _getDomainFallbackResponse(String userText, String firstName, String lower) {
+  String _getDomainFallbackResponse(
+    String userText,
+    String firstName,
+    String lower,
+  ) {
     final namePart = firstName.isNotEmpty ? ' $firstName' : '';
     if (lower.contains('just said that') ||
         lower.contains('already said that') ||
@@ -1104,26 +1229,42 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
         if (response.statusCode == 200) {
           return response;
         } else if (response.statusCode == 429) {
-          debugPrint('Gemini model $modelName hit 429 Quota Exceeded. Instantly failing over to next candidate...');
+          debugPrint(
+            'Gemini model $modelName hit 429 Quota Exceeded. Instantly failing over to next candidate...',
+          );
           continue;
         } else {
-          debugPrint('Gemini model $modelName status ${response.statusCode}, failing over to next model candidate...');
+          debugPrint(
+            'Gemini model $modelName status ${response.statusCode}, failing over to next model candidate...',
+          );
         }
       } catch (e) {
-        debugPrint('Gemini model $modelName call failed ($e), trying next candidate...');
+        debugPrint(
+          'Gemini model $modelName call failed ($e), trying next candidate...',
+        );
       }
     }
     return null;
   }
 
-  Future<MochiIntentAnalysis> _analyzeIntentWithGemini(String userPrompt) async {
+  Future<MochiIntentAnalysis> _analyzeIntentWithGemini(
+    String userPrompt,
+  ) async {
     await _promptService.ensureLoaded();
 
     final recentHistory = _messages.length > 6
-        ? _messages.sublist(_messages.length - 6).map((m) => '${m.isUser ? "User" : "Mochi"}: ${m.text}').toList()
-        : _messages.map((m) => '${m.isUser ? "User" : "Mochi"}: ${m.text}').toList();
+        ? _messages
+              .sublist(_messages.length - 6)
+              .map((m) => '${m.isUser ? "User" : "Mochi"}: ${m.text}')
+              .toList()
+        : _messages
+              .map((m) => '${m.isUser ? "User" : "Mochi"}: ${m.text}')
+              .toList();
 
-    final intentPrompt = _promptService.buildIntentAnalysisPrompt(userPrompt, recentHistory);
+    final intentPrompt = _promptService.buildIntentAnalysisPrompt(
+      userPrompt,
+      recentHistory,
+    );
 
     final payload = {
       "contents": [
@@ -1132,7 +1273,7 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
           "parts": [
             {"text": intentPrompt},
           ],
-        }
+        },
       ],
       "generationConfig": {
         "temperature": 0.2,
@@ -1142,7 +1283,10 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
     };
 
     try {
-      final response = await _postGeminiWithFailover(payload, timeout: const Duration(seconds: 6));
+      final response = await _postGeminiWithFailover(
+        payload,
+        timeout: const Duration(seconds: 6),
+      );
 
       if (response != null && response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -1172,9 +1316,17 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
     final config = _promptService.config;
 
     final sessionMemory = await UserPreferencesStore.getMochiSessionSummary();
-    final stylePreference = await UserPreferencesStore.getMochiStylePreference();
+    final stylePreference =
+        await UserPreferencesStore.getMochiStylePreference();
     final moodTrendSummary =
         await UserPreferencesStore.getMochiMoodTrendSummary();
+
+    final isGoodbye = intentAnalysis?.isGoodbye ?? _isGoodbyeText(userPrompt);
+    if (isGoodbye) {
+      _consecutiveByeCount++;
+    } else {
+      _consecutiveByeCount = 0;
+    }
 
     final baseSystemInstruction = _promptService.buildSystemInstruction(
       isClockedIn: _isClockedIn,
@@ -1189,14 +1341,21 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
       coffeeHistorySummary: _coffeeHistorySummary,
       cbtTrendSummary: _cbtTrendSummary,
       intentAnalysis: intentAnalysis,
-      detectedDistortions: detectedDistortions ?? intentAnalysis?.detectedDistortions,
+      detectedDistortions:
+          detectedDistortions ?? intentAnalysis?.detectedDistortions,
       nglJarSummary: nglJarSummary,
       weeklyHeroSummary: weeklyHeroSummary,
-      lifeContextSummary: _lifeContextSummary.isNotEmpty ? _lifeContextSummary : null,
-      openThreadsSummary: _openThreadsSummary.isNotEmpty ? _openThreadsSummary : null,
+      lifeContextSummary: _lifeContextSummary.isNotEmpty
+          ? _lifeContextSummary
+          : null,
+      openThreadsSummary: _openThreadsSummary.isNotEmpty
+          ? _openThreadsSummary
+          : null,
+      consecutiveByeCount: _consecutiveByeCount,
     );
 
-    final systemInstruction = "$baseSystemInstruction\n\nCRITICAL CONCISENESS & ANTI-BOT RULE: Be direct, genuine, and concise (1-2 short paragraphs max). DO NOT use repetitive filler phrases like 'Mochi is listening', 'I'm right here with you', 'I hear where you're coming from', or forced AI validation preambles. Speak naturally like a real human friend.";
+    final systemInstruction =
+        "$baseSystemInstruction\n\nCRITICAL CONCISENESS & ANTI-BOT RULE: Be direct, genuine, and concise (1-2 short paragraphs max). DO NOT use repetitive filler phrases like 'Mochi is listening', 'I'm right here with you', 'I hear where you're coming from', or forced AI validation preambles. Speak naturally like a real human friend.";
 
     // Build multi-turn chat history.
     final List<Map<String, dynamic>> contents = [];
@@ -1249,7 +1408,10 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
     };
 
     try {
-      var response = await _postGeminiWithFailover(payload, timeout: const Duration(seconds: 12));
+      var response = await _postGeminiWithFailover(
+        payload,
+        timeout: const Duration(seconds: 12),
+      );
 
       if (response != null && response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -1260,7 +1422,9 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
         }
       }
 
-      debugPrint('Mochi primary failover exhausted, trying single-turn prompt...');
+      debugPrint(
+        'Mochi primary failover exhausted, trying single-turn prompt...',
+      );
 
       // Fallback 1: Single Turn Failover across models
       final singleTurnPayload = {
@@ -1270,7 +1434,7 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
             "parts": [
               {"text": "$systemInstruction\n\nUser Query: $userPrompt"},
             ],
-          }
+          },
         ],
         "generationConfig": {
           "temperature": config.temperature,
@@ -1278,7 +1442,10 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
         },
       };
 
-      response = await _postGeminiWithFailover(singleTurnPayload, timeout: const Duration(seconds: 8));
+      response = await _postGeminiWithFailover(
+        singleTurnPayload,
+        timeout: const Duration(seconds: 8),
+      );
 
       if (response != null && response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -1327,27 +1494,45 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
   }
 
   Future<void> _renameSession(String sessionId, String currentTitle) async {
-    final TextEditingController controller = TextEditingController(text: currentTitle);
+    final TextEditingController controller = TextEditingController(
+      text: currentTitle,
+    );
     final newTitle = await showDialog<String>(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Text(
             'Rename Conversation',
-            style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF171B2B)),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF171B2B),
+            ),
           ),
           content: TextField(
             controller: controller,
             autofocus: true,
-            style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF171B2B)),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF171B2B),
+            ),
             decoration: InputDecoration(
               hintText: 'Enter new title...',
-              hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.grey),
+              hintStyle: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                color: Colors.grey,
+              ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFAB3500), width: 1.8),
+                borderSide: const BorderSide(
+                  color: Color(0xFFAB3500),
+                  width: 1.8,
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -1358,7 +1543,13 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF8D7168), fontWeight: FontWeight.w700)),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.plusJakartaSans(
+                  color: const Color(0xFF8D7168),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, controller.text.trim()),
@@ -1366,9 +1557,14 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
                 backgroundColor: const Color(0xFFAB3500),
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: Text('Save', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800)),
+              child: Text(
+                'Save',
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
+              ),
             ),
           ],
         );
@@ -1378,7 +1574,8 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
     if (newTitle != null && newTitle.isNotEmpty && newTitle != currentTitle) {
       try {
         final prefs = await SharedPreferences.getInstance();
-        final String raw = prefs.getString('mochi_saved_sessions_local') ?? '[]';
+        final String raw =
+            prefs.getString('mochi_saved_sessions_local') ?? '[]';
         final List<dynamic> list = jsonDecode(raw);
         for (var item in list) {
           if (item['id']?.toString() == sessionId) {
@@ -1430,9 +1627,11 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
     }
 
     combined.sort((a, b) {
-      final dateA = DateTime.tryParse(a['ended_at'] ?? a['started_at'] ?? '') ??
+      final dateA =
+          DateTime.tryParse(a['ended_at'] ?? a['started_at'] ?? '') ??
           DateTime(2000);
-      final dateB = DateTime.tryParse(b['ended_at'] ?? b['started_at'] ?? '') ??
+      final dateB =
+          DateTime.tryParse(b['ended_at'] ?? b['started_at'] ?? '') ??
           DateTime(2000);
       return dateB.compareTo(dateA);
     });
@@ -1459,24 +1658,31 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
     // 3. Persist summary to Supabase
     final localSummary = await UserPreferencesStore.getMochiSessionSummary();
     if (localSummary != null && localSummary.trim().isNotEmpty) {
-      SupabaseService.instance.saveMochiSessionSummary(
-        summaryText: localSummary,
-        totalTurns: _messages.length,
-      ).catchError((_) {});
+      SupabaseService.instance
+          .saveMochiSessionSummary(
+            summaryText: localSummary,
+            totalTurns: _messages.length,
+          )
+          .catchError((_) {});
     }
 
     // 4. Save/update session in Supabase
     if (_currentSessionId != null) {
-      SupabaseService.instance.updateMochiSession(
-        sessionId: _currentSessionId!,
-        totalMessages: _messages.length,
-      ).catchError((_) {});
+      SupabaseService.instance
+          .updateMochiSession(
+            sessionId: _currentSessionId!,
+            totalMessages: _messages.length,
+          )
+          .catchError((_) {});
     } else {
-      SupabaseService.instance.saveMochiSession(
-        title: title,
-        totalMessages: _messages.length,
-        startedAt: sessionStart,
-      ).then((_) {}).catchError((_) => null);
+      SupabaseService.instance
+          .saveMochiSession(
+            title: title,
+            totalMessages: _messages.length,
+            startedAt: sessionStart,
+          )
+          .then((_) {})
+          .catchError((_) => null);
     }
 
     // 5. Clear active local chat & reset session state
@@ -1495,8 +1701,11 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.check_circle_rounded,
-                color: Colors.white, size: 18),
+            const Icon(
+              Icons.check_circle_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
             const SizedBox(width: 10),
             Text(
               'Chat saved — start fresh with Mochi!',
@@ -1542,10 +1751,17 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
               ),
               const SizedBox(width: 16),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.history_rounded, color: Color(0xFF95416C), size: 24),
+                    const Icon(
+                      Icons.history_rounded,
+                      color: Color(0xFF95416C),
+                      size: 24,
+                    ),
                     const SizedBox(width: 10),
                     Text(
                       'Past Conversations',
@@ -1557,7 +1773,10 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Color(0xFF8D7168)),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Color(0xFF8D7168),
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -1570,7 +1789,9 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(
-                        child: CircularProgressIndicator(color: Color(0xFF95416C)),
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF95416C),
+                        ),
                       );
                     }
                     final sessions = snapshot.data ?? [];
@@ -1579,8 +1800,11 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.chat_bubble_outline_rounded,
-                                size: 48, color: Color(0xFFD1C7C4)),
+                            const Icon(
+                              Icons.chat_bubble_outline_rounded,
+                              size: 48,
+                              color: Color(0xFFD1C7C4),
+                            ),
                             const SizedBox(height: 12),
                             Text(
                               'No saved conversations yet',
@@ -1595,18 +1819,24 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
                       );
                     }
                     return ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       itemCount: sessions.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 8),
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final sess = sessions[index];
                         final title = sess['title'] ?? 'Untitled Chat';
-                        final String? rawDate = sess['ended_at'] ?? sess['started_at'];
+                        final String? rawDate =
+                            sess['ended_at'] ?? sess['started_at'];
                         String dateStr = '';
                         if (rawDate != null) {
                           final dt = DateTime.tryParse(rawDate)?.toLocal();
                           if (dt != null) {
-                            dateStr = '${dt.day}/${dt.month}/${dt.year} at ${dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour)}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour >= 12 ? 'PM' : 'AM'}';
+                            dateStr =
+                                '${dt.day}/${dt.month}/${dt.year} at ${dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour)}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour >= 12 ? 'PM' : 'AM'}';
                           }
                         }
                         final isCurrent = sess['id'] == _currentSessionId;
@@ -1620,10 +1850,14 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: isCurrent ? const Color(0xFFFFF0EB) : const Color(0xFFFAF9F8),
+                              color: isCurrent
+                                  ? const Color(0xFFFFF0EB)
+                                  : const Color(0xFFFAF9F8),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: isCurrent ? const Color(0xFFAB3500) : const Color(0xFFE4E7FE),
+                                color: isCurrent
+                                    ? const Color(0xFFAB3500)
+                                    : const Color(0xFFE4E7FE),
                                 width: isCurrent ? 1.5 : 1.0,
                               ),
                             ),
@@ -1632,19 +1866,24 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: isCurrent ? const Color(0xFFAB3500) : const Color(0xFFF3F2FF),
+                                    color: isCurrent
+                                        ? const Color(0xFFAB3500)
+                                        : const Color(0xFFF3F2FF),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
                                     Icons.chat_rounded,
                                     size: 18,
-                                    color: isCurrent ? Colors.white : const Color(0xFF95416C),
+                                    color: isCurrent
+                                        ? Colors.white
+                                        : const Color(0xFF95416C),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
@@ -1653,19 +1892,27 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
                                               title,
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
-                                              style: GoogleFonts.plusJakartaSans(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w700,
-                                                color: const Color(0xFF171B2B),
-                                              ),
+                                              style:
+                                                  GoogleFonts.plusJakartaSans(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: const Color(
+                                                      0xFF171B2B,
+                                                    ),
+                                                  ),
                                             ),
                                           ),
                                           GestureDetector(
                                             onTap: () {
-                                              _renameSession(sess['id'].toString(), title);
+                                              _renameSession(
+                                                sess['id'].toString(),
+                                                title,
+                                              );
                                             },
                                             child: const Padding(
-                                              padding: EdgeInsets.symmetric(horizontal: 4.0),
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 4.0,
+                                              ),
                                               child: Icon(
                                                 Icons.edit_outlined,
                                                 size: 16,
@@ -1686,7 +1933,10 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
                                     ],
                                   ),
                                 ),
-                                const Icon(Icons.chevron_right_rounded, color: Color(0xFF8D7168)),
+                                const Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: Color(0xFF8D7168),
+                                ),
                               ],
                             ),
                           ),
@@ -1720,7 +1970,9 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
 
     // 2. If not found locally, fetch from Supabase
     if (loadedMsgs.isEmpty && sessionId != null) {
-      final rawMsgs = await SupabaseService.instance.getMochiSessionMessages(sessionId);
+      final rawMsgs = await SupabaseService.instance.getMochiSessionMessages(
+        sessionId,
+      );
       for (var m in rawMsgs) {
         final msgText = m['message'] as String? ?? '';
         final isUser = m['is_user'] as bool? ?? false;
@@ -1731,7 +1983,9 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
         if (rawCreatedAt != null) {
           final dt = DateTime.tryParse(rawCreatedAt)?.toLocal();
           if (dt != null) {
-            final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+            final h = dt.hour > 12
+                ? dt.hour - 12
+                : (dt.hour == 0 ? 12 : dt.hour);
             final min = dt.minute.toString().padLeft(2, '0');
             final ampm = dt.hour >= 12 ? 'PM' : 'AM';
             formattedTime = '$h:$min $ampm';
@@ -1829,7 +2083,9 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
 
             // Gemini-Style Welcome Headline
             Text(
-              firstName.isNotEmpty ? "What's next, $firstName?" : "What's next today?",
+              firstName.isNotEmpty
+                  ? "What's next, $firstName?"
+                  : "What's next today?",
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 26,
@@ -1861,10 +2117,30 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
               runSpacing: 10,
               alignment: WrapAlignment.center,
               children: [
-                _buildSuggestionChip("De-stress Reset", Icons.self_improvement_rounded, "Help me de-stress after a long meeting", avatarExpression: 'assets/mochi/mochi_relaxed.svg'),
-                _buildSuggestionChip("Vent about Workload", Icons.chat_bubble_outline_rounded, "I'm feeling overwhelmed with my tasks today", avatarExpression: 'assets/mochi/mochi_thinking.svg'),
-                _buildSuggestionChip("Coffee Break", Icons.coffee_rounded, "I need a quick 2-minute mental reset", avatarExpression: 'assets/mochi/mochi_relaxed.svg'),
-                _buildSuggestionChip("Focus & Goals", Icons.center_focus_strong_rounded, "Give me a quick action plan for my priorities", avatarExpression: 'assets/mochi/mochi_cheering.svg'),
+                _buildSuggestionChip(
+                  "De-stress Reset",
+                  Icons.self_improvement_rounded,
+                  "Help me de-stress after a long meeting",
+                  avatarExpression: 'assets/mochi/mochi_relaxed.svg',
+                ),
+                _buildSuggestionChip(
+                  "Vent about Workload",
+                  Icons.chat_bubble_outline_rounded,
+                  "I'm feeling overwhelmed with my tasks today",
+                  avatarExpression: 'assets/mochi/mochi_thinking.svg',
+                ),
+                _buildSuggestionChip(
+                  "Coffee Break",
+                  Icons.coffee_rounded,
+                  "I need a quick 2-minute mental reset",
+                  avatarExpression: 'assets/mochi/mochi_relaxed.svg',
+                ),
+                _buildSuggestionChip(
+                  "Focus & Goals",
+                  Icons.center_focus_strong_rounded,
+                  "Give me a quick action plan for my priorities",
+                  avatarExpression: 'assets/mochi/mochi_cheering.svg',
+                ),
               ],
             ),
 
@@ -1875,7 +2151,12 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
     );
   }
 
-  Widget _buildSuggestionChip(String label, IconData icon, String fullPrompt, {String? avatarExpression}) {
+  Widget _buildSuggestionChip(
+    String label,
+    IconData icon,
+    String fullPrompt, {
+    String? avatarExpression,
+  }) {
     return InkWell(
       onTap: () {
         if (avatarExpression != null && mounted) {
@@ -2034,10 +2315,14 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
                           final msg = _messages[index];
                           // Render Mochi avatar ONLY on the last (latest) message of a bot group
                           final bool isNextAlsoBot =
-                              (index + 1 < _messages.length) && !_messages[index + 1].isUser;
+                              (index + 1 < _messages.length) &&
+                              !_messages[index + 1].isUser;
                           final bool showAvatar = !msg.isUser && !isNextAlsoBot;
 
-                          final bubble = _buildMessageBubble(msg, showAvatar: showAvatar);
+                          final bubble = _buildMessageBubble(
+                            msg,
+                            showAvatar: showAvatar,
+                          );
                           if (msg.isNew) {
                             return _AnimatedMessageBubble(
                               message: msg,
@@ -2051,7 +2336,6 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
                       },
                     ),
             ),
-
 
             // Clean Floating Conversational Input Field (Multiline, line wrap & max height)
             Container(
@@ -2136,6 +2420,29 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
     );
   }
 
+  String _selectOreoSvgForText(String text) {
+    final lower = text.toLowerCase();
+    if (lower.contains('sleep') || lower.contains('nap') || lower.contains('tired') || lower.contains('zzz')) {
+      return 'assets/oreo/oreo_sleeping.svg';
+    }
+    if (lower.contains('walk') || lower.contains('stroll') || lower.contains('paws')) {
+      return 'assets/oreo/oreo_walking.svg';
+    }
+    if (lower.contains('laptop') || lower.contains('work') || lower.contains('typing') || lower.contains('code')) {
+      return 'assets/oreo/oreo_typing_laptop.svg';
+    }
+    if (lower.contains('stretch') || lower.contains('morning')) {
+      return 'assets/oreo/oreo_stretching.svg';
+    }
+    if (lower.contains('wave') || lower.contains('hello') || lower.contains('hi')) {
+      return 'assets/oreo/oreo_waving.svg';
+    }
+    if (lower.contains('eat') || lower.contains('nom') || lower.contains('snack')) {
+      return 'assets/oreo/oreo_eating.svg';
+    }
+    return 'assets/oreo/oreo_cat.svg';
+  }
+
   Widget _buildMessageBubble(_ChatMessage message, {bool showAvatar = true}) {
     final bubble = IntrinsicWidth(
       child: Container(
@@ -2144,161 +2451,169 @@ class AiWellnessBotScreenState extends State<MochiBotScreen> {
           minWidth: 48,
           maxWidth: MediaQuery.of(context).size.width * 0.78,
         ),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: message.isUser ? const Color(0xFF95416C) : Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(22),
-          topRight: const Radius.circular(22),
-          bottomLeft: Radius.circular(message.isUser ? 22 : 4),
-          bottomRight: Radius.circular(message.isUser ? 4 : 22),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: message.isUser ? const Color(0xFF95416C) : Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(22),
+            topRight: const Radius.circular(22),
+            bottomLeft: Radius.circular(message.isUser ? 22 : 4),
+            bottomRight: Radius.circular(message.isUser ? 4 : 22),
+          ),
+          border: message.isUser
+              ? null
+              : Border.all(color: const Color(0xFFE4E7FE)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        border: message.isUser
-            ? null
-            : Border.all(color: const Color(0xFFE4E7FE)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            message.text.replaceAll('[OREO_CAT]', '').trim(),
-            style: GoogleFonts.beVietnamPro(
-              fontSize: 13.5,
-              height: 1.45,
-              color: message.isUser ? Colors.white : const Color(0xFF171B2B),
-            ),
-          ),
-          if (!message.isUser && (message.text.contains('[OREO_CAT]') || message.text.toLowerCase().contains('oreo'))) ...[
-            const SizedBox(height: 10),
-            Container(
-              height: 120,
-              width: 120,
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF0EB),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFFFDBD0)),
-              ),
-              child: SvgPicture.asset(
-                'assets/mochi/oreo_cat.svg',
-                fit: BoxFit.contain,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              message.text.replaceAll('[OREO_CAT]', '').trim(),
+              style: GoogleFonts.beVietnamPro(
+                fontSize: 13.5,
+                height: 1.45,
+                color: message.isUser ? Colors.white : const Color(0xFF171B2B),
               ),
             ),
-          ],
-          if (!message.isUser && message.actionType != null) ...[
-            const SizedBox(height: 12),
-            if (message.actionType == 'breathing')
-              ElevatedButton.icon(
-                onPressed: () => BoxBreathingModal.show(context),
-                icon: const Icon(Icons.self_improvement_rounded, size: 16),
-                label: Text(
-                  'Start 60s Breathing Reset',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
+            if (!message.isUser &&
+                (message.text.contains('[OREO_CAT]') ||
+                    message.text.toLowerCase().contains('oreo'))) ...[
+              const SizedBox(height: 10),
+              Container(
+                height: 120,
+                width: 120,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF0EB),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFFFDBD0)),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFF0EB),
-                  foregroundColor: const Color(0xFFAB3500),
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: Color(0xFFFFD6C7)),
-                  ),
-                ),
-              ),
-            if (message.actionType == 'stretches')
-              ElevatedButton.icon(
-                onPressed: () => DeskStretchesModal.show(context),
-                icon: const Icon(Icons.fitness_center_rounded, size: 16),
-                label: Text(
-                  'Start 3-Min Desk Stretches',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF3F2FF),
-                  foregroundColor: const Color(0xFF95416C),
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: Color(0xFFE4E7FE)),
-                  ),
-                ),
-              ),
-            if (message.actionType == 'cbt_reframe')
-              ElevatedButton.icon(
-                onPressed: () => _handleSendMessage(
-                  'Can you help me examine the evidence for this thought and reframe it?',
-                ),
-                icon: const Icon(Icons.psychology_rounded, size: 16),
-                label: Text(
-                  'Examine Evidence & Reframe Thought',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEFF6FF),
-                  foregroundColor: const Color(0xFF1D4ED8),
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: Color(0xFFBFDBFE)),
-                  ),
-                ),
-              ),
-          ],
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                message.time,
-                style: GoogleFonts.beVietnamPro(
-                  fontSize: 10,
-                  color: message.isUser
-                      ? Colors.white70
-                      : const Color(0xFF8D7168),
+                child: SvgPicture.asset(
+                  _selectOreoSvgForText(message.text),
+                  fit: BoxFit.contain,
                 ),
               ),
             ],
-          ),
-        ],
+            if (!message.isUser && message.actionType != null) ...[
+              const SizedBox(height: 12),
+              if (message.actionType == 'breathing')
+                ElevatedButton.icon(
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    BoxBreathingModal.show(context);
+                  },
+                  icon: const Icon(Icons.self_improvement_rounded, size: 16),
+                  label: Text(
+                    'Start 60s Breathing Reset',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFF0EB),
+                    foregroundColor: const Color(0xFFAB3500),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: Color(0xFFFFD6C7)),
+                    ),
+                  ),
+                ),
+              if (message.actionType == 'stretches')
+                ElevatedButton.icon(
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    DeskStretchesModal.show(context);
+                  },
+                  icon: const Icon(Icons.fitness_center_rounded, size: 16),
+                  label: Text(
+                    'Start 3-Min Desk Stretches',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF3F2FF),
+                    foregroundColor: const Color(0xFF95416C),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: Color(0xFFE4E7FE)),
+                    ),
+                  ),
+                ),
+              if (message.actionType == 'cbt_reframe')
+                ElevatedButton.icon(
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    _handleSendMessage(
+                      'Can you help me examine the evidence for this thought and reframe it?',
+                    );
+                  },
+                  icon: const Icon(Icons.psychology_rounded, size: 16),
+                  label: Text(
+                    'Examine Evidence & Reframe Thought',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEFF6FF),
+                    foregroundColor: const Color(0xFF1D4ED8),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: Color(0xFFBFDBFE)),
+                    ),
+                  ),
+                ),
+            ],
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  message.time,
+                  style: GoogleFonts.beVietnamPro(
+                    fontSize: 10,
+                    color: message.isUser
+                        ? Colors.white70
+                        : const Color(0xFF8D7168),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
 
     if (message.isUser) {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: bubble,
-      );
+      return Align(alignment: Alignment.centerRight, child: bubble);
     }
 
     return Align(
@@ -2405,9 +2720,12 @@ class __MochiListeningIndicatorState extends State<_MochiListeningIndicator>
                     mainAxisSize: MainAxisSize.min,
                     children: List.generate(3, (index) {
                       final double delay = index * 0.22;
-                      final double val = math.sin(((progress - delay) % 1.0) * math.pi * 2);
+                      final double val = math.sin(
+                        ((progress - delay) % 1.0) * math.pi * 2,
+                      );
                       final double translateY = (val > 0 ? val : 0) * -5.0;
-                      final double opacity = 0.35 + ((val > 0 ? val : 0) * 0.65);
+                      final double opacity =
+                          0.35 + ((val > 0 ? val : 0) * 0.65);
 
                       return Container(
                         margin: EdgeInsets.only(right: index < 2 ? 5 : 0),
@@ -2441,10 +2759,7 @@ class __MochiListeningIndicatorState extends State<_MochiListeningIndicator>
 class _AnimatedMessageBubble extends StatefulWidget {
   final Widget child;
   final _ChatMessage message;
-  const _AnimatedMessageBubble({
-    required this.child,
-    required this.message,
-  });
+  const _AnimatedMessageBubble({required this.child, required this.message});
 
   @override
   State<_AnimatedMessageBubble> createState() => __AnimatedMessageBubbleState();
@@ -2463,16 +2778,14 @@ class __AnimatedMessageBubbleState extends State<_AnimatedMessageBubble>
       vsync: this,
       duration: const Duration(milliseconds: 350),
     );
-    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
-    );
+    _opacityAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0.0, 0.15),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
     _controller.forward().then((_) {
       if (mounted) {
@@ -2491,10 +2804,7 @@ class __AnimatedMessageBubbleState extends State<_AnimatedMessageBubble>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _opacityAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: widget.child,
-      ),
+      child: SlideTransition(position: _slideAnimation, child: widget.child),
     );
   }
 }

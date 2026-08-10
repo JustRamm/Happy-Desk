@@ -28,26 +28,23 @@ final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 // Scenario 6: markUserInitiatedSignOut() and userInitiatedSignOut flag
 // are now located in services/sign_out_flag.dart.
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+late final Future<void> appInitFuture;
 
+Future<void> _initializeApp() async {
   try {
     await dotenv.load(fileName: ".env");
   } catch (_) {}
 
-  try {
-    await SupabaseService.instance.init();
-  } catch (e) {
-    debugPrint('Supabase init error: $e');
-  }
+  await Future.wait([
+    SupabaseService.instance.init().catchError((e) {
+      debugPrint('Supabase init error: $e');
+    }),
+    UserPreferencesStore.loadProfileData().catchError((e) {
+      debugPrint('UserPrefs load error: $e');
+    }),
+  ]);
 
-  try {
-    await UserPreferencesStore.loadProfileData();
-  } catch (e) {
-    debugPrint('UserPrefs load error: $e');
-  }
-
-  // Non-blocking background hardware & prompt initialization (does NOT delay runApp)
+  // Non-blocking background hardware & prompt initialization
   availableCameras().then((cameras) {
     availableDeviceCameras = cameras;
   }).catchError((e) {
@@ -59,6 +56,13 @@ void main() async {
   // Initialize Background Session & Sync Managers
   SessionManagerService.instance.initialize();
   OfflineSyncService.instance.initialize();
+}
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Kick off initialization asynchronously in background
+  appInitFuture = _initializeApp();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -69,7 +73,6 @@ void main() async {
   );
 
   // Intercept known Flutter Web engine browser window resize assertion errors
-  // (e.g. ViewInsets cannot be negative when resizing devtools or browser viewport)
   FlutterError.onError = (FlutterErrorDetails details) {
     final msg = details.exceptionAsString();
     if (msg.contains('ViewInsets') || msg.contains('isNonNegative')) {
@@ -91,6 +94,7 @@ void main() async {
     return GlobalCrashScreen(errorDetails: details);
   };
 
+  // Mount Flutter app UI immediately on frame 1 to eliminate native boot screen delay
   runApp(const UAndMeApp());
 }
 

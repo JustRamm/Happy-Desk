@@ -1,0 +1,82 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Soft Latte Brown Cat Body Gradient -->
+    <linearGradient id="catLatte" x1="40" y1="30" x2="200" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A5795C" />
+      <stop offset="100%" stop-color="#7C543A" />
+    </linearGradient>
+    <!-- Soft Cream Muzzle/Chest Gradient -->
+    <linearGradient id="catCream" x1="120" y1="110" x2="120" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#FFF5EA" />
+    </linearGradient>
+    <filter id="shadow" x="20" y="180" width="200" height="45" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="6" />
+    </filter>
+  </defs>
+
+  <!-- Ambient Ground Shadow -->
+  <ellipse cx="120" cy="202" rx="70" ry="12" fill="#4A2E1B" fill-opacity="0.18" filter="url(#shadow)" />
+
+  <!-- Fluffy Cat Tail -->
+  <path d="M165 160C190 152 205 125 192 105C184 94 172 102 180 114C188 126 178 144 160 152Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- White Tail Tip -->
+  <path d="M192 105C184 94 172 102 180 114C184 108 189 104 192 105Z" fill="#FFFFFF" stroke="#4A2E1B" stroke-width="2"/>
+
+  <!-- Main Sitting Cat Body -->
+  <path d="M52 145C42 185 62 202 120 202C178 202 198 185 188 145C182 125 170 120 120 120C70 120 58 125 52 145Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Cream White Chest Bib -->
+  <path d="M85 138C85 138 100 198 120 198C140 198 155 138 155 138Z" fill="url(#catCream)" stroke="#4A2E1B" stroke-width="2"/>
+
+  <!-- Cute Round Cat Head -->
+  <path d="M40 100C30 55 65 38 120 38C175 38 210 55 200 100C192 135 165 142 120 142C75 142 48 135 40 100Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Ears -->
+  <path d="M60 48L42 16C42 16 75 22 84 42Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M58 42L48 24C48 24 68 28 72 38Z" fill="#FFB8D1"/>
+
+  <path d="M180 48L198 16C198 16 165 22 156 42Z" fill="url(#catLatte)" stroke="#4A2E1B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M182 42L192 24C192 24 172 28 168 38Z" fill="#FFB8D1"/>
+
+  <!-- Cream White Muzzle Patch -->
+  <ellipse cx="120" cy="115" rx="36" ry="20" fill="url(#catCream)" stroke="#4A2E1B" stroke-width="2.5"/>
+
+  <!-- Soft Pastel Pink Cheeks -->
+  <ellipse cx="66" cy="108" rx="14" ry="8" fill="#FFB8D1" fill-opacity="0.8" />
+  <ellipse cx="174" cy="108" rx="14" ry="8" fill="#FFB8D1" fill-opacity="0.8" />
+
+  <!-- Blissful Closed Eyes (^ ^) -->
+  <path d="M74 88Q84 78 94 88" stroke="#4A2E1B" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+  <path d="M146 88Q156 78 166 88" stroke="#4A2E1B" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+
+  <!-- Tiny Pink Heart Nose & Wide Nom Mouth -->
+  <path d="M120 102C118 99 114 99 114 102C114 105 120 108 120 108C120 108 126 105 126 102C126 99 122 99 120 102Z" fill="#FF70A6"/>
+  <path d="M110 110C110 124 130 124 130 110Z" fill="#FF70A6" stroke="#4A2E1B" stroke-width="2.5"/>
+
+  <!-- Whiskers -->
+  <path d="M68 112L46 110M66 120L44 122" stroke="#4A2E1B" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M172 112L194 110M174 120L196 122" stroke="#4A2E1B" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Big Delicious Oreo Cookie up at mouth 🍪 -->
+  <!-- Bottom Chocolate Wafer -->
+  <ellipse cx="120" cy="138" rx="28" ry="16" fill="#2A170D" stroke="#4A2E1B" stroke-width="2.5"/>
+  <!-- Cream Layer -->
+  <ellipse cx="120" cy="134" rx="26" ry="14" fill="#FFFFFF"/>
+  <!-- Top Chocolate Wafer -->
+  <ellipse cx="120" cy="130" rx="28" ry="16" fill="#2A170D" stroke="#4A2E1B" stroke-width="2.5"/>
+  <circle cx="120" cy="130" r="5" fill="#FDE68A"/>
+
+  <!-- Paws holding cookie tightly -->
+  <ellipse cx="90" cy="138" rx="10" ry="12" fill="url(#catCream)" stroke="#4A2E1B" stroke-width="2.5"/>
+  <ellipse cx="150" cy="138" rx="10" ry="12" fill="url(#catCream)" stroke="#4A2E1B" stroke-width="2.5"/>
+
+  <!-- Crumbs falling 🍪 -->
+  <circle cx="100" cy="160" r="2" fill="#2A170D"/>
+  <circle cx="140" cy="162" r="2.5" fill="#2A170D"/>
+  <circle cx="115" cy="168" r="1.5" fill="#2A170D"/>
+
+  <!-- Cute Sparkles ✨ -->
+  <path d="M188 38L190 43L195 44L190 45L188 50L186 45L181 44L186 43L188 38Z" fill="#F59E0B"/>
+  <path d="M52 38L54 43L59 44L54 45L52 50L50 45L45 44L50 43L52 38Z" fill="#F59E0B"/>
+</svg>

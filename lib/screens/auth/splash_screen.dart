@@ -26,35 +26,35 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2200),
+      duration: const Duration(milliseconds: 2800),
     );
 
     // Phase 1: Logo scales & fades in cleanly
     _logoScaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.35, curve: Curves.easeOutCubic),
+        curve: const Interval(0.0, 0.40, curve: Curves.easeOutSine),
       ),
     );
 
     _logoOpacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.20, curve: Curves.easeIn),
+        curve: const Interval(0.0, 0.30, curve: Curves.easeIn),
       ),
     );
 
-    // Phase 2: Fluid wave flows from screen edges into the logo area (0.0 -> 0.70)
+    // Phase 2: Fluid wave flows from screen edges into the logo area
     _fluidFlowAnimation = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.0, 0.70, curve: Curves.easeInOutCubic),
+      curve: const Interval(0.15, 0.85, curve: Curves.easeInOutSine),
     );
 
-    // Phase 3: Liquid colors flow INTO and fill the logo SVG (0.10 -> 0.70)
+    // Phase 3: Liquid colors flow INTO and fill the logo SVG
     _logoFillAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.10, 0.70, curve: Curves.easeInOutCubic),
+        curve: const Interval(0.20, 0.85, curve: Curves.easeInOutSine),
       ),
     );
 
@@ -62,7 +62,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        Future.delayed(const Duration(milliseconds: 200), () {
+        Future.delayed(const Duration(milliseconds: 400), () {
           if (mounted) {
             widget.onLoadingComplete?.call();
           }
